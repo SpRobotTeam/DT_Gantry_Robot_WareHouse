@@ -1,5 +1,6 @@
 import math
 from error import error_code_dict 
+import numpy as np
 
 
 
@@ -12,38 +13,70 @@ class area_manager():
 
     '''
 
-    
+    # def __init__(self):
+    #     self.area_name = 'Area_01'
+    #     self.row = 7000 // (200+20)
+    #     self.col = 12000 // (300+20)
+    #     self.width = 1600 // 200
+        
 
-    def __init__(self, area_name:str, row:float, col:float, max_height:float, grid_type:str='square', grid_size:float=1):
+    def __init__(self, area_name:str, origin_point:list[int,int], row_block:int=0, col_block:int=0, height_block:int=0, row:float=0, col:float=0, height:float=0, grid_size:list[float]=[300,200,200], grid_type:str='rectangle'):
         '''
         구역 그리드 생성
         '''
-        for i in [row, col, max_height, grid_size]:
-            if i >= 0:
-                self.error('invalid_input')
+        grid_set_num = 0
+        for j in [[row_block, col_block, height_block], [row, col, height, grid_size]]:
+            for i in j:
+                if i <= 0:
+                    grid_set_num+=1
+                    break
+                elif  len(j) == j.index(i):
+                    break
+        if grid_set_num >= 2:
+            self.error('invalid_input')
 
+        elif grid_set_num == 0:
+            col = col_block
+            row = row_block
+            height = height_block
 
-        self.grid = temp_list = []
-        for j in range(math.floor(col)):
-            temp_list.append([])
-        for i in range(math.floor(row)):
-            self.grid.append(temp_list)
-        self.max_height = max_height
+        elif grid_type[0].lower() == 'r':
+            col = math.floor(col/grid_size[0])
+            row = math.floor(row/grid_size[1])
+            height = math.floor(height/grid_size[2])
+            
+        # self.grid = []
+        # for j in range(col):
+        #     temp_list = []
+        #     for i in range(row):
+        #         temp_list.append([])
+        #     self.grid.append(temp_list)
+
+        self.area_name = area_name
         self.grid_type = grid_type
+        self.origin_point = origin_point
 
-    def read_stock_state(self):
+        self.grid = np.zeros(col,row,height)
+
+    def read_stock_state(self)->list:
         pass
 
     def write_stock_state(self, target, state):
         pass
 
-    def find_target(self, target):
+    def find_target(self, target)->list:
         pass
 
     def put_target(self, target):
         pass
 
     def pick_target(self, target):
+        pass
+
+    def sort(slef,):
+        pass
+    
+    def arrange(self,):
         pass
 
     def error(self, error_code, *messages):
