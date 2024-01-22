@@ -10,6 +10,7 @@
 
 ### 개념 정리 - PPT
 [개념](https://tuackr-my.sharepoint.com/:p:/g/personal/lmrlar98_tuackr_onmicrosoft_com/Ed7idKPbG_dJqUAPZ9F4i9wBHs6nexKCHy1koZ46b27GlA?e=WWGoAR)
+
 [구성도](https://tuackr-my.sharepoint.com/:p:/g/personal/lmrlar98_tuackr_onmicrosoft_com/EbSxN29LyK5GroHN0bicSdkBxmI0hg_D7z7FpUDP1HTLPw?e=dMSdFW)
 
 
