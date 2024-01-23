@@ -1,6 +1,7 @@
 import math
 from error import error_code_dict 
 import numpy as np
+import PLC_com
 
 
 
@@ -20,10 +21,25 @@ class area_manager():
     #     self.width = 1600 // 200
         
 
-    def __init__(self, area_name:str, origin_point:list[int,int], row_block:int=0, col_block:int=0, height_block:int=0, row:float=0, col:float=0, height:float=0, grid_size:list[float]=[300,200,200], grid_type:str='rectangle'):
+    def __init__(self, 
+                 area_name:str,
+                 origin_point:list[int,int,int], 
+                 row_block:int=0, col_block:int=0, 
+                 height_block:int=0, 
+                 row:float=0, 
+                 col:float=0, 
+                 height:float=0, 
+                 grid_size:list[float]=[300,200,200], 
+                 grid_type:str='rectangle',
+                 container_type = None
+                 ):
         '''
         구역 그리드 생성
         '''
+        self.area_name = area_name
+        self.grid_type = grid_type
+        self.origin_point = origin_point
+        
         grid_set_num = 0
         for j in [[row_block, col_block, height_block], [row, col, height, grid_size]]:
             for i in j:
@@ -36,14 +52,14 @@ class area_manager():
             self.error('invalid_input')
 
         elif grid_set_num == 0:
-            col = col_block
-            row = row_block
-            height = height_block
+            self.col = col_block
+            self.row = row_block
+            self.height = height_block
 
         elif grid_type[0].lower() == 'r':
-            col = math.floor(col/grid_size[0])
-            row = math.floor(row/grid_size[1])
-            height = math.floor(height/grid_size[2])
+            self.col    = math.floor(col/grid_size[0])      - self.origin_point[0]
+            self.row    = math.floor(row/grid_size[1])      - self.origin_point[1]
+            self.height = math.floor(height/grid_size[2])   - self.origin_point[2]
             
         # self.grid = []
         # for j in range(col):
@@ -51,33 +67,9 @@ class area_manager():
         #     for i in range(row):
         #         temp_list.append([])
         #     self.grid.append(temp_list)
+        self.grid = np.zeros(self.col,self.row,self.height)
 
-        self.area_name = area_name
-        self.grid_type = grid_type
-        self.origin_point = origin_point
 
-        self.grid = np.zeros(col,row,height)
-
-    def read_stock_state(self)->list:
-        pass
-
-    def write_stock_state(self, target, state):
-        pass
-
-    def find_target(self, target)->list:
-        pass
-
-    def put_target(self, target):
-        pass
-
-    def pick_target(self, target):
-        pass
-
-    def sort(slef,):
-        pass
-    
-    def arrange(self,):
-        pass
 
     def error(self, error_code, *messages):
         # print(f'오류가 발생했습니다.\n')
