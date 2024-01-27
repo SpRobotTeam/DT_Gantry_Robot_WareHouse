@@ -4,32 +4,55 @@ import numpy as np
 from threading import Thread, Event
 import time
 
-class server():
-    def __init__(self, 
-                 host='127.0.0.1', 
-                 port=502, 
-                 unit_id=1, 
-                 h_regs_size:int=65536, 
-                 d_inputs_size:int=65536,
-                 coils_size:int=0, 
-                 i_regs_size:int=0): # '127.0.0.1' '192.168.5.58'
+# class server():
+#     def __init__(self, 
+#                  host='127.0.0.1', 
+#                  port=502, 
+#                  unit_id=1, 
+#                  h_regs_size:int=65536, 
+#                  d_inputs_size:int=65536,
+#                  coils_size:int=0, 
+#                  i_regs_size:int=0): # '127.0.0.1' '192.168.5.58'
         
-        self.databank = DataBank(h_regs_size = h_regs_size, 
-                                 d_inputs_size = d_inputs_size, 
-                                 coils_size = coils_size, 
-                                 i_regs_size = i_regs_size, )
-        self.server = ModbusServer(host=host, port=port, no_block=True, data_bank=self.databank)
-        self.server.start()
+#         self.databank = DataBank(h_regs_size = h_regs_size, 
+#                                  d_inputs_size = d_inputs_size, 
+#                                  coils_size = coils_size, 
+#                                  i_regs_size = i_regs_size, )
+#         self.server = ModbusServer(host=host, port=port, no_block=True, data_bank=self.databank)
+#         self.server.start()
 
 
 
 
 
 class client():
+    data_block = {
+        'PC_mission_set' : [0],
+        'PC_from' : [0,0,0], 
+        'PC_griper_act_01' : [0], 
+        'PC_reserved_01' : [0], 
+        'PC_to' : [0,0,0], 
+        'PC_griper_act_02' : [0], 
+        'PC_reserved_02' : [0],
+
+        'PLC_working' : [0], 
+        'PLC_ready' : [0], 
+        'PLC_reserved' : [0],
+    }
+    
     def __init__(self, host='127.0.0.1', port=502, unit_id=1):
         self.client = ModbusClient(auto_open=True, auto_close=True, host=host, port=port, unit_id=1, debug=False)
         self.loop_thread = Thread(target=self.loop )
         self.loop_thread.start()
+
+        self.set_list=[]
+        for k,v in self.data_block.items():
+            if 'PC_' in k:
+                self.set_list = self.set_list + v
+            else:
+                break
+
+        self.write(address=0, set_list=self.set_list)
     
     def read(self, address = 0, nb = 5*21, reshape = 21, mode = 'HR')->list:
         """모드버스 수신 함수 
@@ -73,7 +96,9 @@ class client():
             self.client.close()
             end_time = time.time()
             # print (f"\n\nnp.array____________________________\n{np.array(self.get_list).reshape(-1, reshape).tolist()}\n\n")
-            print(f"mbus read : {end_time - start_time :.3f}s")
+            
+            # print(f"mbus read : {end_time - start_time :.3f}s")
+            
             # logger.logger(mission='mbus read', etc=f"{end_time - start_time :.2f}s")
             return np.array(self.get_list).reshape(-1, reshape).tolist()
 
@@ -95,14 +120,16 @@ class client():
         finally:
             self.client.close
             end_time = time.time()
-            print(f"mbus write : {end_time-start_time:.3f}s")
+            
+            # print(f"mbus write : {end_time-start_time:.3f}s")
+            
             # logger.logger(mission='mbus write', etc=f"{end_time - start_time :.2f}s")
             
 
 
 
 
-class plc_com(client, server):
+class plc_com(client): #, server):
     mission_enabled = False
 
     def __init__(self, 
@@ -116,16 +143,20 @@ class plc_com(client, server):
                  i_regs_size:int=0):
         
         self.loop_interval = loop_interval
-        server.__init__(self,host=host, port=port, unit_id=unit_id)
+        # server.__init__(self,host=host, port=port, unit_id=unit_id)
         super().__init__(host=host, port=port, unit_id=unit_id)
 
 
     def plc_check(self):
-        reshape = 15
-        status = self.read(address=0, nb=reshape, reshape=reshape)
-        if status[0] == 0 and status[10] == 1:
+        reshape = 20
+        while True:
+            status = self.read(address=0, nb=reshape, reshape=reshape)
+            if status:
+                break
+            else: print("M/B failed")
+        if status[0][0] == 0 and status[0][10] == 1:
             self.mission_enabled = True
-        if status[9]:
+        if status[0][9]:
             self.write(address=0, set_list=[0])
 
 
