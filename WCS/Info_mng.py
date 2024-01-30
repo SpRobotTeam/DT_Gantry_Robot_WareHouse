@@ -1,4 +1,6 @@
 from WH_mng import wh_manager
+from Zone_mng import zone_manager
+from Area_mng import area_manager
 from MW.Product_mng import container_manager, product_manager
 # import numpy as np
 import datetime as dt
@@ -21,14 +23,17 @@ class Base_info (product_manager, container_manager, wh_manager):
         
 
     def add_default_WH(self):
-        self.WH_01 = wh_manager
-        self.WH_01.__init__(self)
+        # self.WH_01 = wh_manager
+        # self.WH_01.__init__(self.WH_01)
+
+        self.WH_01 = wh_manager()
         self.WH_dict['WH_01'] = self.WH_01
-        self.WH_01.Zone_dict = self.add_default_zone(**self.container_dict['default'])
+        # self.WH_01.Zone_dict = 
+        wh_manager.add_default_zone(self.WH_01, **self.container_dict['default'])
         
 
 
-    def add_WH(self,WH_properties):
+    def add_WH(self,**WH_properties):
         self.WH_dict[WH_properties['name']] = globals (
                                                         f"{WH_properties['name']}", 
                                                         wh_manager(WH_properties))
@@ -78,38 +83,61 @@ class Base_info (product_manager, container_manager, wh_manager):
         if not WH_name:
             WH_name = list(self.WH_dict.keys())[-1]
         if not Zone_name:
-            Zone_name = list(self.Zone_dict.keys())[-1]
+            Zone_name = list(self.WH_dict[WH_name].Zone_dict.keys())[-1]
         if not Area_name:
-            # Area_name = list(self.Area_dict.keys())[-1]
-            Area_name = 'Area_01'
-            
+            Area_name = list(self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict.keys())[-1]
+            # Area_name = 'Area_01'
+
+
         destination_WH   = self.WH_dict[WH_name]
         destination_zone = self.WH_dict[WH_name].Zone_dict[Zone_name]
         destination_area = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name]
         In_area          = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict['In']
 
-        present_product_amount = len([i for i in destination_area.inventory.keys() if product_name == i])
-        # lot = f"{self.product_templet_dict[product_name]['lot_head']}-{DOM}-{present_product_amount}"
+        present_product_amount = len([i for i in destination_area.inventory.keys() 
+                                      if self.product_templet_dict[product_name]['lot_head'] in i])
+        
+        registered_product_amount = len([i for i in self.product_I_dict.keys() 
+                                      if self.product_templet_dict[product_name]['lot_head'] in i])
+        
+        lot = f"{self.product_templet_dict[product_name]['lot_head']}-{DOM}-{registered_product_amount+1:04d}"
+        
+
+        In_area.grid[0][0].append(lot) # 박스 추가 : 변경 여부 검토 필요
+
 
         if manual_loc:
             loc = manual_loc
 
         else:
-            if present_product_amount%destination_area.height:
+            if (registered_product_amount == 0 
+                or (registered_product_amount+1)%destination_area.height):
                 priority = 2
             else:
                 priority = 1
             
-            loc = self.optimal_pos_find(area_name=Area_name, 
-                                outbound_freq = self.product_templet_dict[product_name]['outbound_frequency'], 
-                                priority=priority)
+            loc = zone_manager.optimal_pos_find(
+                                self=destination_zone,
+                                lot=lot,
+                                area_name=Area_name, 
+                                outbound_freq = self.product_templet_dict[product_name]
+                                                ['outbound_frequency'], 
+                                priority=priority
+                                )
 
         # self.Zone_01.inbound(loc=loc)
-            
-        self.move_item(area_from=In_area, 
-                       loc_from=In_area.origin_point, 
-                       area_to=destination_area, 
-                       loc_to = loc) # product_name/lot_head
+        
+        # height = len(In_area.grid[loc[0]][loc[1]])-1
+
+        zone_manager.move_item(
+                                    self=destination_zone,
+                                    area_from=In_area, 
+                                    loc_from=[0,0,0],
+                                    # loc_from=[0, 0, [a+b for a,b in 
+                                    #                  zip([0,0,height],In_area.origin_point)].index(lot)],
+                                    area_to=destination_area, 
+                                    loc_to = loc
+                                    ) 
                                 
         
         # loc = self.WH_dict[WH_name].Zone_dict[Zone_name].pos_find(
@@ -118,8 +146,8 @@ class Base_info (product_manager, container_manager, wh_manager):
         #     )
 
 
-        self.resister_item(
-                         I_id=present_product_amount,
+        self.register_item(
+                         I_id=registered_product_amount,
                          product_name=product_name, 
                          DOM = DOM,
                          manufactor=manufactor,
@@ -130,43 +158,160 @@ class Base_info (product_manager, container_manager, wh_manager):
                         bin_location=loc
                          )
         
+        self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name].inventory[lot] = {
+                        'loc' : loc
+                    }
+        
+        if priority == 1:
+            self.sort_item( # 정렬
+                            WH_name=WH_name, 
+                            Zone_name=Zone_name, 
+                            Area_name=Area_name, 
+                            lot=lot, 
+                            loc=[loc[0],loc[1],loc[2]+1],
+                            offset=2
+                           )
+        
+        print(f"{lot} : {Area_name}{loc}에 입고 완료",
+              f"{'- '+destination_area.grid[loc[0]][loc[1]][-1]+'~'+lot+' 정렬 완료됨'if priority == 1 else ''}")
+            
 
 
     def Outbound(self, lot):  #lot_head/name
         # loc = self.find_loc(name)
-        I_dict = self.product_I_dict[lot]
-        WH_name = I_dict['WH_name']
-        Zone_name = I_dict['Zone_name']
-        Area_name = I_dict['Area_name']
-        loc = I_dict['bin_location']
+        I_dict      = self.product_I_dict[lot]
+        WH_name     = I_dict['WH_name']
+        Zone_name   = I_dict['Zone_name']
+        Area_name   = I_dict['Area_name']
+        loc         = I_dict['bin_location']
+        
+        deposition_WH   = self.WH_dict[WH_name]
+        deposition_zone = self.WH_dict[WH_name].Zone_dict[Zone_name]
+        deposition_area = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name]
+        
+        previous_height = len(deposition_area.grid[loc[0]][loc[1]])
+        
+        
+        Out_area        = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict['Out']
 
         if loc:
-            if (loc[-1] == 
-                self.WH_dict[WH_name].
-                Zone_dict[Zone_name].
-                Area_dict[Area_name].
-                grid[loc[0]][loc[1]].index(lot)
-                ):
-                self.Zone_01.outbound(loc)
+            
+            while loc[-1]+1 != len(deposition_area.grid[loc[0]][loc[1]]):
 
-                Out_area= self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict['Out']
+                top_lot = (deposition_area.grid[loc[0]][loc[1]][-1])
+                product_name = self.product_I_dict[top_lot]['product_name']
+                deposition_loc = zone_manager.optimal_pos_find(
+                                    self = deposition_zone,
+                                    area_name=Area_name,
+                                    lot=top_lot,
+                                    outbound_freq=self.product_templet_dict[product_name]['outbound_frequency'],
+                                    priority=2
+                                    )
+                zone_manager.move_item( # 상단 상품 이동
+                    self=deposition_zone,
+                    area_from=deposition_area,
+                    loc_from=[loc[0],loc[1],len(deposition_area.grid[loc[0]][loc[1]])-1],
+                    area_to=deposition_area,
+                    loc_to=deposition_loc
+                    )
+                
+                self.product_I_dict[top_lot]['bin_location'] = deposition_area.inventory[top_lot]['loc'] = deposition_loc
+                
+                
+            # height = len(Out_area.grid[0][0])-1
 
-                self.move_item(area_from=self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name],
-                                loc_from=loc, 
-                                area_to= self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict['Out'],
-                                loc_to = Out_area.origin_point) # product_name/lot_head
+            zone_manager.move_item( # 목표 상품 이동
+                self=deposition_zone,
+                area_from=deposition_area,
+                loc_from=loc,
+                area_to=Out_area,
+                # loc_to=[0, 0, [a+b for a,b in 
+                #         zip([0,0,height],Out_area.origin_point)]]
+                loc_to=[0,0,0]
+            )
+
+            rearrange_offset = len(list(deposition_area.inventory.keys()))\
+                                -list(deposition_area.inventory.keys()).index(lot) 
+            
+            deposition_area.inventory.pop(lot)
+            for k in ['WH_name','Zone_name','Area_name','bin_location']:
+                self.product_I_dict[lot].pop(k)
+            
+            if previous_height > 1:
+                self.sort_item( # 재 정렬
+                    WH_name = WH_name, 
+                    Zone_name = Zone_name, 
+                    Area_name = Area_name,
+                    lot = lot,
+                    loc = [loc[0],loc[1],loc[-1]],
+                    height=previous_height-1,
+                    offset= rearrange_offset
+                )
+
+        if Out_area.grid[0][0]:
+            Out_area.grid[0][0].pop()
+
+        print(f"{lot} 출고 완료",
+              f"")
 
 
 
-    def sort(self,):
-        pass
-    
+    # def rearrange_Area(self,):
+    #     pass
 
-    def rearrange_Area(self,):
-        pass
 
-    def sort_item(self):
-        pass
+
+    def sort_item(self, WH_name, Zone_name, Area_name, lot, loc, height = None, offset = 1):
+        '''
+        Area_manager.optimal_pos_find()에 따라 펼쳐놓은 박스를 
+        높이 한계 (height)까지 한 줄로 쌓아올려 정리하는 함수
+
+        현재 First-Fit 과 유사한 알고리즘 사용 중
+        '''
+        destination_WH   = self.WH_dict[WH_name]
+        destination_zone = self.WH_dict[WH_name].Zone_dict[Zone_name]
+        destination_area = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name]
+
+        if not height:
+            height = destination_area.height
+        if not offset:
+            offset = 1
+
+        base_level = loc[-1] # len(destination_area.grid[loc[0]][loc[1]])
+
+        for z in range(base_level, height):
+            deposition_lot = list(destination_area.inventory.keys())[base_level-z-offset]
+            # loc[-1] += 1
+            # deposition_loc = destination_area.inventory[deposition_lot]['loc']
+            deposition_loc = self.product_I_dict[deposition_lot]['bin_location']
+            
+            # destination_loc = [a+b for a,b in zip([0,0,offset], loc)]
+            # destination_loc = [loc[0], loc[1], len(destination_area.grid[loc[0]][loc[1]])]
+            destination_loc = [loc[0], loc[1], z]
+
+           
+            while True:
+                
+                if deposition_lot[:-14] == lot [:-14]:
+                    
+                    zone_manager.move_item(
+                        self=destination_zone,
+                        area_from=destination_area,  
+                        loc_from=deposition_loc,
+                        area_to=destination_area,
+                        loc_to=destination_loc)
+                    
+                    self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name].inventory[deposition_lot]['loc'] \
+                    = self.product_I_dict[deposition_lot]['bin_location'] \
+                    = destination_loc
+                                
+                    # destination_area.inventory[destination_lot]['loc'] = destination_loc
+                    # self.product_I_dict[deposition_lot]['bin_location'] = destination_loc
+
+                    break
+                else:
+                    offset+=1
+        
 
 
     

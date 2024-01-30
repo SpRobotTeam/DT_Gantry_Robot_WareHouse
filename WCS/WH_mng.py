@@ -1,5 +1,5 @@
 from Zone_mng import zone_manager
-class wh_manager (zone_manager):
+class wh_manager ():
     def __init__(self):
         self.Zone_dict = {}
     
@@ -16,19 +16,24 @@ class wh_manager (zone_manager):
 
 
         self.Zone_dict[zone_properties_dict['name']] = \
-            globals (
+            locals (
                     f"{zone_properties_dict['name']}", 
                     zone_manager(zone_properties_dict))
         
 
 
     def add_default_zone(self, **container):
-        self.Zone_01 = zone_manager
-        self.Zone_01.__init__(self, **container)
-        self.Zone_dict['Zone_01'] = self.Zone_01
-        self.Zone_01.Area_dict = self.add_default_areas()
+        # Zone_01 = zone_manager
+        # Zone_01.__init__(self, **container)
 
-        return self.Zone_dict
+        Zone_01 = zone_manager(**container)
+        # Zone_01.Area_dict = 
+        # Zone_01.add_default_areas(self)
+        zone_manager.add_default_areas(Zone_01)
+
+        self.Zone_dict['Zone_01'] = Zone_01
+
+        return self # self.Zone_dict
         
         # super().add_default_areas()
     

@@ -14,15 +14,7 @@ class area_manager():
 
     '''
     
-    inventory = {}
-    '''
-    {
-    'lot':{
-        loc : [x,y,z],
-
-        }
-    }
-    '''
+    
 
     # def __init__(self):
     #     self.area_name = 'Area_01'
@@ -49,6 +41,17 @@ class area_manager():
         '''
         구역 그리드 생성
         '''
+
+        self.inventory = {}
+        '''
+        {
+        'lot':{
+            'loc' : [x,y,z],
+
+            }
+        }
+        '''
+
         self.area_name = area_name
         self.grid_type = grid_type
         self.origin_point = origin_point
@@ -93,6 +96,7 @@ class area_manager():
                 self.grid[x].append([])
         
         self.empty_space = self.col * self.row
+
 
     # def split_area(split_num = 2):
     #     if split_num == 0:

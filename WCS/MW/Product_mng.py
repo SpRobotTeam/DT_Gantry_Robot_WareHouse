@@ -12,7 +12,7 @@ class container_manager():
     }
 
     def __init__(self):
-        pass
+        return self
 
 
     # def __init__(self, saved_file):
@@ -193,7 +193,7 @@ class product_manager():
             self.product_templet_dict[product_name]['outbound_frequency']=False #lot_head/name
   
 
-    def resister_item(self,
+    def register_item(self,
                     I_id,
                     # lot_head,
                     # lot_tail,

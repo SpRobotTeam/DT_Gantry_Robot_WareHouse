@@ -1,9 +1,10 @@
 from Info_mng import Base_info
+import random as rand
 # from MW.MW import m
 
 class GantryWCS (Base_info):
     def __init__(self):
-        Base_info.__init__()
+        Base_info.__init__(self)
         # self.base_info = Base_info()
         
         
@@ -14,11 +15,23 @@ class GantryWCS (Base_info):
 
 if __name__ == '__main__':
     wcs_DT = GantryWCS()
+    # wcs_DT.__init__()
+    wcs_DT.add_default_WH()
 
-    wcs_DT.add_defualt_WH()
+    box_amount = 16
 
-    for iter in range(100):
+    for _ in range(box_amount):
         wcs_DT.Inbound()
+
+    _ = 0
+    while _ <= box_amount:
+        product = rand.choice(list(wcs_DT.product_I_dict.keys()))
+        if 'WH_name' in wcs_DT.product_I_dict[product].keys():
+            wcs_DT.Outbound(product)
+            _ += 1
+        
+
+    print("test_fin")
 
     
 
