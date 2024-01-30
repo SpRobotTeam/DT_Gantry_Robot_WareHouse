@@ -32,7 +32,7 @@ class Base_info (product_manager, container_manager, wh_manager):
         self.WH_01 = wh_manager()
         self.WH_dict['WH_01'] = self.WH_01
         # self.WH_01.Zone_dict = 
-        wh_manager.add_default_zone(self.WH_01, **self.container_dict['default'])
+        wh_manager.add_default_zone(self.WH_01, self.container_dict['default'])
         
 
 

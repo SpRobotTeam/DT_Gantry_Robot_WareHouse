@@ -9,17 +9,17 @@ import MW.PLC_com as PLC_com
 
 class zone_manager():
     def __init__(self, 
-                 **container
+                 container
                  ):
         self.container = container
         self.Modbus_inst = PLC_com.plc_com()
         self.Area_dict = {}
 
     
-    def add_area(self, **area_properties_dict):
+    def add_area(self, area_properties_dict):
         # self.exec()
         
-        area_name = area_properties_dict['name']
+        area_name = area_properties_dict['area_name']
         self.Area_dict[area_name] = \
             locals()[area_name] = \
                 area_manager(
