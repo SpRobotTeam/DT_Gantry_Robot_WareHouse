@@ -1,7 +1,10 @@
+# import sys, os
+# sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+
 import math
 # from error import error_code_dict 
 import numpy as np
-import PLC_com
+import MW.PLC_com as PLC_com
 
 
 

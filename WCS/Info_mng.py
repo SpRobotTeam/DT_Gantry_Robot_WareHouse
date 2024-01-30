@@ -1,6 +1,9 @@
-from WH_mng import wh_manager
-from Zone_mng import zone_manager
-from Area_mng import area_manager
+# import sys, os
+# sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+
+from WCS.WH_mng import wh_manager
+from WCS.Zone_mng import zone_manager
+from WCS.Area_mng import area_manager
 from MW.Product_mng import container_manager, product_manager
 # import numpy as np
 import datetime as dt
@@ -34,9 +37,13 @@ class Base_info (product_manager, container_manager, wh_manager):
 
 
     def add_WH(self,**WH_properties):
-        self.WH_dict[WH_properties['name']] = globals (
-                                                        f"{WH_properties['name']}", 
-                                                        wh_manager(WH_properties))
+        self.WH_dict[WH_properties['name']] = \
+            locals()[f"{WH_properties['name']}"] = \
+                wh_manager()
+                # wh_manager(**WH_properties)
+        # self.WH_dict[WH_properties['name']] =  locals()[f"{WH_properties['name']}"]
+                
+                                                        
 
 
     # def find_loc(self, target)->list[int, int, int]:

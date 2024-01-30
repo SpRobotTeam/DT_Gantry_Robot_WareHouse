@@ -1,4 +1,8 @@
-from Info_mng import Base_info
+import sys, os
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+
+# from Info_mng import Base_info
+from WCS.Info_mng import Base_info
 import random as rand
 # from MW.MW import m
 
@@ -24,7 +28,7 @@ if __name__ == '__main__':
         wcs_DT.Inbound()
 
     _ = 0
-    while _ <= box_amount:
+    while _ < box_amount:
         product = rand.choice(list(wcs_DT.product_I_dict.keys()))
         if 'WH_name' in wcs_DT.product_I_dict[product].keys():
             wcs_DT.Outbound(product)

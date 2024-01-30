@@ -1,7 +1,10 @@
-from Area_mng import area_manager
+# import sys, os
+# sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+
+from WCS.Area_mng import area_manager
 import math
 import numpy as np
-import PLC_com
+import MW.PLC_com as PLC_com
 
 
 class zone_manager():
@@ -13,21 +16,21 @@ class zone_manager():
         self.Area_dict = {}
 
     
-    def add_area(self, area_name, area_properties_dict):
+    def add_area(self, **area_properties_dict):
         # self.exec()
         
-        
-        self.Area_dict['area_name'] = locals(
-            f'{area_name}', 
-            area_manager(area_name=area_name,
-                        origin_point=area_properties_dict['origin'],  
-                        col_block=area_properties_dict['col'], 
-                        row_block=area_properties_dict['row'], 
-                        height_block=area_properties_dict['heigth'], 
-                        grid_type=area_properties_dict['grid_type']
-                        )
-                                )
-
+        area_name = area_properties_dict['name']
+        self.Area_dict[area_name] = \
+            locals()[area_name] = \
+                area_manager(
+                    area_name=area_name,
+                    origin_point=area_properties_dict['origin'],  
+                    col_block=area_properties_dict['col'], 
+                    row_block=area_properties_dict['row'], 
+                    height_block=area_properties_dict['heigth'], 
+                    grid_type=area_properties_dict['grid_type']
+                    )
+                                
 
 
     def add_default_areas(self,
