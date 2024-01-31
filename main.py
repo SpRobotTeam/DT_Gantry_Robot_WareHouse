@@ -3,6 +3,7 @@
 
 from WCS import WCS
 import random as rand
+# import pprint
 
 manual = True
 
@@ -27,25 +28,26 @@ if manual:
     Zone_name = 'Zone_Gantry'
 
     wcs_DT = WCS.GantryWCS()
-    wcs_DT.add_WH(**{
-        'name':WH_name,
+    wcs_DT.add_WH({
+        'WH_name':WH_name,
     })
 
 
     container_name = None
     while not container_name:
-        container_name = input("사용할 컨테이너의 이름을 입력해주세요." + "\n>> ")
+        container_name_input = input("사용할 컨테이너의 이름을 입력해주세요. [기본값 'DT']" + "\n>> ")
+        container_name = container_name_input if container_name_input else 'DT'
     wcs_DT.add_container(container_name=container_name)
 
     WareHouse = wcs_DT.WH_dict[WH_name]
     WareHouse.add_zone({
-        'name'      : Zone_name,
+        'Zone_name'      : Zone_name,
         'container' : wcs_DT.container_dict[container_name],
     })
 
     Zone = WareHouse.Zone_dict[Zone_name]
     Zone.add_area({
-        'area_name' : 'Gantry',
+        'Area_name' : 'Gantry',
         'origin'    : [0,1,0]  ,  
         'col'       :  1 , 
         'row'       :  1 , 
@@ -53,7 +55,7 @@ if manual:
         'grid_type' :  'r' 
     })
     Zone.add_area({
-        'area_name' : 'In',
+        'Area_name' : 'In',
         'origin'    : [0,15,0]  ,  
         'col'       :  1 , 
         'row'       :  1 , 
@@ -61,7 +63,7 @@ if manual:
         'grid_type' :  'r' 
     })
     Zone.add_area({
-        'area_name' : 'Out',
+        'Area_name' : 'Out',
         'origin'    : [0,15,0]  ,  
         'col'       :  1 , 
         'row'       :  1 , 
@@ -69,7 +71,7 @@ if manual:
         'grid_type' :  'r' 
     })
     Zone.add_area({
-        'area_name' : 'Area_01',
+        'Area_name' : 'Area_01',
         'origin'    : [1,0,0]  ,  
         'col'       :  4 , 
         'row'       :  4 , 
@@ -80,27 +82,35 @@ if manual:
     command = ''
     while True:
         command = input(
-            "명령을 입력하세요. i [num] : [num]만큼 입고, o [num] : [num] 만큼 출고, c : 종료"+
+            "명령을 입력하세요. i [num : 기본값 8] : [num]만큼 입고, o [num : 기본값 전채] : [num] 만큼 출고, l : 구역 물품 리스트 출력, c : 종료"+
             "\n>>"
             )
+        try:
+            if command:
+                p = command.split(" ")
+                if len(p) != 1:
+                    num = int(p[1])
+                else:
+                    num = None
 
-        if command :
-            if command[0].lower() == 'c':
-                print("WCS 종료 중 ... ")
-                break
-        p = command.split(" ")
-        if len(p) != 1:
-            try:
-                num = int(p[1])
                 if command[0].lower() == 'i':
-                    inbound(num)
+                    if not num:
+                        num = 8
+                    inbound(num)                
                 
                 if command[0].lower() == 'o':
+                    if not num:
+                        num = len(list(wcs_DT.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict['Area_01'].inventory.keys()))
                     outbound(num)
-            except:
-                pass
-        
-                
+
+                if command[0].lower() == 'l':
+                    print(wcs_DT.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict['Area_01'].grid)
+
+                if command[0].lower() == 'c':
+                    print("WCS 종료 중 ... ")
+                    break
+        except:
+            pass
 
 
     

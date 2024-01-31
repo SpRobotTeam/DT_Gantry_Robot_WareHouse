@@ -9,21 +9,31 @@ import MW.PLC_com as PLC_com
 
 class zone_manager():
     def __init__(self, 
-                 container
+                 zone_properties_dict
                  ):
-        self.container = container
+        if not len(zone_properties_dict['container'].keys()):
+            self.container = {
+                                'name'      : 'default',
+                                'length'    : 300, 
+                                'width'     : 200, 
+                                'height'    : 200,
+                                'gap'       : 200
+                                }
+        else:
+            self.container = zone_properties_dict['container']
         self.Modbus_inst = PLC_com.plc_com()
         self.Area_dict = {}
+        self.Zone_name = zone_properties_dict['Zone_name']
 
     
     def add_area(self, area_properties_dict):
         # self.exec()
         
-        area_name = area_properties_dict['area_name']
-        self.Area_dict[area_name] = \
-            locals()[area_name] = \
+        Area_name = area_properties_dict['Area_name']
+        self.Area_dict[Area_name] = \
+            locals()[Area_name] = \
                 area_manager(
-                    area_name=area_name,
+                    Area_name=Area_name,
                     origin_point=area_properties_dict['origin'],  
                     col_block=area_properties_dict['col'], 
                     row_block=area_properties_dict['row'], 
@@ -52,7 +62,7 @@ class zone_manager():
         Gantry = area_manager(   
                                     # Gantry, 
                                     # area_manager,
-                                    area_name="Gantry",   
+                                    Area_name="Gantry",   
                                     origin_point=[0,math.ceil(self.row_total/2),0], 
                                     col_block=1,  
                                     row_block=1 , 
@@ -64,7 +74,7 @@ class zone_manager():
         In      = area_manager(
                                     # In,
                                     # area_manager,
-                                    area_name="In",     
+                                    Area_name="In",     
                                     origin_point=[0,self.row_total,0],  
                                     col_block=1,  
                                     row_block=1, 
@@ -76,7 +86,7 @@ class zone_manager():
         Out     = area_manager(
                                     # Out,
                                     # area_manager,
-                                    area_name="Out",    
+                                    Area_name="Out",    
                                     origin_point=[0,0,0], 
                                     col_block=1,  
                                     row_block=1, 
@@ -88,7 +98,7 @@ class zone_manager():
         Area_01 = area_manager(
                                     # Area_01,
                                     # area_manager,
-                                    area_name="Area_01",
+                                    Area_name="Area_01",
                                     origin_point=[1,0,0],  
                                     col_block=self.col_total-1, 
                                     row_block=self.row_total, 
@@ -101,7 +111,7 @@ class zone_manager():
     
 
 
-    def optimal_pos_find(self, lot, area_name, outbound_freq, priority):  # origin=[0,0],
+    def optimal_pos_find(self, lot, Area_name, outbound_freq, priority):  # origin=[0,0],
         '''
         구역 특성과 상품의 outbound_freq, priority에 따라 적절한 위치 탐색
 
@@ -110,32 +120,32 @@ class zone_manager():
         iter = 0
         if outbound_freq[0].lower() == 'h':
         # global_loc = [0,0,0]
-            for x in range(self.Area_dict[area_name].col):
-                for y in range(self.Area_dict[area_name].row):
-                    if len(self.Area_dict[area_name].grid[x][y]) == 0:
+            for x in range(self.Area_dict[Area_name].col):
+                for y in range(self.Area_dict[Area_name].row):
+                    if len(self.Area_dict[Area_name].grid[x][y]) == 0:
                         iter += 1
                         if iter == priority:
                             # return[x,y]
                             return [
-                                x ,# + self.Area_dict[area_name].origin_point[0],
-                                y ,# + self.Area_dict[area_name].origin_point[1],
-                                len(self.Area_dict[area_name].grid[x][y]) # + self.Area_dict[area_name].origin_point[2]]
+                                x ,# + self.Area_dict[Area_name].origin_point[0],
+                                y ,# + self.Area_dict[Area_name].origin_point[1],
+                                len(self.Area_dict[Area_name].grid[x][y]) # + self.Area_dict[Area_name].origin_point[2]]
                             ]
                             # break
                         else:
                             continue
         
         else:
-            for x in range(self.Area_dict[area_name], 1, -1).col:
-                for y in range(self.Area_dict[area_name], 1, -1).row:
-                    if len(self.Area_dict[area_name].grid[x][y]) == 0:
+            for x in range(self.Area_dict[Area_name], 1, -1).col:
+                for y in range(self.Area_dict[Area_name], 1, -1).row:
+                    if len(self.Area_dict[Area_name].grid[x][y]) == 0:
                         iter += 1
                         if iter == priority:
                             # return[x,y]
                             return [
-                                x + self.Area_dict[area_name].origin[0],
-                                y + self.Area_dict[area_name].origin[1],
-                                len(self.Area_dict[area_name].grid[x][y]) + self.Area_dict[area_name].origin[2]]
+                                x + self.Area_dict[Area_name].origin[0],
+                                y + self.Area_dict[Area_name].origin[1],
+                                len(self.Area_dict[Area_name].grid[x][y]) + self.Area_dict[Area_name].origin[2]]
                             # break
                         else:
                             continue
@@ -179,9 +189,10 @@ class zone_manager():
                 if recieved and type(res)==type([]) and res[11:13] == [0,1]:
                     lot = self.Area_dict['Gantry'].grid[0][0].pop()
                     area_to.grid[loc_to[0]][loc_to[1]].append(lot)
+                    print(f"{lot} : {area_from.Area_name}{loc_from} -> {area_to.Area_name}{loc_to}")
                     break
 
-    # def pick_item(self, lot, area_name, ):
+    # def pick_item(self, lot, Area_name, ):
     #     set_list = [1] + loc + [1] + Out.origin_point + [2]
     #     self.Modbus_inst.write(address=0, set_list=set_list)
 

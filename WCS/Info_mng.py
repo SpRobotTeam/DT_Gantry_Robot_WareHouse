@@ -29,18 +29,25 @@ class Base_info (product_manager, container_manager, wh_manager):
         # self.WH_01 = wh_manager
         # self.WH_01.__init__(self.WH_01)
 
-        self.WH_01 = wh_manager()
+        self.WH_01 = wh_manager(
+            {
+                'WH_name':'WH_01'
+                }
+        )
         self.WH_dict['WH_01'] = self.WH_01
         # self.WH_01.Zone_dict = 
-        wh_manager.add_default_zone(self.WH_01, self.container_dict['default'])
+        wh_manager.add_default_zone(self.WH_01, {
+                'Zone_name' : 'Zone_01',
+                'container' : self.container_dict['default']
+                }
+            )
         
 
 
-    def add_WH(self,**WH_properties):
-        self.WH_dict[WH_properties['name']] = \
-            locals()[f"{WH_properties['name']}"] = \
-                wh_manager()
-                # wh_manager(**WH_properties)
+    def add_WH(self,WH_properties):
+        self.WH_dict[WH_properties['WH_name']] = \
+            locals()[f"{WH_properties['WH_name']}"] = \
+                wh_manager(WH_properties)
         # self.WH_dict[WH_properties['name']] =  locals()[f"{WH_properties['name']}"]
                 
                                                         
@@ -126,7 +133,7 @@ class Base_info (product_manager, container_manager, wh_manager):
             loc = zone_manager.optimal_pos_find(
                                 self=destination_zone,
                                 lot=lot,
-                                area_name=Area_name, 
+                                Area_name=Area_name, 
                                 outbound_freq = self.product_templet_dict[product_name]
                                                 ['outbound_frequency'], 
                                 priority=priority
@@ -186,6 +193,7 @@ class Base_info (product_manager, container_manager, wh_manager):
 
     def Outbound(self, lot):  #lot_head/name
         # loc = self.find_loc(name)
+        print(f"출고 대상 : {lot}")
         I_dict      = self.product_I_dict[lot]
         WH_name     = I_dict['WH_name']
         Zone_name   = I_dict['Zone_name']
@@ -209,7 +217,7 @@ class Base_info (product_manager, container_manager, wh_manager):
                 product_name = self.product_I_dict[top_lot]['product_name']
                 deposition_loc = zone_manager.optimal_pos_find(
                                     self = deposition_zone,
-                                    area_name=Area_name,
+                                    Area_name=Area_name,
                                     lot=top_lot,
                                     outbound_freq=self.product_templet_dict[product_name]['outbound_frequency'],
                                     priority=2

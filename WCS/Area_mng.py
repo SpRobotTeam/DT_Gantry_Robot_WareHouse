@@ -29,7 +29,7 @@ class area_manager():
 
 
     def __init__(self, 
-                 area_name:str,
+                 Area_name:str,
                  origin_point:list[int,int,int], 
                 #  container_type,
                 #  grid_size:list[float], 
@@ -55,7 +55,7 @@ class area_manager():
         }
         '''
 
-        self.area_name = area_name
+        self.Area_name = Area_name
         self.grid_type = grid_type
         self.origin_point = origin_point
         

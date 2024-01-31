@@ -3,8 +3,9 @@ sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
 from WCS.Zone_mng import zone_manager
 class wh_manager ():
-    def __init__(self):
+    def __init__(self, WH_properties):
         self.Zone_dict = {}
+        self.WH_name = WH_properties['WH_name']
     
     # def __init__(self, **kwargs):
     #     pass
@@ -14,7 +15,7 @@ class wh_manager ():
                  ):
         
 
-        zone_name = zone_properties_dict['name']
+        zone_name = zone_properties_dict['Zone_name']
         self.Zone_dict[zone_name] = \
             locals()[zone_name] = \
                     zone_manager(
@@ -25,11 +26,11 @@ class wh_manager ():
         
 
 
-    def add_default_zone(self, container):
+    def add_default_zone(self, zone_properties_dict):
         # Zone_01 = zone_manager
-        # Zone_01.__init__(self, **container)
+        # Zone_01.__init__(self, **zone_properties_dict)
 
-        Zone_01 = zone_manager(container)
+        Zone_01 = zone_manager(zone_properties_dict)
         # Zone_01.Area_dict = 
         # Zone_01.add_default_areas(self)
         zone_manager.add_default_areas(Zone_01)
