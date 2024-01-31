@@ -6,7 +6,7 @@
 
 
 ### 개념 정리 - 노션
-[기본 페이지](https://www.notion.so/68288352350048ff82300f51217bb229?pvs=4)
+[기본 페이지](https://cloudy-rule-316.notion.site/68288352350048ff82300f51217bb229?pvs=4)
 
 ### 개념 정리 - PPT
 [개념](https://tuackr-my.sharepoint.com/:p:/g/personal/lmrlar98_tuackr_onmicrosoft_com/Ed7idKPbG_dJqUAPZ9F4i9wBHs6nexKCHy1koZ46b27GlA?e=WWGoAR)
