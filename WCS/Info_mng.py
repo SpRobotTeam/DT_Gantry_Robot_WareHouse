@@ -114,6 +114,14 @@ class Base_info (product_manager, container_manager, wh_manager):
         registered_product_amount = len([i for i in self.product_I_dict.keys() 
                                       if self.product_templet_dict[product_name]['lot_head'] in i])
         
+        if present_product_amount >= destination_area.inventory_critical_limit: # 물건을 하나씩 집는 동안은 해결 불능
+            print("최종 적재 한계에 도달 하였습니다. \n입고 작업 및 정렬 작업을 진행할 수 없습니다.")
+            return 1
+        
+        if present_product_amount >= destination_area.inventory_limit: # 다른 전략 필요
+            print("적재 한계에 도달 하였습니다. \n정렬 작업을 진행할 수 없습니다.")
+            return 1
+        
         lot = f"{self.product_templet_dict[product_name]['lot_head']}-{DOM}-{registered_product_amount+1:04d}"
         
 
@@ -124,8 +132,8 @@ class Base_info (product_manager, container_manager, wh_manager):
             loc = manual_loc
 
         else:
-            if (registered_product_amount == 0 
-                or (registered_product_amount+1)%destination_area.height):
+            if (present_product_amount == 0 
+                or (present_product_amount+1)%destination_area.height):
                 priority = 2
             else:
                 priority = 1

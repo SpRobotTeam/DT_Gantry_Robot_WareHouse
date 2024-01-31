@@ -161,7 +161,7 @@ class plc_com(client, server):
 
     def __init__(self, 
                  host='127.0.0.1', 
-                 port=502, 
+                 port=2502, # 502, 
                  unit_id=1,
                  loop_interval:float=0.5, 
                  h_regs_size:int=65536, 
@@ -170,7 +170,7 @@ class plc_com(client, server):
                  i_regs_size:int=0):
         
         self.loop_interval = loop_interval
-        # server.__init__(self,host=host, port=port, unit_id=unit_id)
+        server.__init__(self,host=host, port=port, unit_id=unit_id)
         super().__init__(host=host, port=port, unit_id=unit_id, loop_interval=loop_interval)
 
 

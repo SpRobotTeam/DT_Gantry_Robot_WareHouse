@@ -83,6 +83,8 @@ class area_manager():
         self.col = col_block
         self.row = row_block
         self.height = height_block
+        self.inventory_critical_limit   = self.col * self.row * self.height - self.height + 1
+        self.inventory_limit            = self.col * self.row * self.height - self.height*(self.height-1)
             
         # self.grid = []
         # for j in range(col):

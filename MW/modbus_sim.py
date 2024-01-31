@@ -4,7 +4,7 @@ import time
 interval_time = 0.25
 
 def loop(interval_time = interval_time):
-    c = ModbusClient()
+    c = ModbusClient(port=2502)
     while True:
         c.write_multiple_registers(11,[0,1])
         time.sleep(interval_time)

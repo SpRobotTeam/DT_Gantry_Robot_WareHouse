@@ -9,7 +9,9 @@ manual = True
 
 def inbound(num = 16):
     for _ in range(num):
-        wcs_DT.Inbound()
+        res = wcs_DT.Inbound()
+        if res:
+            return res
 
 def outbound(num = None):
     if not num:
@@ -75,40 +77,45 @@ if manual:
         'origin'    : [1,0,0]  ,  
         'col'       :  4 , 
         'row'       :  4 , 
-        'heigth'    :  4 , 
+        'heigth'    :  2 , 
         'grid_type' :  'r' 
     })
 
-    command = ''
     while True:
-        command = input(
+        
+        command_input = input(
             "명령을 입력하세요. i [num : 기본값 8] : [num]만큼 입고, o [num : 기본값 전채] : [num] 만큼 출고, l : 구역 물품 리스트 출력, c : 종료"+
             "\n>>"
             )
+        command = num = None
+        
         try:
-            if command:
-                p = command.split(" ")
-                if len(p) != 1:
-                    num = int(p[1])
-                else:
-                    num = None
-
-                if command[0].lower() == 'i':
-                    if not num:
-                        num = 8
-                    inbound(num)                
+            p = command_input.split(' ')
+            for c in p:
+                if not c:
+                    continue
+                elif not command:
+                    command = c[0].lower()
+                elif c.isdecimal():
+                    num = int(c)
+            
+            if command == 'i':
                 
-                if command[0].lower() == 'o':
-                    if not num:
-                        num = len(list(wcs_DT.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict['Area_01'].inventory.keys()))
-                    outbound(num)
+                if not num:
+                    num = 8
+                inbound(num)                
+            
+            if command == 'o':
+                if not num:
+                    num = len(list(wcs_DT.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict['Area_01'].inventory.keys()))
+                outbound(num)
 
-                if command[0].lower() == 'l':
-                    print(wcs_DT.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict['Area_01'].grid)
+            if command == 'l':
+                print(wcs_DT.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict['Area_01'].grid)
 
-                if command[0].lower() == 'c':
-                    print("WCS 종료 중 ... ")
-                    break
+            if command == 'c':
+                print("WCS 종료 중 ... ")
+                break
         except:
             pass
 
