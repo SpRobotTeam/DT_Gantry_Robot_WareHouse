@@ -73,6 +73,7 @@ class Base_info (product_manager, container_manager, wh_manager):
             manual_loc=[]
             ):
         
+
         if not DOM:
             date = dt.datetime.now()
             DOM = f"{date.year:02d}{date.month:02d}{date.day:02d}"
@@ -114,11 +115,11 @@ class Base_info (product_manager, container_manager, wh_manager):
         registered_product_amount = len([i for i in self.product_I_dict.keys() 
                                       if self.product_templet_dict[product_name]['lot_head'] in i])
         
-        if present_product_amount >= destination_area.inventory_critical_limit: # 물건을 하나씩 집는 동안은 해결 불능
+        if present_product_amount >= destination_area.INVENTORY_CRITICAL_LIMIT: # 물건을 하나씩 집는 동안은 해결 불능
             print("최종 적재 한계에 도달 하였습니다. \n입고 작업 및 정렬 작업을 진행할 수 없습니다.")
             return 1
         
-        if present_product_amount >= destination_area.inventory_limit: # 다른 전략 필요
+        if present_product_amount >= destination_area.INVENTORY_LIMIT: # 다른 전략 필요
             print("적재 한계에 도달 하였습니다. \n정렬 작업을 진행할 수 없습니다.")
             return 1
         
@@ -133,7 +134,7 @@ class Base_info (product_manager, container_manager, wh_manager):
 
         else:
             if (present_product_amount == 0 
-                or (present_product_amount+1)%destination_area.height):
+                or (present_product_amount+1)%destination_area.HEIGHT):
                 priority = 2
             else:
                 priority = 1
@@ -214,7 +215,6 @@ class Base_info (product_manager, container_manager, wh_manager):
         
         previous_height = len(deposition_area.grid[loc[0]][loc[1]])
         
-        
         Out_area        = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict['Out']
 
         if loc:
@@ -279,11 +279,6 @@ class Base_info (product_manager, container_manager, wh_manager):
 
 
 
-    # def rearrange_Area(self,):
-    #     pass
-
-
-
     def sort_item(self, WH_name, Zone_name, Area_name, lot, loc, height = None, offset = 1):
         '''
         Area_manager.optimal_pos_find()에 따라 펼쳐놓은 박스를 
@@ -296,7 +291,7 @@ class Base_info (product_manager, container_manager, wh_manager):
         destination_area = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name]
 
         if not height:
-            height = destination_area.height
+            height = destination_area.HEIGHT
         if not offset:
             offset = 1
 
@@ -337,6 +332,93 @@ class Base_info (product_manager, container_manager, wh_manager):
         
 
 
+    def stack_reverse(self, WH_name, Zone_name, Area_name, offset, height=None):
+        '''
+        lot 번호가 area의 inventory:dict 중 offset번 째에 등록된 상품부터 차례대로 
+        적정위치에 height 만큼 쌓는(FILO) 함수
+        '''
+
+        destination_WH   = self.WH_dict[WH_name]
+        destination_zone = self.WH_dict[WH_name].Zone_dict[Zone_name]
+        destination_area = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name]
+
+        if not height:
+            height = destination_area.HEIGHT-1
+        
+        lot     = list(destination_area.inventory.keys())[offset]
+        product_name = self.product_I_dict[lot]['product_name']
+        optimal_pos  =  zone_manager.optimal_pos_find(
+                    self = destination_zone,
+                    # lot             = lot,
+                    Area_name       =destination_area.AREA_NAME,
+                    outbound_freq   =self.product_templet_dict[product_name]['outbound_frequency'],
+                    priority        =1)
+        
+        for i in range(height):
+
+            lot     = list(destination_area.inventory.keys())[offset+i]
+            loc_from= destination_area.inventory[lot]['loc']
+            
+            loc_to  = [optimal_pos[0], optimal_pos[1], optimal_pos[0]+i]
+
+            zone_manager.move_item(
+                self        = destination_zone,
+                area_from   = destination_area,
+                loc_from    = loc_from,
+                area_to     = destination_area,
+                loc_to      = loc_to
+            )
+            
+            self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name].inventory[lot]['loc'] \
+                = self.product_I_dict[lot]['bin_location'] \
+                = loc_to
+            
+        print(f"{list(destination_area.inventory.keys())[offset]} ~ {list(destination_area.inventory.keys())[offset+height-1]}"
+              +" : 역순 정렬")
+        
+
+
+    def rearrange_area(self, WH_name, Zone_name, Area_name, offset:list=None, height:int=None):
+        pass
+        # destination_WH   = self.WH_dict[WH_name]
+        # destination_zone = self.WH_dict[WH_name].Zone_dict[Zone_name]
+        # destination_area = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name]
+
+
+
+        # if not height:
+        #     height = destination_area.HEIGHT
+        # if not offset:
+        #     offset = [0,0]
+
+        # lot = destination_area.grid[x][y][-1]
+        # product_name = self.product_I_dict[lot]['product_name']
+        # reversed_stack_pos  =  zone_manager.optimal_pos_find(
+        #     self            = destination_zone,
+        #     Area_name       = destination_area.AREA_NAME,
+        #     outbound_freq   = self.product_templet_dict[product_name]['outbound_frequency'],
+        #     priority        = 1)
+        
+        # for x in range(offset[0],destination_area.COL):
+        #     for y in range(destination_area.ROW):
+        #         if x == offset[0] and y < offset[1]:
+        #             continue
+
+        #         if (len(destination_area.grid[x][y]) < height
+        #             or ):
+        #             height = len(destination_area.grid[x][y])
+
+        #             for z in range(height-1,0,-1):
+        #                 loc = [x,y,z]
+
+                        
+                        
+        #                 lot = destination_area.grid[x][y][z]
+
+                        
+                        
+                        # mov
+
     
     # def find_oldest_item(self, area_name, product_name, ):
     #     pass
@@ -350,9 +432,9 @@ class Base_info (product_manager, container_manager, wh_manager):
     
 
     
-    def read_stock_state(self)->list:
-        pass
+    # def read_stock_state(self)->list:
+    #     pass
 
 
-    def write_stock_state(self, target, state):
-        pass
+    # def write_stock_state(self, target, state):
+    #     pass

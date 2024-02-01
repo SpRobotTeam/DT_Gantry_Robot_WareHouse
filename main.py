@@ -3,6 +3,8 @@
 
 from WCS import WCS
 import random as rand
+import time
+from MW import PLC_com
 # import pprint
 
 manual = True
@@ -23,6 +25,7 @@ def outbound(num = None):
             wcs_DT.Outbound(product)
             num -= 1
 
+# modbus_com = PLC_com.plc_com
 
 
 if manual:
@@ -77,7 +80,7 @@ if manual:
         'origin'    : [1,0,0]  ,  
         'col'       :  4 , 
         'row'       :  4 , 
-        'heigth'    :  2 , 
+        'heigth'    :  4 , 
         'grid_type' :  'r' 
     })
 
@@ -89,6 +92,7 @@ if manual:
             )
         command = num = None
         
+
         try:
             p = command_input.split(' ')
             for c in p:

@@ -6,6 +6,10 @@ from pyModbusTCP.client import ModbusClient
 import numpy as np
 from threading import Thread, Event
 import time
+from MW import modbus_sim
+
+# sim = True
+sim = False
 
 class server():
     def __init__(self, 
@@ -43,11 +47,16 @@ class client():
         'PLC_reserved' : [0],
     }
     
+    
     def __init__(self, host='127.0.0.1', port=502, unit_id=1, loop_interval = 0.5):
         self.client = ModbusClient(host=host, port=port, unit_id=1, debug=False) # auto_open=True, auto_close=True, 
         self.loop_thread = Thread(target=self.loop, daemon=True)
         self.loop_thread.start()
 
+        self.modbus_HR = []
+        self.mission_enabled = False
+        self.mission_running = False
+        
         self.set_list=[]
         for k,v in self.data_block.items():
             if 'PC_' in k:
@@ -138,19 +147,33 @@ class client():
 
     def plc_check(self):
         reshape = 20
+        
         while True:
-            status = self.read(address=0, nb=reshape, reshape=reshape)
-            if any(status):
-                break
-            else: print("M/B failed")
-        if status[0][0] == 0 and status[0][10] == 1:
+            try:
+                status = self.read(address=0, nb=reshape, reshape=reshape)[0]
+                recieved = True
+            except IndexError or TypeError:
+                recieved = False
+                print("M/B failed")
+                continue
+            finally:
+                if recieved and type(status)==type([]):
+                    break
+        if status[0] == 0 and status[12] == 1:
             self.mission_enabled = True
-        if status[0][9]:
+            self.mission_running = False
+        # elif status[12] == 1:
+        #     self.mission_running = False
+        elif status[11]:
+            self.mission_running = True
+            self.mission_enabled = False
             self.write(address=0, set_list=[0])
+        self.modbus_HR = status
 
     def loop(self):
-        self.plc_check()
-        time.sleep(self.loop_interval)
+        while True:
+            self.plc_check()
+            time.sleep(self.loop_interval)
             
 
 
@@ -161,7 +184,8 @@ class plc_com(client, server):
 
     def __init__(self, 
                  host='127.0.0.1', 
-                 port=2502, # 502, 
+                #  port=2502, 
+                 port= 502, 
                  unit_id=1,
                  loop_interval:float=0.5, 
                  h_regs_size:int=65536, 
@@ -170,7 +194,12 @@ class plc_com(client, server):
                  i_regs_size:int=0):
         
         self.loop_interval = loop_interval
-        server.__init__(self,host=host, port=port, unit_id=unit_id)
+        if sim:
+            server.__init__(self,host=host, port=port, unit_id=unit_id)
+            sim_Thread = Thread(target=modbus_sim.loop, args=[0.25], daemon=True)
+            sim_Thread.start()
+
+
         super().__init__(host=host, port=port, unit_id=unit_id, loop_interval=loop_interval)
 
 
