@@ -26,17 +26,17 @@ class container_manager():
         print("아래의 값을 입력해주세요. 빈칸으로 비울 시(값을 입력하지 않고 엔터) \n"+ 
                 " [초기값]이 적용됩니다.")
         # name = input('규격 이름' + ">> ")
-        for i,j in [[   'length'    , '길이 (mm) [300]\n' + ">> "], 
-                    [   'width'     , '너비 (mm) [200]\n' + ">> "], 
-                    [   'height'    , '높이 (mm) [200]\n' + ">> "],
-                    [   'gap'       , '최대 배치 간격 (전후 좌우 동일) (mm) [200]\n' + ">> "]
+        for i,j in [[   'length'    , '길이 (mm) [100]\n' + ">> "], 
+                    [   'width'     , '너비 (mm) [100]\n' + ">> "], 
+                    [   'height'    , '높이 (mm) [100]\n' + ">> "],
+                    [   'gap'       , '최대 배치 간격 (전후 좌우 동일) (mm) [100]\n' + ">> "]
         ]:
             kwargs[i] = input(j)  
 
         # for key, val in kwargs.items():
         #     # self.container_dict[container_name][key] = val
         #     self.container_dict[container_name][key] = val
-        self.container_dict[container_name] = kwargs
+        self.container_dict[container_name] = kwargs if kwargs else 100
 
     
 

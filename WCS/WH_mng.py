@@ -5,7 +5,7 @@ from WCS.Zone_mng import zone_manager
 class wh_manager ():
     def __init__(self, WH_properties):
         self.Zone_dict = {}
-        self.WH_name = WH_properties['WH_name']
+        self.WH_NAME = WH_properties['WH_name']
     
     # def __init__(self, **kwargs):
     #     pass

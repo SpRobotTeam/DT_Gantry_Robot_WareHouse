@@ -55,9 +55,9 @@ class area_manager():
         }
         '''
 
-        self.Area_name = Area_name
-        self.grid_type = grid_type
-        self.origin_point = origin_point
+        self.AREA_NAME = Area_name
+        self.GRID_TYPE = grid_type
+        self.ORIGIN_POINT = origin_point
         
         # grid_set_num = 0
         # for j in [[row_block, col_block, height_block], [row, col, height, grid_size]]:
@@ -80,11 +80,11 @@ class area_manager():
         #     self.row    = math.floor(row/grid_size[1])      - self.origin_point[1]
         #     self.height = math.floor(height/grid_size[2])   - self.origin_point[2]
 
-        self.col = col_block
-        self.row = row_block
-        self.height = height_block
-        self.inventory_critical_limit   = self.col * self.row * self.height - self.height + 1
-        self.inventory_limit            = self.col * self.row * self.height - self.height*(self.height-1)
+        self.COL = col_block
+        self.ROW = row_block
+        self.HEIGHT = height_block
+        self.INVENTORY_CRITICAL_LIMIT   = self.COL * self.ROW * self.HEIGHT - self.HEIGHT + 1
+        self.INVENTORY_LIMIT            = self.COL * self.ROW * self.HEIGHT - self.HEIGHT*(self.HEIGHT-1)
             
         # self.grid = []
         # for j in range(col):
@@ -95,12 +95,12 @@ class area_manager():
         
         # self.grid = np.zeros(self.col,self.row,self.height)
         self.grid = []
-        for x in range(self.col):
+        for x in range(self.COL):
             self.grid.append([])
-            for y in range(self.row):
+            for y in range(self.ROW):
                 self.grid[x].append([])
         
-        self.empty_space = self.col * self.row
+        # self.empty_space = self.col * self.row
 
 
     # def split_area(split_num = 2):
