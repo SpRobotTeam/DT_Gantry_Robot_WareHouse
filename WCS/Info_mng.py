@@ -301,7 +301,7 @@ class Base_info (product_manager, container_manager, wh_manager):
             deposition_lot = list(destination_area.inventory.keys())[base_level-z-offset]
             # loc[-1] += 1
             # deposition_loc = destination_area.inventory[deposition_lot]['loc']
-            deposition_loc = self.product_I_dict[deposition_lot]['bin_location']
+            deposition_loc = self.aproduct_I_dict[deposition_lot]['bin_location']
             
             # destination_loc = [a+b for a,b in zip([0,0,offset], loc)]
             # destination_loc = [loc[0], loc[1], len(destination_area.grid[loc[0]][loc[1]])]
@@ -383,28 +383,48 @@ class Base_info (product_manager, container_manager, wh_manager):
         # destination_WH   = self.WH_dict[WH_name]
         # destination_zone = self.WH_dict[WH_name].Zone_dict[Zone_name]
         # destination_area = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name]
-
-        
+                
 
         # if not HEIGHT:
         #     HEIGHT = destination_area.HEIGHT-1
         # if not offset:
-        #     offset = [0,0]
+        #     offset = 0
+
+        # present_product_amount = len(list(destination_area.inventory.keys()))
+                                          
+        # iteration = (present_product_amount-offset)//HEIGHT
+        # if (present_product_amount-offset)%HEIGHT:
+        #     iteration += 1
+
+        # for i in range(offset, iteration):
+
+        #     x = i//destination_area.ROW
+        #     y = i%destination_area.ROW
+
+        #     # for z in range (len(destination_area.grid[x][y])):
+        #     # z = len(destination_area.grid[x][y])
+        #     lot = destination_area.grid[x][y][-1]
+        #     if (lot != list(destination_area.inventory.keys())[i*HEIGHT]
+        #         or len(destination_area.grid[x][y])<HEIGHT
+        #     ):
+        #         self.stack_reverse(WH_name=WH_name, Zone_name=Zone_name, Area_name=Area_name,
+        #                            offset=i*HEIGHT+HEIGHT-1, height=HEIGHT)
+                
 
 
-        # lot = destination_area.grid[x][y][-1]
-        # product_name = self.product_I_dict[lot]['product_name']
-        # reversed_stack_pos  =  zone_manager.optimal_pos_find(
-        #     self            = destination_zone,
-        #     Area_name       = destination_area.AREA_NAME,
-        #     outbound_freq   = self.product_templet_dict[product_name]['outbound_frequency'],
-        #     priority        = 1)
+
+        # # lot = destination_area.grid[x][y][-1]
+        # # product_name = self.product_I_dict[lot]['product_name']
+        # # reversed_stack_pos  =  zone_manager.optimal_pos_find(
+        # #     self            = destination_zone,
+        # #     Area_name       = destination_area.AREA_NAME,
+        # #     outbound_freq   = self.product_templet_dict[product_name]['outbound_frequency'],
+        # #     priority        = 1)
         
         # for x in range(destination_area.COL):
         #     if x < offset[0]:
         #         continue
         #     for y in range(destination_area.ROW):
-        #         index = HEIGHT*x + y
         #         if x == offset[0] and y < offset[1]:
         #             continue
 
@@ -412,6 +432,7 @@ class Base_info (product_manager, container_manager, wh_manager):
         #             or (destination_area.index(destination_area.grid[x][y][-1])
                         
         #                 )):
+        #             index = HEIGHT*x + y
         #             height_lim = len(destination_area.grid[x][y])
 
         #             for z in range(height_lim-1,0,-1):
@@ -423,7 +444,7 @@ class Base_info (product_manager, container_manager, wh_manager):
 
                         
                         
-                        # mov
+        #                 # mov
 
     
     # def find_oldest_item(self, area_name, product_name, ):

@@ -9,7 +9,7 @@ from MW import PLC_com
 
 manual = True
 
-def inbound(num = 16):
+def inbound(num):
     for _ in range(num):
         res = wcs_DT.Inbound()
         if res:
@@ -29,8 +29,9 @@ def outbound(num = None):
 
 
 if manual:
-    WH_name = 'WH_DT'
+    WH_name   = 'WH_DT'
     Zone_name = 'Zone_Gantry'
+    Area_name = 'Area_01'
 
     wcs_DT = WCS.GantryWCS()
     wcs_DT.add_WH({
@@ -87,21 +88,26 @@ if manual:
     while True:
         
         command_input = input(
-            "명령을 입력하세요. i [num : 기본값 8] : [num]만큼 입고, o [num : 기본값 전채] : [num] 만큼 출고, l : 구역 물품 리스트 출력, c : 종료"+
+            "명령을 입력하세요. "+
+            "i [num : 기본값=8] : [num]만큼 입고, "+
+            "o [num : 기본값=전채] : [num] 만큼 출고," +
+            "p [num : 기본값=가장 오래된 상자] : 특정 상자 출고, "+
+            # "r [num : 기본값=0(번 부터 끝까지)] : 창고 정리, "+
+            "l : 구역 물품 리스트 출력, c : 종료"+
             "\n>>"
             )
         command = num = None
         
 
         try:
-            p = command_input.split(' ')
-            for c in p:
-                if not c:
+            arg_list = command_input.split(' ')
+            for arg in arg_list:
+                if not arg:
                     continue
                 elif not command:
-                    command = c[0].lower()
-                elif c.isdecimal():
-                    num = int(c)
+                    command = arg[0].lower()
+                elif arg.isdecimal():
+                    num = int(arg)
             
             if command == 'i':
                 
@@ -114,6 +120,26 @@ if manual:
                     num = len(list(wcs_DT.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict['Area_01'].inventory.keys()))
                 outbound(num)
 
+            if command == 'p':
+                lot = None
+                if num:
+                    for i in list(wcs_DT.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict['Area_01'].inventory.keys()):
+                        if f"{num:04d}" in i[-4:]:
+                            lot = i
+                            break
+                else:
+                    lot = list(wcs_DT.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict['Area_01'].inventory.keys())[0]
+                
+                if lot:
+                    WCS.GantryWCS.Outbound(self=wcs_DT, lot=lot)
+                else:
+                    f"입력 {num:04d}와 일치하는 상품이 없습니다."
+
+            # if command == 'r':
+            #     if not num:
+            #         num = 0
+            #     WCS.GantryWCS.rearrange_area(self=wcs_DT, WH_name=WH_name, Zone_name=Zone_name, Area_name=Area_name, offset=num, HEIGHT=Zone.Area_dict[Area_name].HEIGHT)
+         
             if command == 'l':
                 print(wcs_DT.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict['Area_01'].grid)
 
