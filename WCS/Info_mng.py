@@ -378,18 +378,19 @@ class Base_info (product_manager, container_manager, wh_manager):
         
 
 
-    def rearrange_area(self, WH_name, Zone_name, Area_name, offset:list=None, height:int=None):
+    def rearrange_area(self, WH_name, Zone_name, Area_name, offset:list=None, HEIGHT:int=None):
         pass
         # destination_WH   = self.WH_dict[WH_name]
         # destination_zone = self.WH_dict[WH_name].Zone_dict[Zone_name]
         # destination_area = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name]
 
+        
 
-
-        # if not height:
-        #     height = destination_area.HEIGHT
+        # if not HEIGHT:
+        #     HEIGHT = destination_area.HEIGHT-1
         # if not offset:
         #     offset = [0,0]
+
 
         # lot = destination_area.grid[x][y][-1]
         # product_name = self.product_I_dict[lot]['product_name']
@@ -399,16 +400,21 @@ class Base_info (product_manager, container_manager, wh_manager):
         #     outbound_freq   = self.product_templet_dict[product_name]['outbound_frequency'],
         #     priority        = 1)
         
-        # for x in range(offset[0],destination_area.COL):
+        # for x in range(destination_area.COL):
+        #     if x < offset[0]:
+        #         continue
         #     for y in range(destination_area.ROW):
+        #         index = HEIGHT*x + y
         #         if x == offset[0] and y < offset[1]:
         #             continue
 
-        #         if (len(destination_area.grid[x][y]) < height
-        #             or ):
-        #             height = len(destination_area.grid[x][y])
+        #         if (len(destination_area.grid[x][y]) < HEIGHT
+        #             or (destination_area.index(destination_area.grid[x][y][-1])
+                        
+        #                 )):
+        #             height_lim = len(destination_area.grid[x][y])
 
-        #             for z in range(height-1,0,-1):
+        #             for z in range(height_lim-1,0,-1):
         #                 loc = [x,y,z]
 
                         
