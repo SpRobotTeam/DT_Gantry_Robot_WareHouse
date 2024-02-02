@@ -1,7 +1,7 @@
 # import sys, os
 # sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
-from WCS import WCS
+from WCS import SPWCS
 import random as rand
 import time
 from MW import PLC_com
@@ -33,7 +33,7 @@ if manual:
     Zone_name = 'Zone_Gantry'
     Area_name = 'Area_01'
 
-    wcs_DT = WCS.GantryWCS()
+    wcs_DT = SPWCS.GantryWCS()
     wcs_DT.add_WH({
         'WH_name':WH_name,
     })
@@ -135,7 +135,7 @@ if manual:
                     lot = list(wcs_DT.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict['Area_01'].inventory.keys())[0]
                 
                 if lot:
-                    WCS.GantryWCS.Outbound(self=wcs_DT, lot=lot)
+                    SPWCS.GantryWCS.Outbound(self=wcs_DT, lot=lot)
                 else:
                     f"입력 {num:04d}와 일치하는 상품이 없습니다."
 
@@ -148,7 +148,7 @@ if manual:
                 print(wcs_DT.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict['Area_01'].grid)
 
             if command == 'n':
-                WCS.GantryWCS.Inbound(
+                SPWCS.GantryWCS.Inbound(
                     self = wcs_DT,
                     product_name=name,
                     WH_name=WH_name,
@@ -167,7 +167,7 @@ if manual:
         
     
 else:
-    wcs_DT = WCS.GantryWCS()
+    wcs_DT = SPWCS.GantryWCS()
     # wcs_DT.__init__()
     wcs_DT.add_default_WH()
 
