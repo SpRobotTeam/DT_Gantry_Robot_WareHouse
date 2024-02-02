@@ -301,7 +301,7 @@ class Base_info (product_manager, container_manager, wh_manager):
             deposition_lot = list(destination_area.inventory.keys())[base_level-z-offset]
             # loc[-1] += 1
             # deposition_loc = destination_area.inventory[deposition_lot]['loc']
-            deposition_loc = self.aproduct_I_dict[deposition_lot]['bin_location']
+            deposition_loc = self.product_I_dict[deposition_lot]['bin_location']
             
             # destination_loc = [a+b for a,b in zip([0,0,offset], loc)]
             # destination_loc = [loc[0], loc[1], len(destination_area.grid[loc[0]][loc[1]])]
@@ -312,6 +312,31 @@ class Base_info (product_manager, container_manager, wh_manager):
                 
                 if deposition_lot[:-14] == lot [:-14]:
                     
+                    # upper_loc = deposition_loc[:-1]+[deposition_loc[-1]+1]
+                    upper_item_list :list= destination_area.grid[deposition_loc[0]][deposition_loc[1]][deposition_loc[-1]+1:]
+                    if len(upper_item_list):
+                        upper_item_list.reverse()
+                        destination_loc_base = zone_manager.optimal_pos_find(
+                            self=destination_zone,
+                            Area_name=Area_name,
+                            outbound_freq='h',
+                            priority=2,
+                            lot=upper_item_list[0],
+                                )
+                    for i in range(len(upper_item_list)):
+                        temporal_destination_loc = destination_loc_base[:-1]+[destination_loc_base[-1]+i]
+                        zone_manager.move_item(
+                            self=destination_zone,
+                            area_from=destination_area,  
+                            loc_from=destination_area.inventory[upper_item_list[i]],
+                            area_to=destination_area,
+                            loc_to=temporal_destination_loc)
+                        
+                        self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name].inventory[upper_item_list[i]]['loc'] \
+                        = self.product_I_dict[upper_item_list[i]]['bin_location'] \
+                        = temporal_destination_loc
+                        
+                        
                     zone_manager.move_item(
                         self=destination_zone,
                         area_from=destination_area,  
@@ -325,6 +350,21 @@ class Base_info (product_manager, container_manager, wh_manager):
                                 
                     # destination_area.inventory[destination_lot]['loc'] = destination_loc
                     # self.product_I_dict[deposition_lot]['bin_location'] = destination_loc
+
+                    if len(upper_item_list):
+                        upper_item_list.reverse()
+                        destination_loc_base = deposition_loc
+                        for i in range(len(upper_item_list)):
+                            temporal_destination_loc = destination_loc_base[:-1]+[destination_loc_base[-1]+i]
+                            zone_manager.move_item(
+                                self=destination_zone,
+                                area_from=destination_area,  
+                                loc_from=destination_area.inventory[upper_item_list[i]],
+                                area_to=destination_area,
+                                loc_to=temporal_destination_loc)
+                            self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name].inventory[upper_item_list[i]]['loc'] \
+                            = self.product_I_dict[upper_item_list[i]]['bin_location'] \
+                            = temporal_destination_loc
 
                     break
                 else:
@@ -380,35 +420,35 @@ class Base_info (product_manager, container_manager, wh_manager):
 
     def rearrange_area(self, WH_name, Zone_name, Area_name, offset:list=None, HEIGHT:int=None):
         pass
-        # destination_WH   = self.WH_dict[WH_name]
-        # destination_zone = self.WH_dict[WH_name].Zone_dict[Zone_name]
-        # destination_area = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name]
+        destination_WH   = self.WH_dict[WH_name]
+        destination_zone = self.WH_dict[WH_name].Zone_dict[Zone_name]
+        destination_area = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name]
                 
 
-        # if not HEIGHT:
-        #     HEIGHT = destination_area.HEIGHT-1
-        # if not offset:
-        #     offset = 0
+        if not HEIGHT:
+            HEIGHT = destination_area.HEIGHT-1
+        if not offset:
+            offset = 0
 
-        # present_product_amount = len(list(destination_area.inventory.keys()))
+        present_product_amount = len(list(destination_area.inventory.keys()))
                                           
-        # iteration = (present_product_amount-offset)//HEIGHT
-        # if (present_product_amount-offset)%HEIGHT:
-        #     iteration += 1
+        iteration = (present_product_amount-offset)//HEIGHT
+        if (present_product_amount-offset)%HEIGHT:
+            iteration += 1
 
-        # for i in range(offset, iteration):
+        for i in range(offset, iteration):
 
-        #     x = i//destination_area.ROW
-        #     y = i%destination_area.ROW
+            x = i//destination_area.ROW
+            y = i%destination_area.ROW
 
-        #     # for z in range (len(destination_area.grid[x][y])):
-        #     # z = len(destination_area.grid[x][y])
-        #     lot = destination_area.grid[x][y][-1]
-        #     if (lot != list(destination_area.inventory.keys())[i*HEIGHT]
-        #         or len(destination_area.grid[x][y])<HEIGHT
-        #     ):
-        #         self.stack_reverse(WH_name=WH_name, Zone_name=Zone_name, Area_name=Area_name,
-        #                            offset=i*HEIGHT+HEIGHT-1, height=HEIGHT)
+            # for z in range (len(destination_area.grid[x][y])):
+            # z = len(destination_area.grid[x][y])
+            lot = destination_area.grid[x][y][-1]
+            if (lot != list(destination_area.inventory.keys())[i*HEIGHT]
+                or len(destination_area.grid[x][y])<HEIGHT
+            ):
+                self.stack_reverse(WH_name=WH_name, Zone_name=Zone_name, Area_name=Area_name,
+                                   offset=i*HEIGHT+HEIGHT-1, height=HEIGHT)
                 
 
 

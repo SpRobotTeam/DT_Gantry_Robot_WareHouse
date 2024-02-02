@@ -183,7 +183,7 @@ class plc_com(client, server):
     mission_enabled = False
 
     def __init__(self, 
-                 host='127.0.0.1', 
+                 host='127.0.0.1', # '127.0.0.1', '192.168.0.65'
                 #  port=2502, 
                  port= 502, 
                  unit_id=1,

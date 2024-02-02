@@ -62,7 +62,7 @@ if manual:
     })
     Zone.add_area({
         'Area_name' : 'In',
-        'origin'    : [0,15,0]  ,  
+        'origin'    : [0,0,0]  ,  
         'col'       :  1 , 
         'row'       :  1 , 
         'heigth'    :  1 , 
@@ -70,7 +70,7 @@ if manual:
     })
     Zone.add_area({
         'Area_name' : 'Out',
-        'origin'    : [0,15,0]  ,  
+        'origin'    : [0,0,0]  ,  
         'col'       :  1 , 
         'row'       :  1 , 
         'heigth'    :  1 , 
@@ -78,10 +78,10 @@ if manual:
     })
     Zone.add_area({
         'Area_name' : 'Area_01',
-        'origin'    : [1,0,0]  ,  
+        'origin'    : [1,1,1]  ,  
         'col'       :  4 , 
         'row'       :  4 , 
-        'heigth'    :  4 , 
+        'heigth'    :  2 , 
         'grid_type' :  'r' 
     })
 
@@ -93,7 +93,9 @@ if manual:
             "o [num : 기본값=전채] : [num] 만큼 출고," +
             "p [num : 기본값=가장 오래된 상자] : 특정 상자 출고, "+
             # "r [num : 기본값=0(번 부터 끝까지)] : 창고 정리, "+
-            "l : 구역 물품 리스트 출력, c : 종료"+
+            "l : 구역 물품 리스트 출력, "+
+            "n [name : 기본값='default'] : 상품명이 'name'인 상품 입고 "+
+            "c : 종료"+
             "\n>>"
             )
         command = num = None
@@ -108,6 +110,8 @@ if manual:
                     command = arg[0].lower()
                 elif arg.isdecimal():
                     num = int(arg)
+                else:
+                    name = arg
             
             if command == 'i':
                 
@@ -142,6 +146,15 @@ if manual:
          
             if command == 'l':
                 print(wcs_DT.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict['Area_01'].grid)
+
+            if command == 'n':
+                WCS.GantryWCS.Inbound(
+                    self = wcs_DT,
+                    product_name=name,
+                    WH_name=WH_name,
+                    Zone_name=Zone_name,
+                    Area_name=Area_name
+                )
 
             if command == 'c':
                 print("WCS 종료 중 ... ")
