@@ -65,12 +65,13 @@ class Base_info (product_manager, container_manager, wh_manager):
             self, 
             # lot_head = '0000-DFT-0000', 
             product_name = 'default', 
-            DOM = None, 
+            DOM = '', 
             manufactor='', 
             WH_name='', 
             Zone_name='', 
             Area_name='', 
-            manual_loc=[]
+            reserved_time=None,
+            manual_loc=[],
             ):
         
 
@@ -197,10 +198,10 @@ class Base_info (product_manager, container_manager, wh_manager):
         
         print(f"{lot} : {Area_name}{loc}에 입고 완료",
               f"{'- '+destination_area.grid[loc[0]][loc[1]][-1]+'~'+lot+' 정렬 완료됨'if priority == 1 else ''}")
-            
+        return None    
 
 
-    def Outbound(self, lot):  #lot_head/name
+    def Outbound(self, lot, reserved_time=None):  #lot_head/name
         # loc = self.find_loc(name)
         print(f"출고 대상 : {lot}")
         I_dict      = self.product_I_dict[lot]
@@ -276,6 +277,7 @@ class Base_info (product_manager, container_manager, wh_manager):
 
         print(f"{lot} 출고 완료",
               f"")
+        return None 
 
 
 
@@ -310,7 +312,7 @@ class Base_info (product_manager, container_manager, wh_manager):
            
             while True:
                 
-                if deposition_lot[:-14] == lot [:-14]:
+                if deposition_lot[:11] == lot [:11]:
                     
                     # upper_loc = deposition_loc[:-1]+[deposition_loc[-1]+1]
                     upper_item_list :list= destination_area.grid[deposition_loc[0]][deposition_loc[1]][deposition_loc[-1]+1:]

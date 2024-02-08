@@ -172,9 +172,9 @@ class zone_manager():
 
         self.waiting_Gantry_get_ready()
 
-        set_list = [1] + global_loc_from + [1] + [0] + global_loc_to + [2] + [0]
+        set_list = [1] + global_loc_from + [1] + global_loc_to + [2] + [0]
         self.Modbus_inst.mission_enabled = False
-        self.Modbus_inst.mission_running = True
+        self.Modbus_inst.mission_running = False
         
         self.Modbus_inst.write(address=0, set_list=set_list)
 

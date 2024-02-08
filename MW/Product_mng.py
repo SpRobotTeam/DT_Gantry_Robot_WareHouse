@@ -6,10 +6,10 @@ class container_manager():
     container_dict = {
         'default':{
             'name'      : 'default',
-            'length'    : 300, 
-            'width'     : 200, 
-            'height'    : 200,
-            'gap'       : 200
+            'length'    : 304.8, # 300, 
+            'width'     : 177.8, # 200, 
+            'height'    : 133.7, # 200,
+            'gap'       : 100
             },
     }
 
