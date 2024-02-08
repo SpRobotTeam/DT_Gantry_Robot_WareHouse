@@ -51,13 +51,8 @@ st.title('DT 기반 갠트리 자동 창고 제어 페이지')
 
 ip_addres = '192.168.0.40'
 
+SPDTw = main()
 
-if 'DT_inst' not in st.session_state:   
-    SPDTw = main()
-    st.session_state['DT_inst'] = SPDTw
-
-else:
-    SPDTw = st.session_state['DT_inst']
 
 default_setting = True
 
@@ -84,7 +79,7 @@ with col1:
     with inbound_tab: # 입고 탭
         st.write("상품 입고")
         
-        selected_product = st.selectbox("입고 제품",list(SPDTw.get_info(['p']).keys()))
+        selected_product = st.selectbox("입고 제품",list(SPDTw.wcs_DT.container_dict.keys()))
         reserved =  st.checkbox("입고 예약")
         if reserved:
             reserved_time = st.time_input("예약 시간", )
@@ -181,7 +176,7 @@ with col1:
         st.write("새로운 제품, 컨테이너, 공간 템플렛 등록 또는 수정")
         edit_dict = {
                     "상품 정보" : SPDTw.wcs_DT.product_templet_dict.keys(), 
-                    "컨테이너 정보" : SPDTw.get_info(['p']).keys(), 
+                    "컨테이너 정보" : SPDTw.wcs_DT.container_dict.keys(), 
                     "저장 공간 정보"  : SPDTw.wcs_DT.WH_dict.keys()
                     }
         edit_section = st.radio("수정할 정보", list(edit_dict.keys()))
