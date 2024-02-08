@@ -117,7 +117,7 @@ class main(SPWCS.GantryWCS):
             'Zone_name'      : self.Zone_name,
             'container'      : self.wcs_DT.container_dict[container_name],
         })
-
+        
         self.Zone = self.WareHouse.Zone_dict[self.Zone_name]
         self.Zone.add_area({
             'Area_name' : 'Gantry',

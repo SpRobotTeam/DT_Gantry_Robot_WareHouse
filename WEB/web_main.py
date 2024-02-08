@@ -39,8 +39,7 @@ from MW import PLC_com
 
 ##########################################################
 
-# from main import main 
-import main
+from main import main 
 
 st.set_page_config(
     page_title='DT 기반 갠트리 자동 창고 제어 페이지',
@@ -52,23 +51,18 @@ st.title('DT 기반 갠트리 자동 창고 제어 페이지')
 
 ip_addres = '192.168.0.40'
 
-default_setting = True
-
-# SPDTw = main.SPDTw
 
 if 'DT_inst' not in st.session_state:   
-    SPDTw = main.SPDTw
+    SPDTw = main()
     st.session_state['DT_inst'] = SPDTw
-    default_setting = True
 
 else:
-    # SPDTw = st.session_state['DT_inst']
-    SPDTw = main.SPDTw
-    default_setting = False
+    SPDTw = st.session_state['DT_inst']
+
+default_setting = True
 
 if default_setting:
-    main.main.default_setting(self=SPDTw, container_name="default")
-    SPDTw = main.SPDTw
+    SPDTw.default_setting(container_name="default")
 
 
 
@@ -90,7 +84,7 @@ with col1:
     with inbound_tab: # 입고 탭
         st.write("상품 입고")
         
-        selected_product = st.selectbox("입고 제품",list(main.main.get_info(self=SPDTw, args=['p']).keys()))
+        selected_product = st.selectbox("입고 제품",list(SPDTw.get_info(['p']).keys()))
         reserved =  st.checkbox("입고 예약")
         if reserved:
             reserved_time = st.time_input("예약 시간", )
@@ -107,8 +101,7 @@ with col1:
         if st.button("입고", disabled=not number.isdecimal()):
             number = int(number)
             for i in range(number):
-                main.main.wcs_DT.Inbound(
-                    self=SPDTw,
+                SPDTw.wcs_DT.Inbound(
                     product_name=selected_product,
                     DOM=dt.datetime.now() if not reserved else reserved_time,
                     reserved_time = reserved_time
@@ -132,7 +125,7 @@ with col1:
             selct_all_items = st.checkbox("모든 상품 출고", value=selct_all_items)
 
             if selct_all_items:
-                number = f"{len(main.main.get_info(self=SPDTw, args=['i', SPDTw.WH_NAME, SPDTw.Zone_name, SPDTw.Area_name]))}"
+                number = f'{len(SPDTw.wcs_DT.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict[SPDTw.Area_name].inventory)}'
             else:
                 number = st.text_input("출고 수량", )
             if not number:
@@ -143,8 +136,18 @@ with col1:
 
         else:
             number = '1'
-            lot_list = main.main.get_info(self=SPDTw, args=['i', SPDTw.WH_name, SPDTw.Zone_name, SPDTw.Area_name])
-            lot = st.selectbox("재고 리스트", lot_list)
+            # lot_input:str = st.text_input("lot 번호 입력")
+            # if lot_input:
+            #     for s in lot_input.split():
+            #         for i in inventory:
+            #             if (s == lot_input.split()[-1] 
+            #                 and lot_input.isdecimal() 
+            #                 and (f"{lot_input:04d}" in i[-4:])):
+            #                 number = 1
+            #                 lot = i
+            #             else:
+            #                 if s
+            lot = st.selectbox("재고 리스트", SPDTw.wcs_DT.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict[SPDTw.Area_name].inventory)
             # st.write(lot)
             outbound_enable = True
         
@@ -164,35 +167,25 @@ with col1:
                     if outbound_order !=  outbound_option[1]:
                         lot_num = 0
                     else:
-                        lot_list = list(main.main.get_info(self=SPDTw, args=['i', SPDTw.WH_NAME, SPDTw.Zone_name, SPDTw.Area_name]).keys())
-                        lot_num = rand.choice(list(main.main.get_info(self=SPDTw, args=['i', SPDTw.WH_NAME, SPDTw.Zone_name, SPDTw.Area_name]).keys()))
-                    target_lot = main.main.get_info(self=SPDTw, args=['i', SPDTw.WH_NAME, SPDTw.Zone_name, SPDTw.Area_name]).pop(lot_num)
+                        lot_list = list(SPDTw.wcs_DT.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict[SPDTw.Area_name].inventory.keys())
+                        lot_num = rand.choice(list(SPDTw.wcs_DT.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict[SPDTw.Area_name].inventory.keys()))
+                    target_lot = SPDTw.wcs_DT.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict[SPDTw.Area_name].inventory.pop(lot_num)
                 
-                main.main.wcs_DT.Outbound(
-                    self=SPDTw,
+                SPDTw.wcs_DT.Outbound(
                     lot=target_lot , 
                     reserved_time = reserved_time
                     )    
 
 
     with info_edit_tab: # 정보 등록/수정 탭
-        
-        st.write("새로운 제품, 컨테이너, 공간 템플렛 등록 또는 기존 정보 수정")
-        register = st.radio("수행할 작업", ["새로운 정보 등록", "기존 정보 수정"])
-        
-        edit_section = st.radio("수정할 정보", ["상품 정보",  "컨테이너 정보", "저장 공간 정보"])
+        st.write("새로운 제품, 컨테이너, 공간 템플렛 등록 또는 수정")
+        edit_dict = {
+                    "상품 정보" : SPDTw.wcs_DT.product_templet_dict.keys(), 
+                    "컨테이너 정보" : SPDTw.get_info(['p']).keys(), 
+                    "저장 공간 정보"  : SPDTw.wcs_DT.WH_dict.keys()
+                    }
+        edit_section = st.radio("수정할 정보", list(edit_dict.keys()))
         st.write('<style>div.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)
-
-        if register == "새로운 정보 등록":
-            if edit_section == "상품 정보":
-                st.selectbox("수정할 상품 목록", main.main.get_info(self=SPDTw, args=['t']).keys())
-
-            if edit_section == "컨테이너 정보":
-                st.selectbox("수정할 컨테이너 목록", main.main.get_info(self=SPDTw, args=['c']).keys())
-
-            if edit_section == "저장 공간 정보":
-                st.selectbox("수정할 창고 목록", main.main.get_info(self=SPDTw, args=['h']).keys())
-            
 
 
 
@@ -203,7 +196,7 @@ with col1:
     with control_tab:
         st.write("시스템 제어")
         if st.button("WCS 리셋"):
-            main.main.reset(self=SPDTw, container_name="default")
+            SPDTw.reset(container_name="default")
 
 
     
