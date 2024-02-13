@@ -1,3 +1,3 @@
-import MW.DB_handler
+import MW.DB_mng
 
 
