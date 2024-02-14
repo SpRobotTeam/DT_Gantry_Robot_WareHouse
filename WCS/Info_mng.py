@@ -85,7 +85,7 @@ class Base_info (product_manager, container_manager, wh_manager):
                 f"입력하신 제품 종 '{product_name}'은(는) 등록되어 있지 않습니다.\n"+ 
                   "새로 등록하시겠습니까? 신규 등록하지 않는 경우 기본값으로 등록됩니다.\n"+ 
                   "[yes / [no]]>> ")
-            if len(register_new_product_templet) ==0 or not register_new_product_templet[0].lower == 'y':
+            if len(register_new_product_templet) ==0 or not register_new_product_templet.lower()[0] == 'y':
                 
                 product_name = 'default'
             else:

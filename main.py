@@ -12,27 +12,32 @@ manual = True
 
 
 class main(SPWCS.GantryWCS):
-    def inbound(self, num):
+    def multiple_inbound(self, name, num):
         for _ in range(num):
-            res = self.wcs_DT.Inbound()
+            res = self.Inbound(product_name=name)
             if res:
                 return res
 
-    def outbound(self, num = None):
+    def multiple_outbound(self, name, num = None):
+        if name in self.product_templet_dict.keys():
+            lot = self.product_templet_dict[name]['lot_head']
+        else:
+            print(f"{name}은 등록되지 않은 상품입니다.")
+            return 1
         if not num:
-            num = len(self.wcs_DT.WH_dict['WH_DT'].Zone_dict['Zone_Gantry'].Area_dict['Area_01'].inventory.keys())
+            num = len([i for i in self.WH_dict['WH_DT'].Zone_dict['Zone_Gantry'].Area_dict['Area_01'].inventory.keys() if lot in i])
         
-        while num > 0 and len(self.wcs_DT.WH_dict['WH_DT'].Zone_dict['Zone_Gantry'].Area_dict['Area_01'].inventory.keys()) :
-            product = rand.choice(list(self.wcs_DT.product_I_dict.keys()))
-            if 'WH_name' in self.wcs_DT.product_I_dict[product].keys():
-                self.wcs_DT.Outbound(product)
+        while num > 0 and len([i for i in self.WH_dict['WH_DT'].Zone_dict['Zone_Gantry'].Area_dict['Area_01'].inventory.keys() if lot in i]) :
+            product = rand.choice(list(self.product_I_dict.keys()))
+            if 'WH_name' in self.product_I_dict[product].keys():
+                self.Outbound(product)
                 num -= 1
 
     # modbus_com = PLC_com.plc_com
     def reset(self, container_name = None):
         self.WH_dict = {}
         self.default_setting(container_name=container_name)
-        self.wcs_DT.product_I_dict = {}
+        self.product_I_dict = {}
     
     def get_info(self, args)->dict|list:
         '''
@@ -96,12 +101,14 @@ class main(SPWCS.GantryWCS):
 
     
     def default_setting(self, container_name = None):
+        
+
         self.WH_name   = 'WH_DT'
         self.Zone_name = 'Zone_Gantry'
         self.Area_name = 'Area_01'
 
-        self.wcs_DT = SPWCS.GantryWCS()
-        self.wcs_DT.add_WH({
+        self.add_WH({
+            # self = SPWCS.GantryWCS()
             'WH_name':self.WH_name,
         })
 
@@ -109,13 +116,13 @@ class main(SPWCS.GantryWCS):
             container_name_input = input("사용할 컨테이너의 이름을 입력해주세요. [기본값 'DT']" + "\n>> ")
             container_name = container_name_input if container_name_input else 'DT'
             
-        if not container_name in self.wcs_DT.container_dict.keys():
-            self.wcs_DT.add_container(container_name=container_name)
+        if not container_name in self.container_dict.keys():
+            self.add_container(container_name=container_name)
 
-        self.WareHouse = self.wcs_DT.WH_dict[self.WH_name]
+        self.WareHouse = self.WH_dict[self.WH_name]
         self.WareHouse.add_zone({
             'Zone_name'      : self.Zone_name,
-            'container'      : self.wcs_DT.container_dict[container_name],
+            'container'      : self.container_dict[container_name],
         })
         
         self.Zone = self.WareHouse.Zone_dict[self.Zone_name]
@@ -158,6 +165,7 @@ class main(SPWCS.GantryWCS):
 
 if __name__ == "__main__":
 
+    name = 'default'
 
     if web:
         pass
@@ -170,12 +178,12 @@ if __name__ == "__main__":
                 
                 command_input = input(
                     "명령을 입력하세요. "+
-                    "i [num : 기본값=8] : [num]만큼 입고, "+
-                    "o [num : 기본값=전채] : [num] 만큼 출고," +
-                    "p [num : 기본값=가장 오래된 상자] : 특정 상자 출고, "+
+                    "n [상품 이름 : 기본값='default'] : 상품명이 'name'인 상품 선택 "+
+                    "i [정수 갯수 : 기본값=8] : [num]만큼 입고, "+
+                    "o [정수 갯수 : 기본값=전채] : [num] 만큼 무작위 출고," +
+                    "p [마지막 lot 번호 : 기본값=가장 오래된 상자] : 특정 상자 출고, "+
                     # "r [num : 기본값=0(번 부터 끝까지)] : 창고 정리, "+
                     "l : 구역 물품 리스트 출력, "+
-                    "n [name : 기본값='default'] : 상품명이 'name'인 상품 입고 "+
                     "c : 종료"+
                     "\n>>"
                     )
@@ -194,16 +202,28 @@ if __name__ == "__main__":
                         else:
                             name = arg
                     
+                    if command == 'n':
+                        # name = arg
+                        # SPWCS.GantryWCS.Inbound(
+                        #     self = SPDTw.wcs_DT,
+                        #     product_name=name,
+                        #     WH_name=SPDTw.WH_name,
+                        #     Zone_name=SPDTw.Zone_name,
+                        #     Area_name=SPDTw.Area_name
+                        # )
+                        if name not in SPDTw.product_templet_dict.keys():
+                            SPDTw.add_product_templet(product_name=name)
+
                     if command == 'i':
                         
                         if not num:
                             num = 8
-                        SPDTw.inbound(num)                
+                        SPDTw.multiple_inbound(name, num)                
                     
                     if command == 'o':
                         if not num:
-                            num = len(list(SPDTw.wcs_DT.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].inventory.keys()))
-                        SPDTw.outbound(num)
+                            num = len(list([i for i in SPDTw.wcs_DT.WH_dict['WH_DT'].Zone_dict['Zone_Gantry'].Area_dict['Area_01'].inventory.keys() if lot in i]))
+                        SPDTw.multiple_outbound(name, num)
 
                     if command == 'p':
                         lot = None
@@ -228,14 +248,6 @@ if __name__ == "__main__":
                     if command == 'l':
                         print(SPDTw.wcs_DT.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].grid)
 
-                    if command == 'n':
-                        SPWCS.GantryWCS.Inbound(
-                            self = SPDTw.wcs_DT,
-                            product_name=name,
-                            WH_name=SPDTw.WH_name,
-                            Zone_name=SPDTw.Zone_name,
-                            Area_name=SPDTw.Area_name
-                        )
 
                     if command == 'c':
                         print("WCS 종료 중 ... ")

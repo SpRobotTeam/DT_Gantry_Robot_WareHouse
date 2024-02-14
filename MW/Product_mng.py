@@ -116,7 +116,7 @@ class product_manager():
 
                     ['outbound_frequency',  "출고 빈도 : ['high'] or 'low' \n"+ 
                                             ">> "],
-        ]:
+            ]:
             input_val = input(j)
             if not input_val:
                 if i == 'lot_head':

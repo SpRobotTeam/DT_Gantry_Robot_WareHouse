@@ -121,7 +121,7 @@ class zone_manager():
         현재 First-Fit 과 유사한 방식 사용
         '''
         iter = 0
-        if outbound_freq[0].lower() == 'h':
+        if len(outbound_freq) == 0 or outbound_freq[0].lower() != 'l':
         # global_loc = [0,0,0]
             for x in range(self.Area_dict[Area_name].COL):
                 for y in range(self.Area_dict[Area_name].ROW):
