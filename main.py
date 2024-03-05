@@ -205,7 +205,7 @@ if __name__ == "__main__":
                     if command == 'n':
                         # name = arg
                         # SPWCS.GantryWCS.Inbound(
-                        #     self = SPDTw.wcs_DT,
+                        #     self = SPDTw,
                         #     product_name=name,
                         #     WH_name=SPDTw.WH_name,
                         #     Zone_name=SPDTw.Zone_name,
@@ -222,31 +222,31 @@ if __name__ == "__main__":
                     
                     if command == 'o':
                         if not num:
-                            num = len(list([i for i in SPDTw.wcs_DT.WH_dict['WH_DT'].Zone_dict['Zone_Gantry'].Area_dict['Area_01'].inventory.keys() if lot in i]))
+                            num = len(list([i for i in SPDTw.WH_dict['WH_DT'].Zone_dict['Zone_Gantry'].Area_dict['Area_01'].inventory.keys() if lot in i]))
                         SPDTw.multiple_outbound(name, num)
 
                     if command == 'p':
                         lot = None
                         if num:
-                            for i in list(SPDTw.wcs_DT.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].inventory.keys()):
+                            for i in list(SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].inventory.keys()):
                                 if f"{num:04d}" in i[-4:]:
                                     lot = i
                                     break
                         else:
-                            lot = list(SPDTw.wcs_DT.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].inventory.keys())[0]
+                            lot = list(SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].inventory.keys())[0]
                         
                         if lot:
-                            SPWCS.GantryWCS.Outbound(self=SPDTw.wcs_DT, lot=lot)
+                            SPWCS.GantryWCS.Outbound(self=SPDTw, lot=lot)
                         else:
                             f"입력 {num:04d}와 일치하는 상품이 없습니다."
 
                     # if command == 'r':
                     #     if not num:
                     #         num = 0
-                    #     WCS.GantryWCS.rearrange_area(self=SPDTw.wcs_DT, WH_name=WH_name, Zone_name=Zone_name, Area_name=Area_name, offset=num, HEIGHT=Zone.Area_dict[Area_name].HEIGHT)
+                    #     WCS.GantryWCS.rearrange_area(self=SPDTw, WH_name=WH_name, Zone_name=Zone_name, Area_name=Area_name, offset=num, HEIGHT=Zone.Area_dict[Area_name].HEIGHT)
                 
                     if command == 'l':
-                        print(SPDTw.wcs_DT.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].grid)
+                        print(SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].grid)
 
 
                     if command == 'c':
@@ -260,20 +260,20 @@ if __name__ == "__main__":
                 
             
         else:
-            SPDTw.wcs_DT = SPWCS.GantryWCS()
-            # SPDTw.wcs_DT.__init__()
-            SPDTw.wcs_DT.add_default_WH()
+            SPDTw = SPWCS.GantryWCS()
+            # SPDTw.__init__()
+            SPDTw.add_default_WH()
 
             box_amount = 16
 
             for _ in range(box_amount):
-                SPDTw.wcs_DT.Inbound()
+                SPDTw.Inbound()
 
             _ = 0
             while _ < box_amount:
-                product = rand.choice(list(SPDTw.wcs_DT.product_I_dict.keys()))
-                if 'WH_name' in SPDTw.wcs_DT.product_I_dict[product].keys():
-                    SPDTw.wcs_DT.Outbound(product)
+                product = rand.choice(list(SPDTw.product_I_dict.keys()))
+                if 'WH_name' in SPDTw.product_I_dict[product].keys():
+                    SPDTw.Outbound(product)
                     _ += 1
                 
 

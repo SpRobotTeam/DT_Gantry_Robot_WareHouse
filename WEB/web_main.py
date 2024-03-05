@@ -10,34 +10,8 @@ import random as rand
 import time
 import datetime as dt
 from MW import PLC_com
-# from MW.DB_handler import 
+# from MW.DB_handler import
 
-
-########################################################### robodk cam stream
-# from robodk import robolink  # RoboDK API
-# from robodk import robomath  # Robot toolbox
-# RDK = robolink.Robolink()
-
-# robolink.import_install('cv2', 'opencv-python', RDK)
-# robolink.import_install('numpy', RDK)
-# import numpy as np
-# import cv2 as cv
-
-
-
-# CAM_NAME = "Camera1"
-# CAM_PARAMS = 'SIZE=640x480' # For more options, see https://robodk.com/doc/en/PythonAPI/robodk.html#robodk.robolink.Robolink.Cam2D_Add
-# # WINDOW_NAME = 'My Camera Feed'
-
-# cam_item = RDK.Item(CAM_NAME, robolink.ITEM_TYPE_CAMERA)
-# if not cam_item.Valid():
-#     cam_item = RDK.Cam2D_Add(RDK.AddFrame(CAM_NAME + ' Frame'), CAM_PARAMS)
-#     cam_item.setName(CAM_NAME)
-# cam_item.setParam('Open', 1)
-
-
-
-##########################################################
 
 from main import main 
 
@@ -64,11 +38,11 @@ if default_setting:
 col1, col2, col3 = st.columns([.5,.05,.45])
 
 with col3:
+    os.path.dirname(__file__)+"\\"
     components.iframe(src=f"http://{ip_addres}:8091/", width=600, height=600, )
 
     if st.button("WMS", 'wms_bt'):
         wb.open_new_tab(f"http://{ip_addres}:8069/web#action=244&model=stock.picking.type&view_type=kanban&cids=3&menu_id=111")
-    # if cam_item.setParam('isOpen') == '1':
 
 
 with col1:

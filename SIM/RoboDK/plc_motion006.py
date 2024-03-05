@@ -1,6 +1,6 @@
 #!/bin/python
 import sys, os
-# sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 current_working_directory = os.getcwd()
 
 from pyModbusTCP.server import ModbusServer, DataBank
@@ -13,9 +13,61 @@ from robolink import *
 from time import sleep
 
 RDK = robolink.Robolink()
+if 'nt' in os.name:
+    RDK.AddFile(os.path.dirname(__file__)+"\\"+"wcs_plc_20240203_183935.rdk")
+else:
+    RDK.AddFile("~//"+"wcs_plc_20240203_183935.rdk")
 # station_item = RDK.AddFile("wcs_plc_20240203_183935.rdk")
 # station = RDK.Item(station_item.Name())
 # station.setName("station")
+
+from threading import Thread
+########################################################### robodk cam stream
+import socket
+import numpy
+import cv2
+
+UDP_IP = "127.0.0.1"
+UDP_PORT = 9505
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.bind((UDP_IP, UDP_PORT))
+
+robolink.import_install('cv2', 'opencv-python', RDK)
+robolink.import_install('numpy', RDK)
+import numpy as np
+import cv2 as cv
+
+CAM_NAME = "Camera 1"
+CAM_PARAMS = 'SIZE=640x480'
+# WINDOW_NAME = CAM_NAME
+
+def camera_stream():
+    cam_item = RDK.Item(CAM_NAME, robolink.ITEM_TYPE_CAMERA)
+    if not cam_item.Valid():
+        cam_item = RDK.Cam2D_Add(RDK.AddFrame(CAM_NAME + ' Frame'), CAM_PARAMS)
+        cam_item.setName(CAM_NAME)
+    cam_item.setParam('Open', 1)
+
+    while cam_item.setParam('isOpen') == '1':
+        img_socket = None
+        bytes_img = RDK.Cam2D_Snapshot('', cam_item)
+        if isinstance(bytes_img, bytes) and bytes_img != b'':
+            nparr = np.frombuffer(bytes_img, np.uint8)
+            img_socket = cv.imdecode(nparr, cv.IMREAD_COLOR)
+
+
+        if img_socket is None:
+            break
+    
+
+
+
+
+
+##########################################################
+
+
 
 def load_box():
     global box_counter
@@ -288,11 +340,16 @@ items = define_model()
 
 
 if __name__ == '__main__':
+
     s = modbus_inst()
     # s.write_data(address=11, data=0)
     # s.write_data(address=12, data=1)
     # s.write_data(address=13, data=0)
     s.write_data(address=11, data=[0,1,0])
+
+    cam_streamer = Thread(target=camera_stream, daemon=True)
+    cam_streamer.start()
+
     while True:
         s.databank.set_holding_registers(10, [s.heartbeat_flag])
 
