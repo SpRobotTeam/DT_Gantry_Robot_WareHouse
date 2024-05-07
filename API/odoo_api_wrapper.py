@@ -83,7 +83,17 @@ class odoo_xmlrpc():
     
 
 
-    def list_up_records(self, obj:str, args:list, kw=None):
+    def list_up_records(self, obj:str, args:list, kw:dict=None)-> list:
+        '''
+        조건에 부합하는 레코드(id) 리스트 출력
+        `obj`  : 테이블 이름,
+        `args` : 데이터 속성(조건)
+        `kw`   : 필터
+
+        ex)
+        list_up_records('res.partner', [[['is_company', '=', True]]])                           -> [1,2,3,5,10,21,22,23]
+        list_up_records('res.partner', [[['is_company', '=', True]]],{'offset': 4, 'limit': 3}) -> [10,21,22]
+        '''
         data = self.__models.execute_kw(self.__db, self.__uid, self.__key, obj, 'search', args, kw)
         return data
     
@@ -91,6 +101,7 @@ class odoo_xmlrpc():
 
     def create_data(self, obj:str, args:list):
         '''
+        레코드 생성
         `obj`  : 테이블 이름,
         `args` : 데이터 속성(내용)
 
