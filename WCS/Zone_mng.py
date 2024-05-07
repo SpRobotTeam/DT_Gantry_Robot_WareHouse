@@ -119,24 +119,26 @@ class zone_manager():
         구역 특성과 상품의 outbound_freq, priority에 따라 적절한 위치 탐색
 
         현재 First-Fit 과 유사한 방식 사용
+        높이가 0인 곳 부터 찾다가 `AREA_DICT`에 설정된 높이 한계 까지 찾아감
         '''
         iter = 0
         if len(outbound_freq) == 0 or outbound_freq[0].lower() != 'l':
         # global_loc = [0,0,0]
-            for x in range(self.Area_dict[Area_name].COL):
-                for y in range(self.Area_dict[Area_name].ROW):
-                    if len(self.Area_dict[Area_name].grid[x][y]) == 0:
-                        iter += 1
-                        if iter >= priority:
-                            # return[x,y]
-                            return [
-                                x ,# + self.Area_dict[Area_name].ORIGIN_POINT[0],
-                                y ,# + self.Area_dict[Area_name].ORIGIN_POINT[1],
-                                len(self.Area_dict[Area_name].grid[x][y]) # + self.Area_dict[Area_name].ORIGIN_POINT[2]]
-                            ]
-                            # break
-                        else:
-                            continue
+            for z in range(0,self.Area_dict[Area_name].HEIGHT):
+                for x in range(self.Area_dict[Area_name].COL):
+                    for y in range(self.Area_dict[Area_name].ROW):
+                        if len(self.Area_dict[Area_name].grid[x][y]) == z:
+                            iter += 1
+                            if iter >= priority:
+                                # return[x,y]
+                                return [
+                                    x ,# + self.Area_dict[Area_name].ORIGIN_POINT[0],
+                                    y ,# + self.Area_dict[Area_name].ORIGIN_POINT[1],
+                                    len(self.Area_dict[Area_name].grid[x][y]) # + self.Area_dict[Area_name].ORIGIN_POINT[2]]
+                                ]
+                                # break
+                            else:
+                                continue
         
         else:
             for x in range(self.Area_dict[Area_name].COL, 1, -1):

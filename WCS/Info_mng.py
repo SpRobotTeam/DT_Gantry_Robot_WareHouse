@@ -134,11 +134,24 @@ class Base_info (product_manager, container_manager, wh_manager):
             loc = manual_loc
 
         else:
-            if (present_product_amount == 0 
-                or (present_product_amount+1)%destination_area.HEIGHT):
-                priority = 2
-            else:
-                priority = 1
+            # 자동 최적화
+            # if (present_product_amount == 0 
+            #     or (present_product_amount+1)%destination_area.HEIGHT):
+            #     priority = 2
+            # else:
+            #     priority = 1
+            
+            # loc = zone_manager.optimal_pos_find(
+            #                     self=destination_zone,
+            #                     lot=lot,
+            #                     Area_name=Area_name, 
+            #                     outbound_freq = self.product_templet_dict[product_name]
+            #                                     ['outbound_frequency'], 
+            #                     priority=priority
+            #                     )
+            
+            # 적재 소요 시간 최소
+            priority = 1
             
             loc = zone_manager.optimal_pos_find(
                                 self=destination_zone,
@@ -224,13 +237,17 @@ class Base_info (product_manager, container_manager, wh_manager):
 
                 top_lot = (deposition_area.grid[loc[0]][loc[1]][-1])
                 product_name = self.product_I_dict[top_lot]['product_name']
+                
                 deposition_loc = zone_manager.optimal_pos_find(
                                     self = deposition_zone,
                                     Area_name=Area_name,
                                     lot=top_lot,
                                     outbound_freq=self.product_templet_dict[product_name]['outbound_frequency'],
+                                    # 자동 최적화
                                     priority=2
+                                    # 자
                                     )
+                
                 zone_manager.move_item( # 상단 상품 이동
                     self=deposition_zone,
                     area_from=deposition_area,

@@ -144,7 +144,8 @@ class main(SPWCS.GantryWCS):
         })
         self.Zone.add_area({
             'Area_name' : 'Out',
-            'origin'    : [0,0,0]  ,  
+            'origin'    : [4,4,0]  ,  # 
+            # 'origin'    : [0,0,0],
             'col'       :  1 , 
             'row'       :  1 , 
             'heigth'    :  1 , 
@@ -152,10 +153,10 @@ class main(SPWCS.GantryWCS):
         })
         self.Zone.add_area({
             'Area_name' : 'Area_01',
-            'origin'    : [1,1,1]  ,  
-            'col'       :  4 , 
-            'row'       :  4 , 
-            'heigth'    :  2 , 
+            'origin'    : [1,1,0]  ,  
+            'col'       :  3 ,  # 4
+            'row'       :  3 ,  # 4
+            'heigth'    :  4 ,  # 2
             'grid_type' :  'r' 
         })
 

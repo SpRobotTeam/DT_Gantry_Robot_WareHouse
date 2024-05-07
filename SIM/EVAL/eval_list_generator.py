@@ -6,6 +6,8 @@ from pathlib import Path
 import os
 import csv
 
+SEED = 12345
+
 class eval_list_generator():
     action_list = ['IN', 'OUT', 'WAIT']
     item_list = []
@@ -171,5 +173,5 @@ class eval_list_generator():
 
 
 if __name__ == '__main__':
-    eval = eval_list_generator(rand_seed=8291)
+    eval = eval_list_generator(rand_seed=SEED)
     
