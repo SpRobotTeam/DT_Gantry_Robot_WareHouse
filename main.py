@@ -388,7 +388,7 @@ if __name__ == "__main__":
                 f"test_fin \n"+
                 f"Sum of moved distance : {sum_distance} \n"+
                 f"Total Unit time past  : {unit_time_past}\n" +
-                f"Average height  : {average_height}\n" +
+                f"Standard deviation  : {average_height}\n" +
                 "-----------------------------------------------------------"+"\n"+
                 f"time_score     : {time_score*100:.2f}%\n"+
                 f"position_score : {position_score:.2f}\n"+
