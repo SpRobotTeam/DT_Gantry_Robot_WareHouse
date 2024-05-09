@@ -1,6 +1,7 @@
 import os
 import csv
 import pathlib
+import numpy as np
 
 class Evaluator():
     
@@ -81,8 +82,10 @@ class Evaluator():
             for y in range(len(grid_list[x])):
                 height_list.append(len(grid_list[x][y]))
 
-        average_height = sum(height_list)/len(height_list)
+        average_height = np.mean(height_list) # sum(height_list)/len(height_list)
 
-        position_score = 1/(average_height)
+
+
+        position_score = 1/np.std(height_list) # 1/(average_height)
         
         return [position_score, average_height]
