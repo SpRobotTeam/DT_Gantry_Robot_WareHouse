@@ -7,9 +7,16 @@ from WCS.Area_mng import area_manager
 from MW.Product_mng import container_manager, product_manager
 # import numpy as np
 import datetime as dt
+import math
+
+from ERROR.error import NotEnoughSpaceError
+
+
+MODE = "FF"
 
 class Base_info (product_manager, container_manager, wh_manager):
-    def __init__(self):
+    def __init__(self, op_mode = None):
+        self.op_mode = op_mode
         self.WH_dict = {}
 
         container_manager.__init__(self)
@@ -72,8 +79,10 @@ class Base_info (product_manager, container_manager, wh_manager):
             Area_name='', 
             reserved_time=None,
             manual_loc=[],
+            testing_mode = None,
             ):
         
+        sum_distance = [0,0]
 
         if not DOM:
             date = dt.datetime.now()
@@ -118,11 +127,11 @@ class Base_info (product_manager, container_manager, wh_manager):
         
         if present_product_amount >= destination_area.INVENTORY_CRITICAL_LIMIT: # 물건을 하나씩 집는 동안은 해결 불능
             print("최종 적재 한계에 도달 하였습니다. \n입고 작업 및 정렬 작업을 진행할 수 없습니다.")
-            return 1
+            raise NotEnoughSpaceError
         
-        if present_product_amount >= destination_area.INVENTORY_LIMIT: # 다른 전략 필요
+        elif present_product_amount >= destination_area.INVENTORY_LIMIT: # 다른 전략 필요
             print("적재 한계에 도달 하였습니다. \n정렬 작업을 진행할 수 없습니다.")
-            return 1
+            raise NotEnoughSpaceError
         
         lot = f"{self.product_templet_dict[product_name]['lot_head']}-{DOM}-{registered_product_amount+1:04d}"
         
@@ -135,23 +144,16 @@ class Base_info (product_manager, container_manager, wh_manager):
 
         else:
             # 자동 최적화
-            # if (present_product_amount == 0 
-            #     or (present_product_amount+1)%destination_area.HEIGHT):
-            #     priority = 2
-            # else:
-            #     priority = 1
+            if MODE == "AO":
+                if (present_product_amount == 0                                               #AO
+                    or (present_product_amount+1)%destination_area.HEIGHT):                   #AO
+                    priority = 2                                                              #AO
+                else:                                                                         #AO
+                    priority = 1                                                              #AO
             
-            # loc = zone_manager.optimal_pos_find(
-            #                     self=destination_zone,
-            #                     lot=lot,
-            #                     Area_name=Area_name, 
-            #                     outbound_freq = self.product_templet_dict[product_name]
-            #                                     ['outbound_frequency'], 
-            #                     priority=priority
-            #                     )
-            
-            # 적재 소요 시간 최소
-            priority = 1
+            # first_fit
+            if MODE == "FF":                                                                  #FF
+                priority = 1                                                                  #FF
             
             loc = zone_manager.optimal_pos_find(
                                 self=destination_zone,
@@ -166,16 +168,18 @@ class Base_info (product_manager, container_manager, wh_manager):
         
         # height = len(In_area.grid[loc[0]][loc[1]])-1
 
-        zone_manager.move_item(
+        moved_distance = zone_manager.move_item(
                                     self=destination_zone,
                                     area_from=In_area, 
                                     loc_from=[0,0,0],
                                     # loc_from=[0, 0, [a+b for a,b in 
                                     #                  zip([0,0,height],In_area.origin_point)].index(lot)],
                                     area_to=destination_area, 
-                                    loc_to = loc
+                                    loc_to = loc,
+                                    MODBUS_SIM_SKIP = self.op_mode
                                     ) 
                                 
+        sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
         
         # loc = self.WH_dict[WH_name].Zone_dict[Zone_name].pos_find(
         #         area_name=Area_name,
@@ -198,24 +202,54 @@ class Base_info (product_manager, container_manager, wh_manager):
         self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name].inventory[lot] = {
                         'loc' : loc
                     }
-        
-        if priority == 1:
-            self.sort_item( # 정렬
-                            WH_name=WH_name, 
-                            Zone_name=Zone_name, 
-                            Area_name=Area_name, 
-                            lot=lot, 
-                            loc=[loc[0],loc[1],loc[2]+1],
-                            offset=2
-                           )
-        
+        # 자동 최적화
+        if MODE == "AO":
+            if priority == 1:                                     #AO
+                moved_distance = self.sort_item( # 정렬           #AO
+                                WH_name=WH_name,                  #AO
+                                Zone_name=Zone_name,              #AO
+                                Area_name=Area_name,              #AO
+                                lot=lot,                          #AO
+                                loc=[loc[0],loc[1],loc[2]+1],     #AO
+                                offset=2                          #AO
+                                )                                 #AO
+
+                sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
+
         print(f"{lot} : {Area_name}{loc}에 입고 완료",
-              f"{'- '+destination_area.grid[loc[0]][loc[1]][-1]+'~'+lot+' 정렬 완료됨'if priority == 1 else ''}")
-        return None    
+              f"{'- '+destination_area.grid[loc[0]][loc[1]][-1]+'~'+lot}"
+              + f"{' 정렬 완료됨'if priority == 1 else ''}" if MODE == "AO" else ''  #AO
+              )
+        
+        if testing_mode == 1:
+            return sum_distance
+        else:
+            return None    
 
 
-    def Outbound(self, lot, reserved_time=None):  #lot_head/name
+    def Outbound(self, 
+                 lot:str=None, 
+                 product_name:str=None, 
+                #  loc:list=None, 
+                 reserved_time=None, 
+                 testing_mode = None,
+                 ):  #lot_head/name
+        
         # loc = self.find_loc(name)
+        if not lot:
+            if product_name:
+                for i in self.product_I_dict.keys():
+                    if (
+                        self.product_I_dict[i]['product_name'] == product_name and
+                        'bin_location' in list(self.product_I_dict[i].keys())
+                        ):
+                        lot = i
+                        break
+
+            # elif loc:
+            
+        sum_distance = [0,0]
+
         print(f"출고 대상 : {lot}")
         I_dict      = self.product_I_dict[lot]
         WH_name     = I_dict['WH_name']
@@ -228,7 +262,7 @@ class Base_info (product_manager, container_manager, wh_manager):
         deposition_area = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name]
         
         previous_height = len(deposition_area.grid[loc[0]][loc[1]])
-        
+
         Out_area        = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict['Out']
 
         if loc:
@@ -238,38 +272,50 @@ class Base_info (product_manager, container_manager, wh_manager):
                 top_lot = (deposition_area.grid[loc[0]][loc[1]][-1])
                 product_name = self.product_I_dict[top_lot]['product_name']
                 
+                # 자동 최적화
+                if MODE == "AO":
+                    priority = 2                    #AO
+                # first_fit
+                elif MODE == "FF":
+                    priority = 1                    #FF
+
                 deposition_loc = zone_manager.optimal_pos_find(
                                     self = deposition_zone,
-                                    Area_name=Area_name,
-                                    lot=top_lot,
-                                    outbound_freq=self.product_templet_dict[product_name]['outbound_frequency'],
-                                    # 자동 최적화
-                                    priority=2
-                                    # 자
+                                    Area_name = Area_name,
+                                    lot = top_lot,
+                                    outbound_freq = self.product_templet_dict[product_name]['outbound_frequency'],
+                                    priority = priority,
+                                    origin=loc[:-1]    
                                     )
                 
-                zone_manager.move_item( # 상단 상품 이동
-                    self=deposition_zone,
-                    area_from=deposition_area,
-                    loc_from=[loc[0],loc[1],len(deposition_area.grid[loc[0]][loc[1]])-1],
-                    area_to=deposition_area,
-                    loc_to=deposition_loc
+                moved_distance = zone_manager.move_item( # 상단 상품 이동
+                    self = deposition_zone,
+                    area_from = deposition_area,
+                    loc_from = [loc[0],loc[1],len(deposition_area.grid[loc[0]][loc[1]])-1],
+                    area_to = deposition_area,
+                    loc_to = deposition_loc,
+                    MODBUS_SIM_SKIP = self.op_mode
                     )
                 
+                sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
+
                 self.product_I_dict[top_lot]['bin_location'] = deposition_area.inventory[top_lot]['loc'] = deposition_loc
                 
                 
             # height = len(Out_area.grid[0][0])-1
 
-            zone_manager.move_item( # 목표 상품 이동
-                self=deposition_zone,
-                area_from=deposition_area,
-                loc_from=loc,
-                area_to=Out_area,
-                # loc_to=[0, 0, [a+b for a,b in 
+            moved_distance = zone_manager.move_item( # 목표 상품 이동
+                self = deposition_zone,
+                area_from = deposition_area,
+                loc_from = loc,
+                area_to = Out_area,
+                # loc_to = [0, 0, [a+b for a,b in 
                 #         zip([0,0,height],Out_area.origin_point)]]
-                loc_to=[0,0,0]
+                loc_to = [0,0,0],
+                MODBUS_SIM_SKIP = self.op_mode
             )
+
+            sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
 
             rearrange_offset = len(list(deposition_area.inventory.keys()))\
                                 -list(deposition_area.inventory.keys()).index(lot) 
@@ -278,23 +324,29 @@ class Base_info (product_manager, container_manager, wh_manager):
             for k in ['WH_name','Zone_name','Area_name','bin_location']:
                 self.product_I_dict[lot].pop(k)
             
-            if previous_height > 1:
-                self.sort_item( # 재 정렬
-                    WH_name = WH_name, 
-                    Zone_name = Zone_name, 
-                    Area_name = Area_name,
-                    lot = lot,
-                    loc = [loc[0],loc[1],loc[-1]],
-                    height=previous_height-1,
-                    offset= rearrange_offset
-                )
+            # 자동 최적화
+            if MODE == "AO":
+                if previous_height > 1:                   #AO
+                    moved_distance = self.sort_item(      #AO  # 재 정렬 
+                        WH_name = WH_name,                #AO
+                        Zone_name = Zone_name,            #AO
+                        Area_name = Area_name,            #AO
+                        lot = lot,                        #AO
+                        loc = [loc[0],loc[1],loc[-1]],    #AO
+                        height = previous_height-1,       #AO
+                        offset =  rearrange_offset        #AO
+                    )                                     #AO
+                sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
 
         if Out_area.grid[0][0]:
             Out_area.grid[0][0].pop()
 
         print(f"{lot} 출고 완료",
               f"")
-        return None 
+        if testing_mode == 1:
+            return sum_distance 
+        else:
+            return None 
 
 
 
@@ -316,6 +368,8 @@ class Base_info (product_manager, container_manager, wh_manager):
 
         base_level = loc[-1] # len(destination_area.grid[loc[0]][loc[1]])
 
+        sum_distance = [0,0]
+
         for z in range(base_level, height):
             deposition_lot = list(destination_area.inventory.keys())[base_level-z-offset]
             # loc[-1] += 1
@@ -332,36 +386,46 @@ class Base_info (product_manager, container_manager, wh_manager):
                 if deposition_lot[:11] == lot [:11]:
                     
                     # upper_loc = deposition_loc[:-1]+[deposition_loc[-1]+1]
-                    upper_item_list :list= destination_area.grid[deposition_loc[0]][deposition_loc[1]][deposition_loc[-1]+1:]
+                    upper_item_list :list = destination_area.grid[deposition_loc[0]][deposition_loc[1]][deposition_loc[-1]+1:]
                     if len(upper_item_list):
                         upper_item_list.reverse()
                         destination_loc_base = zone_manager.optimal_pos_find(
-                            self=destination_zone,
-                            Area_name=Area_name,
-                            outbound_freq='h',
-                            priority=2,
-                            lot=upper_item_list[0],
+                            self = destination_zone,
+                            Area_name = Area_name,
+                            outbound_freq = 'h',
+                            priority = 2,
+                            lot = upper_item_list[0],
+                            origin=deposition_loc[:-1] 
                                 )
                     for i in range(len(upper_item_list)):
                         temporal_destination_loc = destination_loc_base[:-1]+[destination_loc_base[-1]+i]
-                        zone_manager.move_item(
-                            self=destination_zone,
-                            area_from=destination_area,  
-                            loc_from=destination_area.inventory[upper_item_list[i]],
-                            area_to=destination_area,
-                            loc_to=temporal_destination_loc)
+                        
+                        moved_distance = zone_manager.move_item(
+                            self = destination_zone,
+                            area_from = destination_area,  
+                            loc_from = destination_area.inventory[upper_item_list[i]],
+                            area_to = destination_area,
+                            loc_to = temporal_destination_loc,
+                            MODBUS_SIM_SKIP = self.op_mode
+                            )
+
+                        sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
                         
                         self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name].inventory[upper_item_list[i]]['loc'] \
                         = self.product_I_dict[upper_item_list[i]]['bin_location'] \
                         = temporal_destination_loc
                         
                         
-                    zone_manager.move_item(
-                        self=destination_zone,
-                        area_from=destination_area,  
-                        loc_from=deposition_loc,
-                        area_to=destination_area,
-                        loc_to=destination_loc)
+                    moved_distance = zone_manager.move_item(
+                        self = destination_zone,
+                        area_from = destination_area,  
+                        loc_from = deposition_loc,
+                        area_to = destination_area,
+                        loc_to = destination_loc,
+                        MODBUS_SIM_SKIP = self.op_mode
+                        )
+                    
+                    sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
                     
                     self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name].inventory[deposition_lot]['loc'] \
                     = self.product_I_dict[deposition_lot]['bin_location'] \
@@ -375,12 +439,17 @@ class Base_info (product_manager, container_manager, wh_manager):
                         destination_loc_base = deposition_loc
                         for i in range(len(upper_item_list)):
                             temporal_destination_loc = destination_loc_base[:-1]+[destination_loc_base[-1]+i]
-                            zone_manager.move_item(
-                                self=destination_zone,
-                                area_from=destination_area,  
-                                loc_from=destination_area.inventory[upper_item_list[i]],
-                                area_to=destination_area,
-                                loc_to=temporal_destination_loc)
+                            
+                            moved_distance = zone_manager.move_item(
+                                self = destination_zone,
+                                area_from = destination_area,  
+                                loc_from = destination_area.inventory[upper_item_list[i]],
+                                area_to = destination_area,
+                                loc_to = temporal_destination_loc,
+                                MODBUS_SIM_SKIP = self.op_mode
+                                )
+                            sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
+
                             self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name].inventory[upper_item_list[i]]['loc'] \
                             = self.product_I_dict[upper_item_list[i]]['bin_location'] \
                             = temporal_destination_loc
@@ -389,6 +458,7 @@ class Base_info (product_manager, container_manager, wh_manager):
                 else:
                     offset+=1
         
+        return sum_distance 
 
 
     def stack_reverse(self, WH_name, Zone_name, Area_name, offset, height=None):
@@ -401,6 +471,8 @@ class Base_info (product_manager, container_manager, wh_manager):
         destination_zone = self.WH_dict[WH_name].Zone_dict[Zone_name]
         destination_area = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name]
 
+        sum_distance = [0,0]
+
         if not height:
             height = destination_area.HEIGHT-1
         
@@ -409,9 +481,10 @@ class Base_info (product_manager, container_manager, wh_manager):
         optimal_pos  =  zone_manager.optimal_pos_find(
                     self = destination_zone,
                     # lot             = lot,
-                    Area_name       =destination_area.AREA_NAME,
-                    outbound_freq   =self.product_templet_dict[product_name]['outbound_frequency'],
-                    priority        =1)
+                    Area_name       = destination_area.AREA_NAME,
+                    outbound_freq   = self.product_templet_dict[product_name]['outbound_frequency'],
+                    priority        = 1
+                    )
         
         for i in range(height):
 
@@ -420,14 +493,17 @@ class Base_info (product_manager, container_manager, wh_manager):
             
             loc_to  = [optimal_pos[0], optimal_pos[1], optimal_pos[0]+i]
 
-            zone_manager.move_item(
+            moved_distance = zone_manager.move_item(
                 self        = destination_zone,
                 area_from   = destination_area,
                 loc_from    = loc_from,
                 area_to     = destination_area,
-                loc_to      = loc_to
+                loc_to      = loc_to,
+                MODBUS_SIM_SKIP = self.op_mode
             )
             
+            sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
+
             self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name].inventory[lot]['loc'] \
                 = self.product_I_dict[lot]['bin_location'] \
                 = loc_to
@@ -435,6 +511,7 @@ class Base_info (product_manager, container_manager, wh_manager):
         print(f"{list(destination_area.inventory.keys())[offset]} ~ {list(destination_area.inventory.keys())[offset+height-1]}"
               +" : 역순 정렬")
         
+        return sum_distance
 
 
     def rearrange_area(self, WH_name, Zone_name, Area_name, offset:list=None, HEIGHT:int=None):
@@ -443,6 +520,7 @@ class Base_info (product_manager, container_manager, wh_manager):
         destination_zone = self.WH_dict[WH_name].Zone_dict[Zone_name]
         destination_area = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name]
                 
+        sum_distance = [0,0]
 
         if not HEIGHT:
             HEIGHT = destination_area.HEIGHT-1
@@ -466,11 +544,14 @@ class Base_info (product_manager, container_manager, wh_manager):
             if (lot != list(destination_area.inventory.keys())[i*HEIGHT]
                 or len(destination_area.grid[x][y])<HEIGHT
             ):
-                self.stack_reverse(WH_name=WH_name, Zone_name=Zone_name, Area_name=Area_name,
+                moved_distance = self.stack_reverse(WH_name=WH_name, Zone_name=Zone_name, Area_name=Area_name,
                                    offset=i*HEIGHT+HEIGHT-1, height=HEIGHT)
                 
+                sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
+        
+        return sum_distance
 
-
+    
 
         # # lot = destination_area.grid[x][y][-1]
         # # product_name = self.product_I_dict[lot]['product_name']

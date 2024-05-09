@@ -107,7 +107,7 @@ class area_manager():
     #     if split_num == 0:
             
     #     if split_num%2:
-    #         split_num =+1
+    #         split_num +=1
 
         
 

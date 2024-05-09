@@ -14,10 +14,10 @@ from time import sleep
 
 RDK = robolink.Robolink()
 if 'nt' in os.name:
-    RDK.AddFile(os.path.dirname(__file__)+"\\"+"wcs_plc_20240203_183935.rdk")
+    RDK.AddFile(os.path.dirname(__file__)+"\\"+"wcs_plc_20240508_133800.rdk")
 else:
-    RDK.AddFile("~//"+"wcs_plc_20240203_183935.rdk")
-# station_item = RDK.AddFile("wcs_plc_20240203_183935.rdk")
+    RDK.AddFile("~//"+"wcs_plc_20240508_133800.rdk")
+# station_item = RDK.AddFile("wcs_plc_20240508_133800.rdk")
 # station = RDK.Item(station_item.Name())
 # station.setName("station")
 
@@ -317,6 +317,7 @@ def move_to_position(x1, y1, z1, x2, y2, z2):
 # x = 4; y = 4; z = 2
 # points = make_points(x, y, z)
 # create_frames_and_targets(points, gantry, RDK, pallet, x, y, z)
+create_frames_and_targets(make_points(20,20,5), gantry, RDK, pallet, 20, 20, 5)
 
 
 home_motions(gantry, gripper, conveyor, gantry_home, open_gripper, con_pitch)

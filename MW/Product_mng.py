@@ -58,7 +58,48 @@ class product_manager():
                 'weight' : None, 
                 'inbound_frequency' : None, 
                 'outbound_frequency' : 'high',
-                }
+                },
+            '01':{
+                'lot_head' : "01-00", 
+                'name' : '01', 
+                'flameable' : False, 
+                'perishable' : False, 
+                'container' : self.container_manager.container_dict['default'], 
+                'weight' : None, 
+                'inbound_frequency' : 'high', 
+                'outbound_frequency' : 'high',
+                },
+            '02':{
+                'lot_head' : "02-00", 
+                'name' : '02', 
+                'flameable' : False, 
+                'perishable' : False, 
+                'container' : self.container_manager.container_dict['default'], 
+                'weight' : None, 
+                'inbound_frequency' : 'high', #'low'
+                'outbound_frequency' : 'high', #'low'
+                },
+            '03':{
+                'lot_head' : "03-00", 
+                'name' : '03', 
+                'flameable' : False, 
+                'perishable' : False, 
+                'container' : self.container_manager.container_dict['default'], 
+                'weight' : None, 
+                'inbound_frequency' : 'high', 
+                'outbound_frequency' : 'high', #'low'
+                },
+            '04':{
+                'lot_head' : "04-00", 
+                'name' : '04', 
+                'flameable' : False, 
+                'perishable' : False, 
+                'container' : self.container_manager.container_dict['default'], 
+                'weight' : None, 
+                'inbound_frequency' : 'high', 
+                'outbound_frequency' : 'high',
+                },
+            
         }
 
 

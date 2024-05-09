@@ -7,8 +7,28 @@ import os
 import csv
 
 SEED = 12345
+MISSION_LIMMIT = 1000
+ACTION_WEIGHTS = [0.5, 0.3, 0.2]
 
-class eval_list_generator():
+setting = ['', SEED, MISSION_LIMMIT, *ACTION_WEIGHTS]
+
+if len(sys.argv) >= 2:
+    for i in range(len(sys.argv)):
+        if i == 0:
+            setting[i] = sys.argv[i]
+        else:
+            setting[i] = float(sys.argv[i])
+
+_, SEED, MISSION_LIMMIT = setting[:3]
+SEED = int(SEED)
+MISSION_LIMMIT = int(MISSION_LIMMIT)
+ACTION_WEIGHTS = setting[3:]
+
+print(sys.argv)
+print(setting)
+print(SEED)
+
+class mission_list_generator():
     action_list = ['IN', 'OUT', 'WAIT']
     item_list = []
     id = 0
@@ -39,23 +59,24 @@ class eval_list_generator():
             self.Rand = rand
             self.Rand.seed(rand_seed)
 
-        self.file_name = f"{os.path.dirname(os.path.realpath(__file__))}/eval_list.csv"
-        try:
+        # self.file_name = f"{os.path.dirname(os.path.realpath(__file__))}/mission_list/mission_list_SEED-{SEED:06d}.csv"
+        self.file_name = f"{os.path.dirname(os.path.realpath(__file__))}/mission_list/mission_list_SEED-{int(str(SEED)):06d}.csv"
+        if os.path.isfile(self.file_name):
             os.remove(self.file_name)
-        except:
-            pass
-        Path(self.file_name).touch(exist_ok=True)
+        else:
+            Path(self.file_name).touch(exist_ok=True)
         
         iteration = 1
         # for iteration in range(100):
-        while iteration < 100 +1 :
+        while iteration < MISSION_LIMMIT +1 :
             print(f"iter : {iteration}")
             val = None
             if self.id == 0:
                 val = self.action_in()
                 # self.write(iteration, self.action_in())
             else:
-                action = self.Rand.choice([self.action_in, self.action_out, self.action_wait])
+                action = self.Rand.choices([self.action_in, self.action_out, self.action_wait],
+                                           weights = ACTION_WEIGHTS)[0]
                 if action == self.action_wait and self.last_action == 'WAIT':
                     # iteration -= 1
                     continue
@@ -163,9 +184,10 @@ class eval_list_generator():
                 print(f"recived:\taction: {action_dict['action']}, \tProduct_id: {action_dict['product_id']}")
                 write_list = [action_dict['product_id']]
                 if action_dict['action'] == 'IN':
-                    date = str(action_dict['dom'].year)[-2:]+str(action_dict['dom'].month)+str(action_dict['dom'].day)
+                    # date = str(action_dict['dom'].year)[-2:]+str(action_dict['dom'].month)+str(action_dict['dom'].day)
+                    date = f"{action_dict['dom'].year:04d}{action_dict['dom'].month:02d}{action_dict['dom'].day:02d}"
                     write_list.append(date)
-        print(f"current item list : {[[i['item_id'],i['product_id']] for i in self.item_list]}\n")
+        print(f"current item list (amount : {len(self.item_list)}) : \n{[[i['item_id'],i['product_id']] for i in self.item_list]}\n")
         with open(self.file_name,'a+', newline='') as csv_editor:
             csv_appender = csv.writer(csv_editor)
             csv_appender.writerow([iter, action_dict['action']]+write_list)
@@ -173,5 +195,5 @@ class eval_list_generator():
 
 
 if __name__ == '__main__':
-    eval = eval_list_generator(rand_seed=SEED)
+    eval = mission_list_generator(rand_seed=SEED)
     

@@ -6,12 +6,22 @@ import random as rand
 import time
 # from MW import PLC_com
 # import pprint
+import os
+import csv
+
+from ERROR.error import NotEnoughSpaceError
+
+from SIM.EVAL.evaluator import Evaluator
 
 web = False
 manual = True
 
 
 class main(SPWCS.GantryWCS):
+    def __init__(self, op_mode = None):
+        self.op_mode = op_mode
+        SPWCS.GantryWCS.__init__(self, self.op_mode)
+
     def multiple_inbound(self, name, num):
         for _ in range(num):
             res = self.Inbound(product_name=name)
@@ -144,7 +154,8 @@ class main(SPWCS.GantryWCS):
         })
         self.Zone.add_area({
             'Area_name' : 'Out',
-            'origin'    : [4,4,0]  ,  # 
+            'origin'    : [21,21,0],
+            # 'origin'    : [4,4,0]  ,  # 
             # 'origin'    : [0,0,0],
             'col'       :  1 , 
             'row'       :  1 , 
@@ -154,9 +165,12 @@ class main(SPWCS.GantryWCS):
         self.Zone.add_area({
             'Area_name' : 'Area_01',
             'origin'    : [1,1,0]  ,  
-            'col'       :  3 ,  # 4
-            'row'       :  3 ,  # 4
-            'heigth'    :  4 ,  # 2
+            'col'       :  20 ,  # 4
+            'row'       :  20 ,  # 4
+            'heigth'    :  5 ,  # 2
+            # 'col'       :  3 ,  #
+            # 'row'       :  3 ,  #
+            # 'heigth'    :  4 ,  #
             'grid_type' :  'r' 
         })
 
@@ -168,10 +182,45 @@ if __name__ == "__main__":
 
     name = 'default'
 
+    op_input:str = input(
+        "실행 모드를 선택하세요. \n"+
+        "선택 가능한 옵션 : \n"+
+        '"01"             - 알고리즘 검증 모드\n'+
+        "(그외 모든 경우) - 일반 모드\n"+
+        " >> "
+        )
+    
+    if op_input.isdigit():
+        op_mode = int(op_input)
+    else:
+        op_mode = None
+    
+    file_name = None
+    try:
+        if int(op_mode) == 1:
+            print("알고리즘 평가 기준 생성 모드(모드버스 무효화)로 WCS를 실행합니다!")
+            manual = False
+            seed = None
+            while not seed:
+                input_seed:str = input(
+                    "테스트에 사용할 SEED를 입력하세요 (최대 6자리 int)\n"+
+                    " >> "
+                    )[-6:]
+                if input_seed.isdigit():
+                    seed = int(input_seed)
+            
+            file_name = f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list/mission_list_SEED-{seed:06d}.csv"
+
+            if not os.path.isfile(file_name):
+                os.system(f"python {os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator {seed}")
+
+    except:
+        op_mode = None
+
     if web:
         pass
     else:
-        SPDTw = main()
+        SPDTw = main(op_mode=op_mode)
         if manual:
             SPDTw.default_setting()
 
@@ -223,7 +272,7 @@ if __name__ == "__main__":
                     
                     if command == 'o':
                         if not num:
-                            num = len(list([i for i in SPDTw.WH_dict['WH_DT'].Zone_dict['Zone_Gantry'].Area_dict['Area_01'].inventory.keys() if lot in i]))
+                            num = len(list([i for i in SPDTw.WH_dict['WH_DT'].Zone_dict['Zone_Gantry'].Area_dict['Area_01'].inventory.keys()]))
                         SPDTw.multiple_outbound(name, num)
 
                     if command == 'p':
@@ -261,24 +310,93 @@ if __name__ == "__main__":
                 
             
         else:
-            SPDTw = SPWCS.GantryWCS()
             # SPDTw.__init__()
-            SPDTw.add_default_WH()
+            SPDTw.default_setting(container_name='default')
+            
+            LEAST_MISSION_LENGTH = 1000
 
-            box_amount = 16
+            unit_time_past = 0
+            sum_distance = [0,0]
+            GANTRY_MOVING_SPEED = [1,1]
 
-            for _ in range(box_amount):
-                SPDTw.Inbound()
+            mission_length = 0
+            with open(file_name,'r', newline='') as csv_editor:
+                reader = csv.reader(csv_editor)
+                for line in reader:
+                    mission_length += 1
 
-            _ = 0
-            while _ < box_amount:
-                product = rand.choice(list(SPDTw.product_I_dict.keys()))
-                if 'WH_name' in SPDTw.product_I_dict[product].keys():
-                    SPDTw.Outbound(product)
-                    _ += 1
+            if mission_length < LEAST_MISSION_LENGTH:
+                os.system(f"python {os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py {seed} {LEAST_MISSION_LENGTH}")
+                mission_length = LEAST_MISSION_LENGTH
+
+            for _ in range(mission_length):
+            # for _ in range(20):
                 
+                action = product_name = dom = wait_time = None
 
-            print("test_fin")
+                with open(file_name,'r', newline='') as csv_editor:
+                    line_index = 0
+                    mission_list = csv.reader(csv_editor)
+                    for line in mission_list:
+                        if line_index == _:
+                            action = line[1]
+                        
+                            if action in ['IN', 'OUT']:
+                                product_name = f"{int(line[2]):02d}"
+                                if action == 'IN':
+                                    dom = line[3]
+                            elif action in ['WAIT']:
+                                wait_time = line[2]
+                            break
+                        else:
+                            line_index += 1
+                
+                if action == 'IN':
+                    moved_distance = SPDTw.Inbound(product_name=product_name, DOM=dom, testing_mode = 1)
+                    sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
+                    unit_time_past += sum([d*s for d,s in zip(moved_distance, GANTRY_MOVING_SPEED)])
+                elif action == 'OUT':
+                    moved_distance = SPDTw.Outbound(product_name=product_name, testing_mode = 1)
+                    sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
+                    unit_time_past += sum([d*s for d,s in zip(moved_distance, GANTRY_MOVING_SPEED)])
+                elif action == 'WAIT':
+                    # unit_time_past += wait_time
+                    pass
+                
+                if action == 'WAIT':
+                    print(
+                        f"mission_{_+1} fin\n"+
+                        f"Total Unit time past : {unit_time_past}\n"+
+                        "-----------------------------------------------------------"+"\n"
+                        )
+                else:
+                    print(
+                        f"mission_{_+1} fin\n"+
+                        f"moved_distance : {moved_distance}\n"+
+                        f"Unit time past : {sum([d*s for d,s in zip(moved_distance, GANTRY_MOVING_SPEED)])}\n"+
+                        f"Total Unit time past : {unit_time_past}\n"+
+                        "-----------------------------------------------------------"+"\n"
+                        )
+                    
+            eval_score = Evaluator(mode=op_mode, SEED=seed)
+            final_score, time_score, position_score, average_height = eval_score.evaluate(
+                time_past=unit_time_past, 
+                grid_list=SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].grid
+                )
+
+            print(
+                f"test_fin \n"+
+                f"Sum of moved distance : {sum_distance} \n"+
+                f"Total Unit time past  : {unit_time_past}\n" +
+                f"Average height  : {average_height}\n" +
+                "-----------------------------------------------------------"+"\n"+
+                f"time_score     : {time_score*100:.2f}%\n"+
+                f"position_score : {position_score:.2f}\n"+
+                f"total_score    : {final_score*100:.2f}%\n"
+                "___________________________________________________________"+"\n"
+                  )
+            
+            # time.sleep(5)
 
 
 else:

@@ -7,8 +7,8 @@ import random as rand
 # from MW.MW import m
 
 class GantryWCS (Base_info):
-    def __init__(self):
-        Base_info.__init__(self)
+    def __init__(self, op_mode = None):
+        Base_info.__init__(self, op_mode=op_mode)
         # self.base_info = Base_info()
         
         
