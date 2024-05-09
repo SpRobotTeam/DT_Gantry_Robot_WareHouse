@@ -6,10 +6,10 @@ class container_manager():
     container_dict = {
         'default':{
             'name'      : 'default',
-            'length'    : 300, 
-            'width'     : 200, 
-            'height'    : 200,
-            'gap'       : 200
+            'length'    : 304.8, # 300, 
+            'width'     : 177.8, # 200, 
+            'height'    : 133.7, # 200,
+            'gap'       : 100
             },
     }
 
@@ -58,7 +58,48 @@ class product_manager():
                 'weight' : None, 
                 'inbound_frequency' : None, 
                 'outbound_frequency' : 'high',
-                }
+                },
+            '01':{
+                'lot_head' : "01-00", 
+                'name' : '01', 
+                'flameable' : False, 
+                'perishable' : False, 
+                'container' : self.container_manager.container_dict['default'], 
+                'weight' : None, 
+                'inbound_frequency' : 'high', 
+                'outbound_frequency' : 'high',
+                },
+            '02':{
+                'lot_head' : "02-00", 
+                'name' : '02', 
+                'flameable' : False, 
+                'perishable' : False, 
+                'container' : self.container_manager.container_dict['default'], 
+                'weight' : None, 
+                'inbound_frequency' : 'high', #'low'
+                'outbound_frequency' : 'high', #'low'
+                },
+            '03':{
+                'lot_head' : "03-00", 
+                'name' : '03', 
+                'flameable' : False, 
+                'perishable' : False, 
+                'container' : self.container_manager.container_dict['default'], 
+                'weight' : None, 
+                'inbound_frequency' : 'high', 
+                'outbound_frequency' : 'high', #'low'
+                },
+            '04':{
+                'lot_head' : "04-00", 
+                'name' : '04', 
+                'flameable' : False, 
+                'perishable' : False, 
+                'container' : self.container_manager.container_dict['default'], 
+                'weight' : None, 
+                'inbound_frequency' : 'high', 
+                'outbound_frequency' : 'high',
+                },
+            
         }
 
 
@@ -116,7 +157,7 @@ class product_manager():
 
                     ['outbound_frequency',  "출고 빈도 : ['high'] or 'low' \n"+ 
                                             ">> "],
-        ]:
+            ]:
             input_val = input(j)
             if not input_val:
                 if i == 'lot_head':

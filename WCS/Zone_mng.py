@@ -114,44 +114,52 @@ class zone_manager():
     
 
 
-    def optimal_pos_find(self, Area_name, outbound_freq, priority, lot=None):  # origin=[0,0],
+    def optimal_pos_find(self, Area_name, outbound_freq, priority, origin = None, lot=None):  # origin=[0,0], #! mode('FF' or 'AO' ...) 관련 수정 필요
         '''
         구역 특성과 상품의 outbound_freq, priority에 따라 적절한 위치 탐색
 
         현재 First-Fit 과 유사한 방식 사용
+        높이가 0인 곳 부터 찾다가 `AREA_DICT`에 설정된 높이 한계 까지 찾아감
         '''
         iter = 0
-        if outbound_freq[0].lower() == 'h':
+        if len(outbound_freq) == 0 or outbound_freq[0].lower() != 'l':
         # global_loc = [0,0,0]
-            for x in range(self.Area_dict[Area_name].COL):
-                for y in range(self.Area_dict[Area_name].ROW):
-                    if len(self.Area_dict[Area_name].grid[x][y]) == 0:
-                        iter += 1
-                        if iter >= priority:
-                            # return[x,y]
-                            return [
-                                x ,# + self.Area_dict[Area_name].ORIGIN_POINT[0],
-                                y ,# + self.Area_dict[Area_name].ORIGIN_POINT[1],
-                                len(self.Area_dict[Area_name].grid[x][y]) # + self.Area_dict[Area_name].ORIGIN_POINT[2]]
-                            ]
-                            # break
-                        else:
+            for z in range(0,self.Area_dict[Area_name].HEIGHT):
+                for x in range(self.Area_dict[Area_name].COL):
+                    for y in range(self.Area_dict[Area_name].ROW):
+                        if origin and [x,y] == origin: # 같은 X,Y 좌표 회피
                             continue
+                        elif len(self.Area_dict[Area_name].grid[x][y]) == z:
+                            iter += 1
+                            if iter >= priority:
+                                # return[x,y]
+                                return [
+                                    x ,# + self.Area_dict[Area_name].ORIGIN_POINT[0],
+                                    y ,# + self.Area_dict[Area_name].ORIGIN_POINT[1],
+                                    len(self.Area_dict[Area_name].grid[x][y]) # + self.Area_dict[Area_name].ORIGIN_POINT[2]]
+                                ]
+                                # break
+                            else:
+                                continue
         
         else:
-            for x in range(self.Area_dict[Area_name].COL, 1, -1):
-                for y in range(self.Area_dict[Area_name].ROW, 1, -1):
-                    if len(self.Area_dict[Area_name].grid[x][y]) == 0:
-                        iter += 1
-                        if iter >= priority:
-                            # return[x,y]
-                            return [
-                                x + self.Area_dict[Area_name].ORIGIN[0],
-                                y + self.Area_dict[Area_name].ORIGIN[1],
-                                len(self.Area_dict[Area_name].grid[x][y]) + self.Area_dict[Area_name].ORIGIN[2]]
-                            # break
-                        else:
+            for z in range(0,self.Area_dict[Area_name].HEIGHT):
+                for x in range(self.Area_dict[Area_name].COL-1, -1, -1):
+                    for y in range(self.Area_dict[Area_name].ROW-1, -1, -1):
+                        if origin and [x,y] == origin: # 같은 X,Y 좌표 회피
                             continue
+                        elif len(self.Area_dict[Area_name].grid[x][y]) == z:
+                            iter += 1
+                            if iter >= priority:
+                                # return[x,y]
+                                return [
+                                    x ,# + self.Area_dict[Area_name].ORIGIN_POINT[0],
+                                    y ,# + self.Area_dict[Area_name].ORIGIN_POINT[1],
+                                    len(self.Area_dict[Area_name].grid[x][y]) # + self.Area_dict[Area_name].ORIGIN_POINT[2]]
+                                ]
+                                # break
+                            else:
+                                continue
         
        
         return False
@@ -166,44 +174,61 @@ class zone_manager():
 
 
     
-    def move_item(self, area_from, loc_from, area_to, loc_to):
+    def move_item(self, area_from, loc_from, area_to, loc_to, MODBUS_SIM_SKIP = None) -> list:
         global_loc_from = [a+b for a,b in zip(loc_from,area_from.ORIGIN_POINT)]
         global_loc_to = [a+b for a,b in zip(loc_to,area_to.ORIGIN_POINT)]
 
-        self.waiting_Gantry_get_ready()
+        HEIGHT = max(area_from.HEIGHT, area_to.HEIGHT)
 
-        set_list = [1] + global_loc_from + [1] + [0] + global_loc_to + [2] + [0]
-        self.Modbus_inst.mission_enabled = False
-        self.Modbus_inst.mission_running = True
-        
-        self.Modbus_inst.write(address=0, set_list=set_list)
+        if not MODBUS_SIM_SKIP:
+            self.waiting_Gantry_get_ready()
 
-        lot = area_from.grid[loc_from[0]][loc_from[1]].pop()
-        self.Area_dict['Gantry'].grid[0][0].append(lot) # 변경 여부 검토 필요
-        
-        
+            set_list = [1] + global_loc_from + [1] + global_loc_to + [2] + [0]
+            self.Modbus_inst.mission_enabled = False
+            self.Modbus_inst.mission_running = False
             
-        while True:
-            # try:
-            #     res = self.Modbus_inst.read(address=0, nb = 20, reshape= 20) # [0]
+            self.Modbus_inst.write(address=0, set_list=set_list)
+
+            lot = area_from.grid[loc_from[0]][loc_from[1]].pop()
+            self.Area_dict['Gantry'].grid[0][0].append(lot) # 변경 여부 검토 필요
+            
+            
                 
-            #     recieved = True
-            # except IndexError or TypeError:
-            #     recieved = False
-            #     continue
+            while True:
+                # try:
+                #     res = self.Modbus_inst.read(address=0, nb = 20, reshape= 20) # [0]
+                    
+                #     recieved = True
+                # except IndexError or TypeError:
+                #     recieved = False
+                #     continue
 
-            # finally:
-            #     if recieved and type(res)==type([]) and res[11:13] == [0,1]:
-            #         lot = self.Area_dict['Gantry'].grid[0][0].pop()
-            #         area_to.grid[loc_to[0]][loc_to[1]].append(lot)
-            #         print(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
-            #         break
-            
-            if not self.Modbus_inst.mission_running and self.Modbus_inst.mission_enabled:
-                lot = self.Area_dict['Gantry'].grid[0][0].pop()
-                area_to.grid[loc_to[0]][loc_to[1]].append(lot)
-                print(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
-                break
+                # finally:
+                #     if recieved and type(res)==type([]) and res[11:13] == [0,1]:
+                #         lot = self.Area_dict['Gantry'].grid[0][0].pop()
+                #         area_to.grid[loc_to[0]][loc_to[1]].append(lot)
+                #         print(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
+                #         break
+                
+                if not self.Modbus_inst.mission_running and self.Modbus_inst.mission_enabled:
+                    lot = self.Area_dict['Gantry'].grid[0][0].pop()
+                    area_to.grid[loc_to[0]][loc_to[1]].append(lot)
+                    print(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
+                    break
+
+        elif MODBUS_SIM_SKIP == 1:
+            lot = area_from.grid[loc_from[0]][loc_from[1]].pop()
+            self.Area_dict['Gantry'].grid[0][0].append(lot) # 변경 여부 검토 필요
+
+            lot = self.Area_dict['Gantry'].grid[0][0].pop()
+            area_to.grid[loc_to[0]][loc_to[1]].append(lot)
+            print(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
+        
+        # 리스트 [XY 평면 이동 거리, Z축 이동 거리] 반환
+        
+        dist = [loc_to-loc_from for loc_from,loc_to in zip(global_loc_from,global_loc_to)]
+        return [math.sqrt(pow(dist[0],2)+pow(dist[1],2)),
+                abs(HEIGHT-global_loc_from[-1])+abs(HEIGHT-global_loc_to[-1])]
 
     # def pick_item(self, lot, Area_name, ):
     #     set_list = [1] + loc + [1] + Out.ORIGIN_POINT + [2]

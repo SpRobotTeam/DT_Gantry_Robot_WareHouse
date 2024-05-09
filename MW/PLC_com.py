@@ -54,7 +54,7 @@ class client():
         self.loop_thread.start()
 
         self.modbus_HR = []
-        self.mission_enabled = False
+        self.mission_enabled = True
         self.mission_running = False
         
         self.set_list=[]
@@ -159,15 +159,21 @@ class client():
             finally:
                 if recieved and type(status)==type([]):
                     break
-        if status[0] == 0 and status[12] == 1:
+        
+        if status[0] == 1 and status[11] == 0 and status[12] == 1 and status[13] == 1:
+            self.mission_enabled = False
+            self.mission_running = False
+            self.write(0,set_list=[0]*9)
+
+        elif status[0] == 0 and status[11] == 0 and status[12] == 1 and status[13] == 0:
             self.mission_enabled = True
             self.mission_running = False
-        # elif status[12] == 1:
-        #     self.mission_running = False
-        elif status[11]:
-            self.mission_running = True
+            
+        elif status[0] == 1 and status[11] == 1 and status[12] == 0 and status[13] == 0:
             self.mission_enabled = False
-            self.write(address=0, set_list=[0])
+            self.mission_running = True
+            
+        
         self.modbus_HR = status
 
     def loop(self):
