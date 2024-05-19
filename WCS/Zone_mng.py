@@ -180,7 +180,7 @@ class zone_manager():
 
         HEIGHT = max(area_from.HEIGHT, area_to.HEIGHT)
 
-        if not MODBUS_SIM_SKIP:
+        if not MODBUS_SIM_SKIP == None:
             self.waiting_Gantry_get_ready()
 
             set_list = [1] + global_loc_from + [1] + global_loc_to + [2] + [0]
@@ -216,7 +216,7 @@ class zone_manager():
                     print(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
                     break
 
-        elif MODBUS_SIM_SKIP == 1:
+        elif MODBUS_SIM_SKIP:
             lot = area_from.grid[loc_from[0]][loc_from[1]].pop()
             self.Area_dict['Gantry'].grid[0][0].append(lot) # 변경 여부 검토 필요
 

@@ -14,7 +14,9 @@ from time import sleep
 
 RDK = robolink.Robolink()
 if 'nt' in os.name:
+    # RDK.AddFile(os.path.dirname(__file__)+"\\"+"wcs_plc_20240203_183935.rdk")
     RDK.AddFile(os.path.dirname(__file__)+"\\"+"wcs_plc_20240508_133800.rdk")
+    # RDK.AddFile(os.path.dirname(__file__)+"\\"+"wcs_plc_20240513_133800.rdk")
 else:
     RDK.AddFile("~//"+"wcs_plc_20240508_133800.rdk")
 # station_item = RDK.AddFile("wcs_plc_20240508_133800.rdk")
@@ -71,7 +73,8 @@ def camera_stream():
 
 def load_box():
     global box_counter
-    box_path = f"box.sld"
+    parent_path = os.path.dirname(__file__)+"\\" if 'nt' in os.name else "~//" 
+    box_path = f"{parent_path}box.sld"
     box_item = RDK.AddFile(box_path)
     box = RDK.Item(box_item.Name())
     box_counter += 1
@@ -115,7 +118,8 @@ def define_model():
 box_counter = 0
 def load_box():
     global box_counter
-    box_path = f"box.sld"
+    parent_path = os.path.dirname(__file__)+"\\" if 'nt' in os.name else "~//" 
+    box_path = f"{parent_path}box.sld"
     box_item = RDK.AddFile(box_path)
     box = RDK.Item(box_item.Name())
     box_counter += 1
@@ -164,8 +168,8 @@ def home_motions(gantry, gripper, conveyor, gantry_home, open_gripper, con_pitch
 def make_points(x, y, z):
     base_point = [4200, 550, 1050]
     points = []
-    x_pitch = 500
-    y_pitch = 300
+    x_pitch = 500 # 500
+    y_pitch = 500 # 300
     z_pitch = -135
 
     for k in range(z):
@@ -317,7 +321,9 @@ def move_to_position(x1, y1, z1, x2, y2, z2):
 # x = 4; y = 4; z = 2
 # points = make_points(x, y, z)
 # create_frames_and_targets(points, gantry, RDK, pallet, x, y, z)
-create_frames_and_targets(make_points(20,20,5), gantry, RDK, pallet, 20, 20, 5)
+
+# create_frames_and_targets(make_points(20,6,5), gantry, RDK, pallet, 20, 6, 5)
+
 
 
 home_motions(gantry, gripper, conveyor, gantry_home, open_gripper, con_pitch)

@@ -19,7 +19,18 @@ manual = True
 
 class main(SPWCS.GantryWCS):
     def __init__(self, op_mode = None):
-        self.op_mode = op_mode
+        
+        if op_mode.isdigit():
+            self.op_mode = int(op_mode)
+        elif op_mode:
+            self.op_mode = op_mode.lower()
+            if op_mode == 's':
+                op_mode = 1
+            elif 'e' in op_mode:
+                op_mode = op_mode[1:]
+        else:
+            self.op_mode = None
+        
         SPWCS.GantryWCS.__init__(self, self.op_mode)
 
     def multiple_inbound(self, name, num):
@@ -154,9 +165,9 @@ class main(SPWCS.GantryWCS):
         })
         self.Zone.add_area({
             'Area_name' : 'Out',
-            'origin'    : [21,21,0],
+            # 'origin'    : [21,21,0],
             # 'origin'    : [4,4,0]  ,  # 
-            # 'origin'    : [0,0,0],
+            'origin'    : [0,0,0],
             'col'       :  1 , 
             'row'       :  1 , 
             'heigth'    :  1 , 
@@ -164,10 +175,10 @@ class main(SPWCS.GantryWCS):
         })
         self.Zone.add_area({
             'Area_name' : 'Area_01',
-            'origin'    : [1,1,0]  ,  
-            'col'       :  20 ,  # 4
-            'row'       :  20 ,  # 4
-            'heigth'    :  5 ,  # 2
+            'origin'    : [1,1,1]  ,  
+            'col'       :  7,    # 20,   # 4
+            'row'       :  6,    # 20,   # 4
+            'heigth'    :  5,    # 2
             # 'col'       :  3 ,  #
             # 'row'       :  3 ,  #
             # 'heigth'    :  4 ,  #
@@ -185,19 +196,22 @@ if __name__ == "__main__":
     op_input:str = input(
         "실행 모드를 선택하세요. \n"+
         "선택 가능한 옵션 : \n"+
-        '"01"             - 알고리즘 검증 모드\n'+
+        '"S"             - 알고리즘 평가 기준 생성 모드\n'+
+        '""'
         "(그외 모든 경우) - 일반 모드\n"+
         " >> "
         )
     
     if op_input.isdigit():
         op_mode = int(op_input)
+    elif op_input:
+        op_mode = op_input.lower()
     else:
         op_mode = None
     
     file_name = None
     try:
-        if int(op_mode) == 1:
+        if op_mode.lower() == 's':
             print("알고리즘 평가 기준 생성 모드(모드버스 무효화)로 WCS를 실행합니다!")
             manual = False
             seed = None
@@ -216,6 +230,7 @@ if __name__ == "__main__":
 
     except:
         op_mode = None
+
 
     if web:
         pass
@@ -352,7 +367,7 @@ if __name__ == "__main__":
                             line_index += 1
                 
                 if action == 'IN':
-                    moved_distance = SPDTw.Inbound(product_name=product_name, DOM=dom, testing_mode = 1)
+                    moved_distance = SPDTw.Inbound(product_name=product_name, DOM=dom, testing_mode = True)
                     sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
                     unit_time_past += sum([d*s for d,s in zip(moved_distance, GANTRY_MOVING_SPEED)])
                 elif action == 'OUT':
@@ -388,7 +403,7 @@ if __name__ == "__main__":
                 f"test_fin \n"+
                 f"Sum of moved distance : {sum_distance} \n"+
                 f"Total Unit time past  : {unit_time_past}\n" +
-                f"Average height  : {average_height}\n" +
+                f"Standard deviation  : {average_height}\n" +
                 "-----------------------------------------------------------"+"\n"+
                 f"time_score     : {time_score*100:.2f}%\n"+
                 f"position_score : {position_score:.2f}\n"+
