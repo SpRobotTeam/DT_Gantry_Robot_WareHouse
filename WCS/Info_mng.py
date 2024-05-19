@@ -17,8 +17,12 @@ MODE = "FF"
 class Base_info (product_manager, container_manager, wh_manager):
     def __init__(self, op_mode = None):
         self.op_mode = op_mode
+        
+        self.sim_skip = False
+        # if op_mode != None and op_mode[0] in ['s', ]:
+        #     self.sim_skip = True
+            
         self.WH_dict = {}
-
         container_manager.__init__(self)
         
         product_manager.__init__(self, container_manager)        
@@ -176,7 +180,7 @@ class Base_info (product_manager, container_manager, wh_manager):
                                     #                  zip([0,0,height],In_area.origin_point)].index(lot)],
                                     area_to=destination_area, 
                                     loc_to = loc,
-                                    MODBUS_SIM_SKIP = self.op_mode
+                                    MODBUS_SIM_SKIP = self.sim_skip
                                     ) 
                                 
         sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
@@ -221,7 +225,7 @@ class Base_info (product_manager, container_manager, wh_manager):
               + f"{' 정렬 완료됨'if priority == 1 else ''}" if MODE == "AO" else ''  #AO
               )
         
-        if testing_mode == 1:
+        if testing_mode:
             return sum_distance
         else:
             return None    
@@ -294,7 +298,7 @@ class Base_info (product_manager, container_manager, wh_manager):
                     loc_from = [loc[0],loc[1],len(deposition_area.grid[loc[0]][loc[1]])-1],
                     area_to = deposition_area,
                     loc_to = deposition_loc,
-                    MODBUS_SIM_SKIP = self.op_mode
+                    MODBUS_SIM_SKIP = self.sim_skip
                     )
                 
                 sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
@@ -312,7 +316,7 @@ class Base_info (product_manager, container_manager, wh_manager):
                 # loc_to = [0, 0, [a+b for a,b in 
                 #         zip([0,0,height],Out_area.origin_point)]]
                 loc_to = [0,0,0],
-                MODBUS_SIM_SKIP = self.op_mode
+                MODBUS_SIM_SKIP = self.sim_skip
             )
 
             sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
@@ -406,7 +410,7 @@ class Base_info (product_manager, container_manager, wh_manager):
                             loc_from = destination_area.inventory[upper_item_list[i]],
                             area_to = destination_area,
                             loc_to = temporal_destination_loc,
-                            MODBUS_SIM_SKIP = self.op_mode
+                            MODBUS_SIM_SKIP = self.sim_skip
                             )
 
                         sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
@@ -422,7 +426,7 @@ class Base_info (product_manager, container_manager, wh_manager):
                         loc_from = deposition_loc,
                         area_to = destination_area,
                         loc_to = destination_loc,
-                        MODBUS_SIM_SKIP = self.op_mode
+                        MODBUS_SIM_SKIP = self.sim_skip
                         )
                     
                     sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
@@ -446,7 +450,7 @@ class Base_info (product_manager, container_manager, wh_manager):
                                 loc_from = destination_area.inventory[upper_item_list[i]],
                                 area_to = destination_area,
                                 loc_to = temporal_destination_loc,
-                                MODBUS_SIM_SKIP = self.op_mode
+                                MODBUS_SIM_SKIP = self.sim_skip
                                 )
                             sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
 
@@ -499,7 +503,7 @@ class Base_info (product_manager, container_manager, wh_manager):
                 loc_from    = loc_from,
                 area_to     = destination_area,
                 loc_to      = loc_to,
-                MODBUS_SIM_SKIP = self.op_mode
+                MODBUS_SIM_SKIP = self.sim_skip
             )
             
             sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]

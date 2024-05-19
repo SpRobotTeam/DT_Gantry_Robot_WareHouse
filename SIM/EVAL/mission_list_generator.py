@@ -9,8 +9,8 @@ import csv
 SEED = 12345
 MISSION_LIMMIT = 1000
 ACTION_WEIGHTS = [0.5, 0.3, 0.2]
-IN_FREQUENCY  = [5, 1, 3, 4]
-OUT_FREQUENCY = [5, 1, 2, 4]
+IN_FREQUENCY  = [1,1,1,1] # [5, 1, 3, 4]
+OUT_FREQUENCY = [1,1,1,1] # [5, 1, 2, 4]
 
 setting = ['', SEED, MISSION_LIMMIT, *ACTION_WEIGHTS]
 
@@ -70,6 +70,8 @@ class mission_list_generator():
         
         iteration = 1
         # for iteration in range(100):
+        max_item = 0
+
         while iteration < MISSION_LIMMIT +1 :
             print(f"iter : {iteration}")
             val = None
@@ -99,6 +101,11 @@ class mission_list_generator():
                     # self.write(iteration, action())
             self.write(iteration, val)
             iteration += 1
+            max_item = max(max_item, len(self.item_list))
+        print(
+            f"Max amount of items :\t{max_item}\n" # +
+            # f""
+                )
             
 
 
@@ -113,7 +120,7 @@ class mission_list_generator():
         if not product_id:
             product_id = list(self.item_type_dict.keys())[
                 self.Rand.choices(range(len(self.item_type_dict.keys())), 
-                IN_FREQUENCY)
+                IN_FREQUENCY)[0]
                 ]
 
         io_f = self.item_type_dict[product_id]['io_f']
