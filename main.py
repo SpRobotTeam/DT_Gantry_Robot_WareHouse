@@ -400,7 +400,7 @@ if __name__ == "__main__":
                         )
                 else:
                     print(
-                        f"mission_{_+1} fin\n"+
+                        f"\nMission_{_+1} fin!\n"+
                         f"moved_distance : {moved_distance}\n"+
                         f"Unit time past : {sum([d*s for d,s in zip(moved_distance, GANTRY_MOVING_SPEED)])}\n"+
                         f"Total Unit time past : {unit_time_past}\n"+
