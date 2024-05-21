@@ -226,7 +226,8 @@ if __name__ == "__main__":
             file_name = f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list/mission_list_SEED-{seed:06d}.csv"
 
             if not os.path.isfile(file_name):
-                os.system(f"python {os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator {seed}")
+                os.system(f"python {os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py {seed}")
+                time.sleep(5)
 
     except:
         op_mode = None
