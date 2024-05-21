@@ -242,10 +242,13 @@ class Base_info (product_manager, container_manager, wh_manager):
         # loc = self.find_loc(name)
         if not lot:
             if product_name:
-                for i in self.product_I_dict.keys():
+                product_I_dict_sorted = dict(sorted(self.product_I_dict.items()))
+
+
+                for i in product_I_dict_sorted.keys():
                     if (
-                        self.product_I_dict[i]['product_name'] == product_name and
-                        'bin_location' in list(self.product_I_dict[i].keys())
+                        product_I_dict_sorted[i]['product_name'] == product_name and
+                        'bin_location' in list(product_I_dict_sorted[i].keys())
                         ):
                         lot = i
                         break
