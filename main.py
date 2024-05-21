@@ -7,6 +7,7 @@ import time
 # from MW import PLC_com
 # import pprint
 import os
+import subprocess
 import csv
 
 from ERROR.error import NotEnoughSpaceError
@@ -16,6 +17,7 @@ from SIM.EVAL.evaluator import Evaluator
 web = False
 manual = True
 
+LEAST_MISSION_LENGTH = 1000
 
 class main(SPWCS.GantryWCS):
     def __init__(self, op_mode = None):
@@ -226,7 +228,11 @@ if __name__ == "__main__":
             file_name = f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list/mission_list_SEED-{seed:06d}.csv"
 
             if not os.path.isfile(file_name):
-                os.system(f"python {os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py {seed}")
+                
+                # os.system(f"python {os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py {seed} {LEAST_MISSION_LENGTH*2}")
+                with open(os.devnull, 'wb') as devnull:
+                    subprocess.check_call(["python", f"python {os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py", str(seed), str(LEAST_MISSION_LENGTH*2)],
+                                          stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
                 time.sleep(5)
 
     except:
@@ -329,7 +335,6 @@ if __name__ == "__main__":
             # SPDTw.__init__()
             SPDTw.default_setting(container_name='default')
             
-            LEAST_MISSION_LENGTH = 1000
 
             unit_time_past = 0
             sum_distance = [0,0]
@@ -341,10 +346,13 @@ if __name__ == "__main__":
                 for line in reader:
                     mission_length += 1
 
-            if mission_length < LEAST_MISSION_LENGTH:
-                os.system(f"python {os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py {seed} {LEAST_MISSION_LENGTH}")
+            if mission_length < LEAST_MISSION_LENGTH*2:
+                # os.system(f"python {os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py {seed} {LEAST_MISSION_LENGTH*2}")
+                subprocess.check_call(["python", f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py", str(seed), str(LEAST_MISSION_LENGTH*2)],
+                                          stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
                 mission_length = LEAST_MISSION_LENGTH
 
+            mission_offset = 0
             for _ in range(mission_length):
             # for _ in range(20):
                 
@@ -354,7 +362,7 @@ if __name__ == "__main__":
                     line_index = 0
                     mission_list = csv.reader(csv_editor)
                     for line in mission_list:
-                        if line_index == _:
+                        if line_index == _ + mission_offset:
                             action = line[1]
                         
                             if action in ['IN', 'OUT']:
@@ -368,9 +376,14 @@ if __name__ == "__main__":
                             line_index += 1
                 
                 if action == 'IN':
-                    moved_distance = SPDTw.Inbound(product_name=product_name, DOM=dom, testing_mode = True)
-                    sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
-                    unit_time_past += sum([d*s for d,s in zip(moved_distance, GANTRY_MOVING_SPEED)])
+                    try:
+                        moved_distance = SPDTw.Inbound(product_name=product_name, DOM=dom, testing_mode = True)
+                        sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
+                        unit_time_past += sum([d*s for d,s in zip(moved_distance, GANTRY_MOVING_SPEED)])
+                    except NotEnoughSpaceError: # 공간 부족 시
+                        mission_offset += 1 # 다음 미션으로 (현 미션 스킵)
+                        print("입고 명령 무시 : 창고 공간 부족")
+                        continue
                 elif action == 'OUT':
                     moved_distance = SPDTw.Outbound(product_name=product_name, testing_mode = 1)
                     sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
