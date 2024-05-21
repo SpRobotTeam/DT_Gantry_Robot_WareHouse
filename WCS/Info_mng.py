@@ -136,9 +136,9 @@ class Base_info (product_manager, container_manager, wh_manager):
             print("최종 적재 한계에 도달 하였습니다. \n입고 작업 및 정렬 작업을 진행할 수 없습니다.")
             raise NotEnoughSpaceError
         
-        elif area_total_product_amount >= destination_area.INVENTORY_LIMIT: # 다른 전략 필요
-            print("적재 한계에 도달 하였습니다. \n정렬 작업을 진행할 수 없습니다.")
-            raise NotEnoughSpaceError
+        # elif area_total_product_amount >= destination_area.INVENTORY_LIMIT: # 다른 전략 필요
+        #     print("적재 한계에 도달 하였습니다. \n정렬 작업을 진행할 수 없습니다.")
+        #     raise NotEnoughSpaceError
         
         lot = f"{self.product_templet_dict[product_name]['lot_head']}-{DOM}-{registered_product_amount+1:04d}"
         

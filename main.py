@@ -178,9 +178,9 @@ class main(SPWCS.GantryWCS):
         self.Zone.add_area({
             'Area_name' : 'Area_01',
             'origin'    : [1,1,1]  ,  
-            'col'       :  2,    # 20,   # 4
-            'row'       :  2,    # 20,   # 4
-            'heigth'    :  3,    # 2
+            'col'       :  6,    # 20,   # 4
+            'row'       :  7,    # 20,   # 4
+            'heigth'    :  5,    # 2
             # 'col'       :  3 ,  #
             # 'row'       :  3 ,  #
             # 'heigth'    :  4 ,  #
@@ -394,13 +394,13 @@ if __name__ == "__main__":
                 
                 if action == 'WAIT':
                     print(
-                        f"mission_{_+1} fin\n"+
+                        f"mission_{_+1-mission_offset} fin\n"+
                         f"Total Unit time past : {unit_time_past}\n"+
                         "-----------------------------------------------------------"+"\n"
                         )
                 else:
                     print(
-                        f"\nMission_{_+1} fin!\n"+
+                        f"\nMission_{_+1-mission_offset} fin!\n"+
                         f"moved_distance : {moved_distance}\n"+
                         f"Unit time past : {sum([d*s for d,s in zip(moved_distance, GANTRY_MOVING_SPEED)])}\n"+
                         f"Total Unit time past : {unit_time_past}\n"+
