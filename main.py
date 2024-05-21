@@ -178,9 +178,9 @@ class main(SPWCS.GantryWCS):
         self.Zone.add_area({
             'Area_name' : 'Area_01',
             'origin'    : [1,1,1]  ,  
-            'col'       :  7,    # 20,   # 4
-            'row'       :  6,    # 20,   # 4
-            'heigth'    :  5,    # 2
+            'col'       :  2,    # 20,   # 4
+            'row'       :  2,    # 20,   # 4
+            'heigth'    :  3,    # 2
             # 'col'       :  3 ,  #
             # 'row'       :  3 ,  #
             # 'heigth'    :  4 ,  #
