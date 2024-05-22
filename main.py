@@ -6,11 +6,11 @@ import random as rand
 import time
 # from MW import PLC_com
 # import pprint
-import os
-import subprocess
+import os, sys
+import subprocess, asyncio # concurrent.futures
 import csv
 
-from ERROR.error import NotEnoughSpaceError
+from ERROR.error import NotEnoughSpaceError, SimError
 
 from SIM.EVAL.evaluator import Evaluator
 
@@ -20,8 +20,13 @@ manual = True
 LEAST_MISSION_LENGTH = 1000
 
 class main(SPWCS.GantryWCS):
-    def __init__(self, op_mode = None):
+    def __init__(self, op_mode = None):  
         
+        # self.sim_RoboDK()
+        # os.system(
+        #     f"python {os.path.dirname(os.path.realpath(__file__))}/SIM/RoboDK/plc_motion006.py"
+        #     )
+
         if op_mode.isdigit():
             self.op_mode = int(op_mode)
         elif op_mode:
@@ -34,6 +39,13 @@ class main(SPWCS.GantryWCS):
             self.op_mode = None
         
         SPWCS.GantryWCS.__init__(self, self.op_mode)
+
+    # async def sim_RoboDK(self):
+    #     subprocess.run(
+    #         arg=f"python {os.path.dirname(os.path.realpath(__file__))}/SIM/RoboDK/plc_motion006.py",
+    #         shell=True, 
+    #         )
+
 
     def multiple_inbound(self, name, num):
         for _ in range(num):
@@ -231,7 +243,7 @@ if __name__ == "__main__":
                 
                 # os.system(f"python {os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py {seed} {LEAST_MISSION_LENGTH*2}")
                 with open(os.devnull, 'wb') as devnull:
-                    subprocess.check_call(["python", f"python {os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py", str(seed), str(LEAST_MISSION_LENGTH*2)],
+                    subprocess.check_call(["python", f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py", str(seed), str(LEAST_MISSION_LENGTH*2)],
                                           stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
                 time.sleep(5)
 
