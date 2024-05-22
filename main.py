@@ -178,8 +178,8 @@ class main(SPWCS.GantryWCS):
         self.Zone.add_area({
             'Area_name' : 'Area_01',
             'origin'    : [1,1,1]  ,  
-            'col'       :  6,    # 20,   # 4
-            'row'       :  7,    # 20,   # 4
+            'col'       :  7,    # 7,   # 20,   # 4
+            'row'       :  6,    # 6,   # 20,   # 4
             'heigth'    :  5,    # 2
             # 'col'       :  3 ,  #
             # 'row'       :  3 ,  #
@@ -395,6 +395,7 @@ if __name__ == "__main__":
                 if action == 'WAIT':
                     print(
                         f"mission_{_+1-mission_offset} fin\n"+
+                        f"Waiting time : {wait_time}"+
                         f"Total Unit time past : {unit_time_past}\n"+
                         "-----------------------------------------------------------"+"\n"
                         )
