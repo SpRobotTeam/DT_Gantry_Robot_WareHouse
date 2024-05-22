@@ -123,19 +123,22 @@ class Base_info (product_manager, container_manager, wh_manager):
         destination_area = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name]
         In_area          = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict['In']
 
+        area_total_product_amount = len([i for i in destination_area.inventory.keys() 
+                                      if 'loc' in destination_area.inventory[i].keys()])
+
         present_product_amount = len([i for i in destination_area.inventory.keys() 
                                       if self.product_templet_dict[product_name]['lot_head'] in i])
         
         registered_product_amount = len([i for i in self.product_I_dict.keys() 
                                       if self.product_templet_dict[product_name]['lot_head'] in i])
         
-        if present_product_amount >= destination_area.INVENTORY_CRITICAL_LIMIT: # 물건을 하나씩 집는 동안은 해결 불능
+        if area_total_product_amount >= destination_area.INVENTORY_CRITICAL_LIMIT: # 물건을 하나씩 집는 동안은 해결 불능
             print("최종 적재 한계에 도달 하였습니다. \n입고 작업 및 정렬 작업을 진행할 수 없습니다.")
             raise NotEnoughSpaceError
         
-        elif present_product_amount >= destination_area.INVENTORY_LIMIT: # 다른 전략 필요
-            print("적재 한계에 도달 하였습니다. \n정렬 작업을 진행할 수 없습니다.")
-            raise NotEnoughSpaceError
+        # elif area_total_product_amount >= destination_area.INVENTORY_LIMIT: # 다른 전략 필요
+        #     print("적재 한계에 도달 하였습니다. \n정렬 작업을 진행할 수 없습니다.")
+        #     raise NotEnoughSpaceError
         
         lot = f"{self.product_templet_dict[product_name]['lot_head']}-{DOM}-{registered_product_amount+1:04d}"
         
@@ -534,10 +537,11 @@ class Base_info (product_manager, container_manager, wh_manager):
         if not offset:
             offset = 0
 
-        present_product_amount = len(list(destination_area.inventory.keys()))
+        area_total_product_amount = len([i for i in destination_area.inventory.keys()
+                                         if 'loc' in destination_area.inventory[i]])
                                           
-        iteration = (present_product_amount-offset)//HEIGHT
-        if (present_product_amount-offset)%HEIGHT:
+        iteration = (area_total_product_amount-offset)//HEIGHT
+        if (area_total_product_amount-offset)%HEIGHT:
             iteration += 1
 
         for i in range(offset, iteration):
