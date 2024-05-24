@@ -6,8 +6,9 @@ import math
 import numpy as np
 import MW.PLC_com as PLC_com
 import time
+import os
 
-PORT = 502
+PORT = 502 if 'nt' in os.name else 2502
 
 class zone_manager():
     def __init__(self, 

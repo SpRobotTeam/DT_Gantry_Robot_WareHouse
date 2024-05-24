@@ -17,7 +17,7 @@ from SIM.EVAL.evaluator import Evaluator
 web = False
 manual = True
 
-LEAST_MISSION_LENGTH = 1000
+LEAST_MISSION_LENGTH = 100000
 
 class main(SPWCS.GantryWCS):
     def __init__(self, op_mode = None):  
@@ -27,15 +27,16 @@ class main(SPWCS.GantryWCS):
         #     f"python {os.path.dirname(os.path.realpath(__file__))}/SIM/RoboDK/plc_motion006.py"
         #     )
 
-        if op_mode.isdigit():
-            self.op_mode = int(op_mode)
-        elif op_mode:
-            self.op_mode = op_mode.lower()
-            if op_mode == 's':
-                op_mode = 1
-            elif 'e' in op_mode:
-                op_mode = op_mode[1:]
-        else:
+        try:
+            if op_mode.isdigit():
+                self.op_mode = int(op_mode)
+            elif op_mode:
+                self.op_mode = op_mode.lower()
+                if op_mode == 's':
+                    op_mode = 1
+                elif 'e' in op_mode:
+                    op_mode = op_mode[1:]
+        except Exception:
             self.op_mode = None
         
         SPWCS.GantryWCS.__init__(self, self.op_mode)
@@ -74,7 +75,7 @@ class main(SPWCS.GantryWCS):
         self.default_setting(container_name=container_name)
         self.product_I_dict = {}
     
-    def get_info(self, args)->dict|list:
+    def get_info(self, args):#->dict|list:
         '''
         외부에서 클래스 내부 정보를 찾을 때 사용하는 함수
 
@@ -243,7 +244,7 @@ if __name__ == "__main__":
                 
                 # os.system(f"python {os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py {seed} {LEAST_MISSION_LENGTH*2}")
                 with open(os.devnull, 'wb') as devnull:
-                    subprocess.check_call(["python", f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py", str(seed), str(LEAST_MISSION_LENGTH*2)],
+                    subprocess.check_call(["python3", f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py", str(seed), str(LEAST_MISSION_LENGTH*2)],
                                           stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
                 time.sleep(5)
 

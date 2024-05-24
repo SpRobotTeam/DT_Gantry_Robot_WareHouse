@@ -30,7 +30,7 @@ class area_manager():
 
     def __init__(self, 
                  Area_name:str,
-                 origin_point:list[int,int,int], 
+                 origin_point:list, 
                 #  container_type,
                 #  grid_size:list[float], 
                  grid_type:str='rectangle',
