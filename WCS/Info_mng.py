@@ -17,8 +17,10 @@ MODE = "FF"
 class Base_info (product_manager, container_manager, wh_manager):
     def __init__(self, op_mode = None):
         self.op_mode = op_mode
-        
-        self.sim_skip = False
+        if op_mode in ['no_sim']:   
+            self.sim_skip = True
+        else:
+            self.sim_skip = False
         # if op_mode != None and op_mode[0] in ['s', ]:
         #     self.sim_skip = True
             
