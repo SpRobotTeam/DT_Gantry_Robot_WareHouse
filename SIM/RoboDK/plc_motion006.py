@@ -11,6 +11,12 @@ from robodk import *
 from robolink import *
 # import add_model
 from time import sleep
+import subprocess
+home_path = os.path.expanduser('~')
+
+if not 'nt' in os.name:
+    subprocess.Popen(["sh", home_path+"/RoboDK/RoboDK-Start.sh"])
+    time.sleep(10)
 
 RDK = robolink.Robolink()
 if 'nt' in os.name:
@@ -18,7 +24,7 @@ if 'nt' in os.name:
     RDK.AddFile(os.path.dirname(__file__)+"\\"+"wcs_plc_20240508_133800.rdk")
     # RDK.AddFile(os.path.dirname(__file__)+"\\"+"wcs_plc_20240513_133800.rdk")
 else:
-    RDK.AddFile("~//"+"wcs_plc_20240508_133800.rdk")
+    RDK.AddFile(os.path.dirname(__file__)+"/"+"wcs_plc_20240508_133800.rdk")
 # station_item = RDK.AddFile("wcs_plc_20240508_133800.rdk")
 # station = RDK.Item(station_item.Name())
 # station.setName("station")
@@ -118,7 +124,7 @@ def define_model():
 box_counter = 0
 def load_box():
     global box_counter
-    parent_path = os.path.dirname(__file__)+"\\" if 'nt' in os.name else "~//" 
+    parent_path = os.path.dirname(__file__)+ ("\\" if 'nt' in os.name else "/" )
     box_path = f"{parent_path}box.sld"
     box_item = RDK.AddFile(box_path)
     box = RDK.Item(box_item.Name())
@@ -341,14 +347,18 @@ home_motions(gantry, gripper, conveyor, gantry_home, open_gripper, con_pitch)
 
 # move_to_position(4,4,2,3,3,2)
 
-delete_item("box")
-items = define_model()
+# delete_item("box")
+# items = define_model()
 # add_model.save_model()
 
 
 if __name__ == '__main__':
 
-    s = modbus_inst()
+    s = modbus_inst(
+        port=502 if 'nt' in os.name else 2502
+
+
+    )
     # s.write_data(address=11, data=0)
     # s.write_data(address=12, data=1)
     # s.write_data(address=13, data=0)

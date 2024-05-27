@@ -6,8 +6,9 @@ import math
 import numpy as np
 import MW.PLC_com as PLC_com
 import time
+import os
 
-PORT = 502
+PORT = 502 if 'nt' in os.name else 2502
 
 class zone_manager():
     def __init__(self, 
@@ -180,7 +181,7 @@ class zone_manager():
 
         HEIGHT = max(area_from.HEIGHT, area_to.HEIGHT)
 
-        if not MODBUS_SIM_SKIP == None:
+        if not MODBUS_SIM_SKIP :
             self.waiting_Gantry_get_ready()
 
             set_list = [1] + global_loc_from + [1] + global_loc_to + [2] + [0]

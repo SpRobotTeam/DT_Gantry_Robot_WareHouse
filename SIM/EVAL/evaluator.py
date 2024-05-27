@@ -6,19 +6,23 @@ import numpy as np
 class Evaluator():
     
     
-    def __init__(self, SEED, standard_time:float = 1000*60*5.0, score_weight:list=[0.7, 0.3], mode=1):
+    def __init__(self, SEED, mission_length,
+                 standard_time:float = 0, #1000*60*5.0, 
+                 score_weight:list=[0.7, 0.3], mode=1):
         self.SEED = SEED
+        self.MISSION_LENGHT = mission_length
         self.file_name = f"{os.path.dirname(os.path.realpath(__file__))}/eval_list/eval_list_SEED-{SEED:06d}.csv"
         
         standard_found = False
         if os.path.isfile(self.file_name):
             with open(self.file_name,'r', newline='') as csv_editor:
                     line_index = 0
-                    mission_list = csv.reader(csv_editor)
-                    for line in mission_list:
-                        name = line[0]
-                        if name == 'standard':
+                    score_list = csv.reader(csv_editor)
+                    for line in score_list:
+                        name, standard_mission_length = line[0,1]
+                        if name == 'standard' and self.MISSION_LENGHT == standard_mission_length:
                             standard_found = True
+                            
                             self.standard_time = float(line[2])
         if not standard_found:
             self.standard_time = standard_time
@@ -39,13 +43,13 @@ class Evaluator():
         edit_line = 0
         origin = []
 
-        with open(self.file_name,'r', newline='') as csv_editor:
+        with open(self.file_name,'r', newline='') as csv_editor: # 원본 파일 읽기
                     line_index = 0
-                    mission_list = csv.reader(csv_editor)
-                    for line in mission_list:
+                    score_list = csv.reader(csv_editor)
+                    for line in score_list:
                         if len(line):
-                            name = line[0]
-                            if name == 'standard' if self.mode == 1 else self.mode:
+                            name, standard_mission_lenght = line[0,1]
+                            if name == f"{'standard' if self.mode == 1 else str(self.mode)}" and standard_mission_lenght == self.MISSION_LENGHT: # 수정 목표 라인
                                 origin.append(line)
                                 edit_line = line_index
                             else:
@@ -56,14 +60,14 @@ class Evaluator():
         
 
         
-        with open(self.file_name,'w+', newline='') as csv_editor:
+        with open(self.file_name,'w+', newline='') as csv_editor: # 파일 수정
             csv_appender = csv.writer(csv_editor)
             if edit_line == 0:
-                csv_appender.writerow(['standard' if self.mode == 1 else self.mode, final_score, self.time_past, *self.score])
+                csv_appender.writerow(['standard' if self.mode == 1 else self.mode, self.MISSION_LENGHT, final_score, self.time_past, *self.score])
             else:
                 for line in origin:
-                    if line == edit_line:
-                        csv_appender.writerow(['standard' if self.mode == 1 else self.mode, final_score, self.time_past, *self.score])
+                    if line == edit_line: # 수정 목표 라인
+                        csv_appender.writerow(['standard' if self.mode == 1 else self.mode, self.MISSION_LENGHT, final_score, self.time_past, *self.score])
                     else: 
                         csv_appender.writerow(origin[line])
 
@@ -71,8 +75,9 @@ class Evaluator():
 
 
     def time_eval(self, time_past):
-        time_score = 1 - (time_past/self.standard_time)
-
+        
+        time_score = 1.0 - (0 if self.standard_time==0 else time_past/self.standard_time )
+             
         return time_score
     
     def position_eval(self, grid_list:list):

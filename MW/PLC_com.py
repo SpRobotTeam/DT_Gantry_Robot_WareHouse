@@ -7,6 +7,7 @@ import numpy as np
 from threading import Thread, Event
 import time
 from MW import modbus_sim
+import os
 
 # sim = True
 sim = False
@@ -190,8 +191,7 @@ class plc_com(client, server):
 
     def __init__(self, 
                  host='127.0.0.1', # '127.0.0.1', '192.168.0.65'
-                #  port=2502, 
-                 port= 502, 
+                 port=502,
                  unit_id=1,
                  loop_interval:float=0.5, 
                  h_regs_size:int=65536, 
@@ -201,7 +201,9 @@ class plc_com(client, server):
         
         self.loop_interval = loop_interval
         if sim:
-            server.__init__(self,host=host, port=port, unit_id=unit_id)
+            server.__init__(self,host=host, 
+                            port=port, 
+                            unit_id=unit_id)
             sim_Thread = Thread(target=modbus_sim.loop, args=[0.25], daemon=True)
             sim_Thread.start()
 
@@ -234,7 +236,10 @@ if __name__ == '__main__':
 
     # c = client(host='127.0.0.1', port=502, unit_id=1)
     # c.write(address=0,set_list=[0])
-    modbus_inst = plc_com(loop_interval=0.5)
+    modbus_inst = plc_com(
+        loop_interval=0.5,
+        port=502 if 'nt' in os.name else 2502
+        )
     # while True:
     #     c.read()
     #     time.sleep(1)

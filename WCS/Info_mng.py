@@ -9,7 +9,7 @@ from MW.Product_mng import container_manager, product_manager
 import datetime as dt
 import math
 
-from ERROR.error import NotEnoughSpaceError
+from ERROR.error import NotEnoughSpaceError, ProductNotExistError
 
 
 MODE = "FF"
@@ -17,8 +17,10 @@ MODE = "FF"
 class Base_info (product_manager, container_manager, wh_manager):
     def __init__(self, op_mode = None):
         self.op_mode = op_mode
-        
-        self.sim_skip = False
+        if op_mode in ['no_sim']:   
+            self.sim_skip = True
+        else:
+            self.sim_skip = False
         # if op_mode != None and op_mode[0] in ['s', ]:
         #     self.sim_skip = True
             
@@ -257,7 +259,11 @@ class Base_info (product_manager, container_manager, wh_manager):
                         break
 
             # elif loc:
-            
+
+        if not lot:
+            raise ProductNotExistError
+            # return None
+
         sum_distance = [0,0]
 
         print(f"출고 대상 : {lot}")
