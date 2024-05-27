@@ -1,3 +1,5 @@
+# require python > 3.6
+
 pip install pymodbustcp
 pip install robodk
 

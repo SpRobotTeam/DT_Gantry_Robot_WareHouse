@@ -12,9 +12,10 @@ from robolink import *
 # import add_model
 from time import sleep
 import subprocess
+home_path = os.path.expanduser('~')
 
 if not 'nt' in os.name:
-    subprocess.Popen(["sh", "~/RoboDK/RoboDK-Start.sh "])
+    subprocess.Popen(["sh", home_path+"/RoboDK/RoboDK-Start.sh"])
     time.sleep(10)
 
 RDK = robolink.Robolink()

@@ -10,21 +10,23 @@ import os, sys
 import subprocess, asyncio # concurrent.futures
 import csv
 
-from ERROR.error import NotEnoughSpaceError, SimError
+from ERROR.error import NotEnoughSpaceError, SimError, ProductNotExistError
 
 from SIM.EVAL.evaluator import Evaluator
 
 web = False
-manual = True
+manual = False
 
 LEAST_MISSION_LENGTH = 100000
+
+PYTHON_NAME = "python" if 'nt' in os.name else 'python3'
 
 class main(SPWCS.GantryWCS):
     def __init__(self, op_mode = None):  
         
         # self.sim_RoboDK()
         # os.system(
-        #     f"python {os.path.dirname(os.path.realpath(__file__))}/SIM/RoboDK/plc_motion006.py"
+        #     f"{PYTHON_NAME} {os.path.dirname(os.path.realpath(__file__))}/SIM/RoboDK/plc_motion006.py"
         #     )
 
         try:
@@ -32,10 +34,6 @@ class main(SPWCS.GantryWCS):
                 self.op_mode = int(op_mode)
             elif op_mode:
                 self.op_mode = op_mode.lower()
-                if op_mode == 's':
-                    op_mode = 1
-                elif 'e' in op_mode:
-                    op_mode = op_mode[1:]
         except Exception:
             self.op_mode = None
         
@@ -43,7 +41,7 @@ class main(SPWCS.GantryWCS):
 
     # async def sim_RoboDK(self):
     #     subprocess.run(
-    #         arg=f"python {os.path.dirname(os.path.realpath(__file__))}/SIM/RoboDK/plc_motion006.py",
+    #         arg=f"{PYTHON_NAME} {os.path.dirname(os.path.realpath(__file__))}/SIM/RoboDK/plc_motion006.py",
     #         shell=True, 
     #         )
 
@@ -212,6 +210,7 @@ if __name__ == "__main__":
         "실행 모드를 선택하세요. \n"+
         "선택 가능한 옵션 : \n"+
         '"S"             - 알고리즘 평가 기준 생성 모드\n'+
+        '"N"             - 알고리즘 테스트 모드 (시뮬레이션 없음)\n'+
         '""'
         "(그외 모든 경우) - 일반 모드\n"+
         " >> "
@@ -221,14 +220,21 @@ if __name__ == "__main__":
         op_mode = int(op_input)
     elif op_input:
         op_mode = op_input.lower()
+        if op_mode == 'n':
+            op_mode = 'no_sim'
     else:
         op_mode = None
+        manual = True
     
     file_name = None
     try:
-        if op_mode.lower() == 's':
-            print("알고리즘 평가 기준 생성 모드(모드버스 무효화)로 WCS를 실행합니다!")
-            manual = False
+        if op_mode[0].lower() in ['s', 'n']:
+            if op_mode == 's':
+                print("알고리즘 평가 기준 생성 모드로 WCS를 실행합니다!")
+            elif op_mode == 'n':
+                print("알고리즘 테스트 모드(모드버스 무효화)로 WCS를 실행합니다!")
+                
+            # manual = False
             seed = None
             while not seed:
                 input_seed:str = input(
@@ -242,9 +248,9 @@ if __name__ == "__main__":
 
             if not os.path.isfile(file_name):
                 
-                # os.system(f"python {os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py {seed} {LEAST_MISSION_LENGTH*2}")
+                # os.system(f"{PYTHON_NAME} {os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py {seed} {LEAST_MISSION_LENGTH*2}")
                 with open(os.devnull, 'wb') as devnull:
-                    subprocess.check_call(["python3", f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py", str(seed), str(LEAST_MISSION_LENGTH*2)],
+                    subprocess.check_call([PYTHON_NAME, f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py", str(seed), str(LEAST_MISSION_LENGTH*2)],
                                           stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
                 time.sleep(5)
 
@@ -360,14 +366,13 @@ if __name__ == "__main__":
                     mission_length += 1
 
             if mission_length < LEAST_MISSION_LENGTH*2:
-                # os.system(f"python {os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py {seed} {LEAST_MISSION_LENGTH*2}")
-                subprocess.check_call(["python", f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py", str(seed), str(LEAST_MISSION_LENGTH*2)],
+                # os.system(f"{PYTHON_NAME} {os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py {seed} {LEAST_MISSION_LENGTH*2}")
+                subprocess.check_call(["{PYTHON_NAME}", f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py", str(seed), str(LEAST_MISSION_LENGTH*2)],
                                           stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
                 mission_length = LEAST_MISSION_LENGTH
 
             mission_offset = 0
             for _ in range(mission_length):
-            # for _ in range(20):
                 
                 action = product_name = dom = wait_time = None
 
@@ -398,7 +403,11 @@ if __name__ == "__main__":
                         print("입고 명령 무시 : 창고 공간 부족")
                         continue
                 elif action == 'OUT':
-                    moved_distance = SPDTw.Outbound(product_name=product_name, testing_mode = 1)
+                    try:
+                        moved_distance = SPDTw.Outbound(product_name=product_name, testing_mode = 1)
+                    except ProductNotExistError:
+                        print("출고 명령 무시 : 해당 품목의 상품 없음")
+                        continue
                     sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
                     unit_time_past += sum([d*s for d,s in zip(moved_distance, GANTRY_MOVING_SPEED)])
                 elif action == 'WAIT':
@@ -407,14 +416,14 @@ if __name__ == "__main__":
                 
                 if action == 'WAIT':
                     print(
-                        f"mission_{_+1-mission_offset} fin\n"+
+                        f"mission_{_+1-mission_offset} fin (mission list # {_})\n"+
                         f"Waiting time : {wait_time}"+
                         f"Total Unit time past : {unit_time_past}\n"+
                         "-----------------------------------------------------------"+"\n"
                         )
                 else:
                     print(
-                        f"\nMission_{_+1-mission_offset} fin!\n"+
+                        f"\nMission_{_+1-mission_offset} fin! fin (mission list # {_})\n"+
                         f"moved_distance : {moved_distance}\n"+
                         f"Unit time past : {sum([d*s for d,s in zip(moved_distance, GANTRY_MOVING_SPEED)])}\n"+
                         f"Total Unit time past : {unit_time_past}\n"+
