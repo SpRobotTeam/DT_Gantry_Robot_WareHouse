@@ -372,7 +372,8 @@ if __name__ == "__main__":
                 mission_length = LEAST_MISSION_LENGTH
 
             mission_offset = 0
-            for _ in range(mission_length):
+            # for _ in range(mission_length):
+            for _ in range(LEAST_MISSION_LENGTH):
                 
                 action = product_name = dom = wait_time = None
 
