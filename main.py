@@ -431,7 +431,7 @@ if __name__ == "__main__":
                         "-----------------------------------------------------------"+"\n"
                         )
                     
-            eval_score = Evaluator(mode=op_mode, SEED=seed)
+            eval_score = Evaluator(mode=op_mode, SEED=seed, mission_length = LEAST_MISSION_LENGTH)
             final_score, time_score, position_score, average_height = eval_score.evaluate(
                 time_past=unit_time_past, 
                 grid_list=SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].grid
