@@ -44,32 +44,35 @@ class Evaluator():
         origin = []
 
         with open(self.file_name,'r', newline='') as csv_editor: # 원본 파일 읽기
-                    line_index = 0
-                    score_list = csv.reader(csv_editor)
-                    for line in score_list:
-                        if len(line):
-                            name, standard_mission_lenght = line[:2]
-                            if name == f"{'standard' if self.mode == 1 else str(self.mode)}" and standard_mission_lenght == self.MISSION_LENGHT: # 수정 목표 라인
-                                origin.append(line)
-                                edit_line = line_index
-                            else:
-                                origin.append(line)
-                                line_index += 1
-                        else:
-                            edit_line = line_index
-                            break
+            line_index = 0
+            score_list = csv.reader(csv_editor)
+            for line in score_list:
+                if len(line):
+                    name, standard_mission_lenght = line[:2]
+                    if name == f"{'standard' if self.mode == 1 else str(self.mode)}" and int(standard_mission_lenght) == self.MISSION_LENGHT: # 수정 목표 라인
+                        origin.append(line)
+                        edit_line = line_index
+                        line_index += 1
+                    else:
+                        origin.append(line)
+                        line_index += 1
+                else:
+                    edit_line = line_index
+                    break
+            if line_index >= 1 and edit_line == 0:
+                edit_line = line_index
                         
 
         with open(self.file_name,'w+', newline='') as csv_editor: # 파일 수정
             csv_appender = csv.writer(csv_editor)
-            if edit_line == 0:
-                csv_appender.writerow(['standard' if self.mode == 1 else self.mode, self.MISSION_LENGHT, final_score, self.time_past, *self.score])
-            else:
-                for line in max(origin,range(edit_line), 1):
-                    if line == edit_line: # 수정 목표 라인
-                        csv_appender.writerow(['standard' if self.mode == 1 else self.mode, self.MISSION_LENGHT, final_score, self.time_past, *self.score])
-                    else: 
-                        csv_appender.writerow(origin[line])
+            # if line_index == 0:
+            #     csv_appender.writerow(['standard' if self.mode == 1 else self.mode, self.MISSION_LENGHT, final_score, self.time_past, *self.score])
+            # else:
+            for line in range(max(len(origin),edit_line+ 1)):
+                if line == edit_line: # 수정 목표 라인
+                    csv_appender.writerow(['standard' if self.mode == 1 else self.mode, self.MISSION_LENGHT, final_score, self.time_past, *self.score])
+                else: 
+                    csv_appender.writerow(origin[line])
 
         return [final_score, *self.score]
 
