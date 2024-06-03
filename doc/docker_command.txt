@@ -1,0 +1,3 @@
+docker run -d -e POSTGRES_USER=SPDT -e POSTGRES_PASSWORD=qwe -e POSTGRES_DB=postgres -e TZ=Asia/Seoul -v SPDT:/var/lib/postgreaql/data -p 25432:5432 --name SPDT_DB postgres:15 
+
+docker run -e USER=SPDT -p 28069:8069 --name SPDT --link db:SPDT_DB -t odoo

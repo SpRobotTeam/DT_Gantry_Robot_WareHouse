@@ -19,7 +19,7 @@ class Evaluator():
                     line_index = 0
                     score_list = csv.reader(csv_editor)
                     for line in score_list:
-                        name, standard_mission_length = line[0,1]
+                        name, standard_mission_length = line[:2]
                         if name == 'standard' and self.MISSION_LENGHT == standard_mission_length:
                             standard_found = True
                             
@@ -48,7 +48,7 @@ class Evaluator():
                     score_list = csv.reader(csv_editor)
                     for line in score_list:
                         if len(line):
-                            name, standard_mission_lenght = line[0,1]
+                            name, standard_mission_lenght = line[:2]
                             if name == f"{'standard' if self.mode == 1 else str(self.mode)}" and standard_mission_lenght == self.MISSION_LENGHT: # 수정 목표 라인
                                 origin.append(line)
                                 edit_line = line_index
@@ -56,16 +56,16 @@ class Evaluator():
                                 origin.append(line)
                                 line_index += 1
                         else:
-                             break
-        
+                            edit_line = line_index
+                            break
+                        
 
-        
         with open(self.file_name,'w+', newline='') as csv_editor: # 파일 수정
             csv_appender = csv.writer(csv_editor)
             if edit_line == 0:
                 csv_appender.writerow(['standard' if self.mode == 1 else self.mode, self.MISSION_LENGHT, final_score, self.time_past, *self.score])
             else:
-                for line in origin:
+                for line in max(origin,range(edit_line), 1):
                     if line == edit_line: # 수정 목표 라인
                         csv_appender.writerow(['standard' if self.mode == 1 else self.mode, self.MISSION_LENGHT, final_score, self.time_past, *self.score])
                     else: 

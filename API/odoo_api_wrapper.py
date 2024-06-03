@@ -59,11 +59,11 @@ class odoo_xmlrpc():
 
     def __init__(self, url=None, db=None, username=None, password=None, api_key=None):
     
-        self.__url      = url if url else 'http://127.0.0.1:8069'
+        self.__url      = url if url else 'http://127.0.0.1:8069' # 'http://127.0.0.1:8069'
         self.__db       = db if db else 'mydb'
         self.__username = username if username else 'admin'
         self.__password = password if password else None
-        self.__api_key  = api_key if api_key else '8e31c53904665a770c6ce58d44bcb86f4db7bb01'
+        self.__api_key  = api_key if api_key else '8e31c53904665a770c6ce58d44bcb86f4db7bb01' # '8e31c53904665a770c6ce58d44bcb86f4db7bb01'
         self.__key      = self.__password if self.__password else self.__api_key
 
 
@@ -213,6 +213,25 @@ class odoo_xmlrpc():
                     pass
 
 
+class SPDT_API():
+    object_dict = {    
+    'ware_house' : "stock.warehouse",
+    'zone' : "stock.location", #?
+    'area' : "stock.loaction", #?
+    'product_templet' : "product.templet",
+    'container' : "product.container", #?
+    'product_product' : "product.product",
+    'history' : "stock.",
+    'stock_move' : "stock.move",
+    'schedule' : "stock.",
+    }
+    def __init__(self, username=None, password=None, api_key=None):
+        self.odoo_api = odoo_xmlrpc(username=username, password=password, api_key=api_key)
+
+
+    def login(self, username=None, password=None, api_key=None):
+        return self.odoo_api.login()
+    
     # def edit_company(method:str, args=None):
     #     obj = 'res.company'
         
@@ -255,6 +274,7 @@ class odoo_xmlrpc():
         
     #     return_val = ''
     #     return return_val
+    
 
 if __name__ == '__main__':
     test = odoo_xmlrpc()
@@ -280,3 +300,4 @@ if __name__ == '__main__':
     sorted_data = sorted(data, key=lambda x:(x['name']))
     pprint.pprint(sorted_data)
     print([x for x in sorted_data if ' ' in x['name']])
+
