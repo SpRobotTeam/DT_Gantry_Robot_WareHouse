@@ -133,9 +133,17 @@ class client():
         try:
             if set_list and self.client.open():
                 if mode == 'DI':
-                    self.client.write_multiple_coils(bits_addr=address, bits_value=set_list)
+                    if address == 0:
+                        self.client.write_multiple_coils(bits_addr=1,       bits_value=set_list[1:])
+                        self.client.write_multiple_coils(bits_addr=address, bits_value=set_list[0])
+                    else:
+                        self.client.write_multiple_coils(bits_addr=address, bits_value=set_list)
                 else:
-                    self.client.write_multiple_registers(regs_addr=address, regs_value=set_list)
+                    if address == 0:
+                        self.client.write_multiple_registers(regs_addr=1,       regs_value=set_list[1:])
+                        self.client.write_multiple_registers(regs_addr=address, regs_value=set_list[0])
+                    else:
+                        self.client.write_multiple_registers(regs_addr=address, regs_value=set_list)
         except Exception as e:
             print(f"mbus write error : {e}")
         finally:
@@ -162,9 +170,9 @@ class client():
                     break
         
         if status[0] == 1 and status[11] == 0 and status[12] == 1 and status[13] == 1:
+            self.write(0,set_list=[0]*9)
             self.mission_enabled = False
             self.mission_running = False
-            self.write(0,set_list=[0]*9)
 
         elif status[0] == 0 and status[11] == 0 and status[12] == 1 and status[13] == 0:
             self.mission_enabled = True

@@ -1,3 +1,9 @@
-docker run -d -e POSTGRES_USER=SPDT -e POSTGRES_PASSWORD=qwe -e POSTGRES_DB=postgres -e TZ=Asia/Seoul -v SPDT:/var/lib/postgreaql/data -p 25432:5432 --name SPDT_DB postgres:15 
+기본 볼륨
+docker run -d -e POSTGRES_USER=SPDT -e POSTGRES_PASSWORD=qweqwe12 -e POSTGRES_DB=postgres -e TZ=Asia/Seoul -v SPDT:/var/lib/postgresql/data -p 25432:5432 --name SPDT_DB postgres:15 
+볼륨 위치 지정
+docker run -d -e POSTGRES_USER=SPDT -e POSTGRES_PASSWORD=qweqwe12 -e POSTGRES_DB=postgres -e TZ=Asia/Seoul -v D:\Docker\SPDT_DB:/var/lib/postgresql/data -p 25432:5432 --name SPDT_DB postgres:15 
+바인드
+docker run -d -e POSTGRES_USER=SPDT -e POSTGRES_PASSWORD=qweqwe12 -e POSTGRES_DB=postgres -e TZ=Asia/Seoul -mount type=bind,source="D:\Docker\SPDT_DB",target=/var/lib/postgresql/data -p 25432:5432 --name SPDT_DB postgres:15 
 
-docker run -e USER=SPDT -p 28069:8069 --name SPDT --link db:SPDT_DB -t odoo
+odoo
+docker run -e USER=SPDT -p 28069:8069 --name SPDT --link SPDT_DB:db -t odoo

@@ -1,5 +1,5 @@
 import xmlrpc.client
-
+from ERROR.error import DB_ObjectNotExistError
 
 
 class odoo_xmlrpc():
@@ -59,11 +59,11 @@ class odoo_xmlrpc():
 
     def __init__(self, url=None, db=None, username=None, password=None, api_key=None):
     
-        self.__url      = url if url else 'http://127.0.0.1:8069' # 'http://127.0.0.1:8069'
-        self.__db       = db if db else 'mydb'
-        self.__username = username if username else 'admin'
+        self.__url      = url if url else 'http://127.0.0.1:28069' # 'http://127.0.0.1:8069'
+        self.__db       = db if db else 'SPDT_DB' # 'mydb'
+        self.__username = username if username else 'maroon@spsystems.co.kr' # 'admin'
         self.__password = password if password else None
-        self.__api_key  = api_key if api_key else '8e31c53904665a770c6ce58d44bcb86f4db7bb01' # '8e31c53904665a770c6ce58d44bcb86f4db7bb01'
+        self.__api_key  = api_key if api_key else 'aac1974e1026b59408bdca46312f1d011ba4a667' # '8e31c53904665a770c6ce58d44bcb86f4db7bb01'
         self.__key      = self.__password if self.__password else self.__api_key
 
 
@@ -215,15 +215,17 @@ class odoo_xmlrpc():
 
 class SPDT_API():
     object_dict = {    
-    'ware_house' : "stock.warehouse",
-    'zone' : "stock.location", #?
-    'area' : "stock.loaction", #?
-    'product_templet' : "product.templet",
-    'container' : "product.container", #?
-    'product_product' : "product.product",
-    'history' : "stock.",
-    'stock_move' : "stock.move",
-    'schedule' : "stock.",
+    'ware_house' : "stock.warehouse",       # 창고 (공간 대분류)
+    'zone' : "stock.location",              # 장소 (공간 중분류)
+    'area' : "stock.loaction",              # 구역 (공간 소분류)
+    'product_templet' : "product.templet",  # 품종 정보
+    'container' : "product.container",      # 상품 컨테이너 정보
+    'product_product' : "product.product",  # 상품 목록
+    'partner' : "res.partner",              # 고객/공급자 정보
+    'company' : "res.company",              # 거래 회사 정보
+    'stock_move' : "stock.move",            # 상품 이동 명령
+    'history' : "stock.move.line",          # 이동 내역
+    'schedule' : "stock.",                  # 상품 이동 스케쥴
     }
     def __init__(self, username=None, password=None, api_key=None):
         self.odoo_api = odoo_xmlrpc(username=username, password=password, api_key=api_key)
@@ -232,48 +234,29 @@ class SPDT_API():
     def login(self, username=None, password=None, api_key=None):
         return self.odoo_api.login()
     
-    # def edit_company(method:str, args=None):
-    #     obj = 'res.company'
-        
-    #     return_val = ''
-    #     return return_val
-
-    # def edit_warehouse(method:str, args=None):
-    #     obj = 'stock.warehouse'
-        
-    #     return_val = ''
-    #     return return_val
-
-    # def edit_location(method:str, args=None):
-    #     obj = 'stock_location'
-        
-    #     return_val = ''
-    #     return return_val
-
-    # def edit_templet(method:str, args=None):
-    #     obj = 'product.template'
-        
-    #     return_val = ''
-    #     return return_val
-
-    # def edit_product(method:str, args=None):
-    #     obj = 'product.product'
-        
-    #     return_val = ''
-    #     return return_val
-
-    # def edit_quant(method:str, args=None):
-    #     obj = 'stock.quantity'
-        
-    #     return_val = ''
-    #     return return_val
 
 
-    # def edit_lot(method:str, args=None):
-    #     obj = 'stock.lot'
+    def connector(self, object:str, args:list=None, kw=None):
+        self.login()
+
+        if object in self.object_dict.keys():
+            obj = self.object_dict[object]
+        else:
+            raise DB_ObjectNotExistError
         
-    #     return_val = ''
-    #     return return_val
+        if not kw==None:
+            return self.odoo_api.list_up_records(obj=object, args=args, kw=kw)
+
+        elif 'delete' in args.keys() and args['delete'] == True:
+            method = self.odoo_api.delete_data
+
+        elif args['id'] in self.odoo_api.list_up_records:
+            method = self.odoo_api.update_data
+
+        else :
+            method = self.odoo_api.create_data
+
+        return method(obj=obj, args=args)
     
 
 if __name__ == '__main__':

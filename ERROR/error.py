@@ -8,7 +8,11 @@ class SimError(Exception):
 
 class ProductNotExistError(Exception):
     def __init__(self):
-        super().__init__('요청한 제품이 현재 재고 목록에 없습니다.')        
+        super().__init__('요청한 제품이 현재 재고 목록에 없습니다.')       
+
+class DB_ObjectNotExistError(Exception):
+    def __init__(self):
+        super().__init__('요청한 항목이 DB 목록에 없습니다.')  
 
 
 # error_code_dict = {
