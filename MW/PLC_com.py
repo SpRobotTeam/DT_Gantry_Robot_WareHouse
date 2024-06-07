@@ -135,13 +135,13 @@ class client():
                 if mode == 'DI':
                     if address == 0:
                         self.client.write_multiple_coils(bits_addr=1,       bits_value=set_list[1:])
-                        self.client.write_multiple_coils(bits_addr=address, bits_value=set_list[0])
+                        self.client.write_multiple_coils(bits_addr=address, bits_value=set_list[:1])
                     else:
                         self.client.write_multiple_coils(bits_addr=address, bits_value=set_list)
                 else:
                     if address == 0:
                         self.client.write_multiple_registers(regs_addr=1,       regs_value=set_list[1:])
-                        self.client.write_multiple_registers(regs_addr=address, regs_value=set_list[0])
+                        self.client.write_multiple_registers(regs_addr=address, regs_value=set_list[:1])
                     else:
                         self.client.write_multiple_registers(regs_addr=address, regs_value=set_list)
         except Exception as e:
