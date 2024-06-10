@@ -418,7 +418,7 @@ if __name__ == "__main__":
                     except NotEnoughSpaceError: # 공간 부족 시
                         mission_offset += 1 # 다음 미션으로 (현 미션 스킵)
                         print("입고 명령 무시 : 창고 공간 부족")
-                        logger.error("입고 실패")
+                        logger.error(f"IN 실패 {product_name} NotEnoughSpaceError")
                         continue
                 elif action == 'OUT':
                     try:
@@ -427,7 +427,7 @@ if __name__ == "__main__":
 
                     except ProductNotExistError:
                         print("출고 명령 무시 : 해당 품목의 상품 없음")
-                        logger.error(f"출고 실패")
+                        logger.error(f"OUT 실패 {product_name} ProductNotExistError")
                         
                         continue
                     sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
