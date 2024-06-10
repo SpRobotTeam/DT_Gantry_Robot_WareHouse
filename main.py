@@ -18,6 +18,7 @@ import logging
 logger = logging.getLogger('main')
 logger.setLevel(logging.WARNING)
 
+pathlib.Path("./logs").mkdir(parents=True, exist_ok=True)
 pathlib.Path("./logs/main.log").touch
 log_file_handler = logging.FileHandler("./logs/main.log")
 

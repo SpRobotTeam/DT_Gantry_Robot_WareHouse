@@ -18,6 +18,7 @@ import logging
 logger = logging.getLogger('plc_motion006')
 logger.setLevel(logging.WARNING)
 
+pathlib.Path("./logs").mkdir(parents=True, exist_ok=True)
 pathlib.Path("./logs/'plc_motion006'.log").touch
 log_file_handler = logging.FileHandler(f"./logs/'plc_motion006'.log", mode="w+")
 
