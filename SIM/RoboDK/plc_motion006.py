@@ -15,9 +15,9 @@ import subprocess
 home_path = os.path.expanduser('~')
 
 import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('plc_motion006')
 logger.setLevel(logging.WARNING)
-log_file_handler = logging.FileHandler(f"./logs/{__name__}.log")
+log_file_handler = logging.FileHandler(f"./logs/{'plc_motion006'}.log")
 
 logger.addHandler(log_file_handler)
 

@@ -15,9 +15,9 @@ from ERROR.error import NotEnoughSpaceError, SimError, ProductNotExistError
 from SIM.EVAL.evaluator import Evaluator
 
 import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('main')
 logger.setLevel(logging.WARNING)
-log_file_handler = logging.FileHandler(f"./logs/{__name__}.log")
+log_file_handler = logging.FileHandler("./logs/main.log")
 
 logger.addHandler(log_file_handler)
 
