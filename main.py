@@ -20,8 +20,13 @@ logger.setLevel(logging.WARNING)
 
 pathlib.Path("./logs").mkdir(parents=True, exist_ok=True)
 pathlib.Path("./logs/main.log").touch
-log_file_handler = logging.FileHandler("./logs/main.log")
-
+log_file_handler = logging.handlers.RotatingFileHandler(filename="./logs/main.log", 
+                                                        mode="a",
+                                                        backupCount= 3,
+                                                        maxBytes= 1024*1024*512
+                                                        )
+log_file_formater = logging.Formatter("{asctime} {levelname} {filename}>{funcName} {massage}", style='{')
+logger.addHandler(log_file_formater)
 logger.addHandler(log_file_handler)
 
 logger.info("______________________________________________________________________\nProgram start")

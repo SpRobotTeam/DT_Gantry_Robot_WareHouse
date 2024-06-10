@@ -1,4 +1,5 @@
 #!/bin/python
+import logging.handlers
 import sys, os, pathlib
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 current_working_directory = os.getcwd()
@@ -17,11 +18,16 @@ home_path = os.path.expanduser('~')
 import logging
 logger = logging.getLogger('plc_motion006')
 logger.setLevel(logging.WARNING)
-
+logger
 pathlib.Path("./logs").mkdir(parents=True, exist_ok=True)
 pathlib.Path("./logs/'plc_motion006'.log").touch
-log_file_handler = logging.FileHandler(f"./logs/'plc_motion006'.log", mode="w+")
-
+log_file_handler = logging.handlers.RotatingFileHandler(filename=f"./logs/'plc_motion006'.log", 
+                                                        mode="a",
+                                                        backupCount= 3,
+                                                        maxBytes= 1024*1024*512
+                                                        )
+log_file_formater = logging.Formatter("{asctime} {levelname} {filename}>{funcName} {massage}", style='{')
+logger.addHandler(log_file_formater)
 logger.addHandler(log_file_handler)
 
 logger.info("______________________________________________________________________\nProgram start")
