@@ -23,7 +23,8 @@ pathlib.Path("./logs/main.log").touch
 log_file_handler = logging.handlers.RotatingFileHandler(filename="./logs/main.log", 
                                     mode="a",
                                     backupCount= 3,
-                                    maxBytes= 1024*1024*512
+                                    maxBytes= 1024*1024*512,
+                                    encoding='utf-8'
                                     )
 log_formater = logging.Formatter("{asctime} {levelname} {filename}>{funcName} {message}", style='{')
 log_file_handler.setFormatter(log_formater)
