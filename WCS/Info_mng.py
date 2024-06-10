@@ -86,8 +86,12 @@ class Base_info (product_manager, container_manager, wh_manager):
             reserved_time=None,
             manual_loc=[],
             testing_mode = None,
-            ):
-        
+            )->list:
+        '''
+        입고 명령
+
+        출력 : [`moved_distance`,`lot`]
+        '''
         sum_distance = [0,0]
 
         if not DOM:
@@ -230,11 +234,11 @@ class Base_info (product_manager, container_manager, wh_manager):
               + f"{' 정렬 완료됨'if priority == 1 else ''}" if MODE == "AO" else ''  #AO
               )
         
-        if testing_mode:
-            return sum_distance
-        else:
-            return None    
-
+        # if testing_mode:
+        #     return sum_distance
+        # else:
+        #     return None    
+        return [sum_distance, lot]
 
     def Outbound(self, 
                  lot:str=None, 
@@ -242,8 +246,12 @@ class Base_info (product_manager, container_manager, wh_manager):
                 #  loc:list=None, 
                  reserved_time=None, 
                  testing_mode = None,
-                 ):  #lot_head/name
-        
+                 )->list:  #lot_head/name
+        '''
+        출고 명령
+
+        출력 : [`moved_distance`,`lot`]
+        '''
         # loc = self.find_loc(name)
         if not lot:
             if product_name:
@@ -359,11 +367,11 @@ class Base_info (product_manager, container_manager, wh_manager):
 
         print(f"{lot} 출고 완료",
               f"")
-        if testing_mode == 1:
-            return sum_distance 
-        else:
-            return None 
-
+        # if testing_mode == 1:
+        #     return sum_distance 
+        # else:
+        #     return None 
+        return [sum_distance, lot]
 
 
     def sort_item(self, WH_name, Zone_name, Area_name, lot, loc, height = None, offset = 1):

@@ -14,6 +14,15 @@ from time import sleep
 import subprocess
 home_path = os.path.expanduser('~')
 
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
+log_file_handler = logging.FileHandler(f"./logs/{__name__}.log")
+
+logger.addHandler(log_file_handler)
+
+logger.info("______________________________________________________________________\nProgram start")
+
 if not 'nt' in os.name:
     subprocess.Popen(["sh", home_path+"/RoboDK/RoboDK-Start.sh"])
     time.sleep(10)
@@ -91,6 +100,7 @@ class modbus_inst():
     def __init__(self, host='127.0.0.1', port=502, unit_id=1):
         self.databank = DataBank()
         self.server = ModbusServer(host=host, port=port, no_block=True, data_bank=self.databank)
+
         self.server.start()
         self.heartbeat_flag = 0
 
@@ -350,7 +360,7 @@ home_motions(gantry, gripper, conveyor, gantry_home, open_gripper, con_pitch)
 # delete_item("box")
 # items = define_model()
 # add_model.save_model()
-
+modbus_table = [0] * 20
 
 if __name__ == '__main__':
 
@@ -363,6 +373,8 @@ if __name__ == '__main__':
     # s.write_data(address=12, data=1)
     # s.write_data(address=13, data=0)
     s.write_data(address=11, data=[0,1,0])
+    modbus_table = modbus_table[:11]+[0,1,0]+modbus_table[14:]
+    logger.info(f" plc_ready : {modbus_table}")
 
     cam_streamer = Thread(target=camera_stream, daemon=True)
     cam_streamer.start()
@@ -371,6 +383,8 @@ if __name__ == '__main__':
         s.databank.set_holding_registers(10, [s.heartbeat_flag])
 
         recv_data = s.read_data(address=0, num = 20)
+        modbus_table = recv_data
+        logger.info(f" plc_data_reading : {modbus_table}")
 
         # if not s.read_data(address=0):
         # if not recv_data[0]:
@@ -384,6 +398,10 @@ if __name__ == '__main__':
             # s.write_data(address=11, data=1)
             # s.write_data(address=12, data=0)
             s.write_data(address=11, data=[1,0,0])
+            modbus_table = modbus_table[:11]+[1,0,0]+modbus_table[14:]
+            logger.info(f" plc_mission_recived : {modbus_table[1:4]} -> {modbus_table[5:8]}")
+            logger.info(f" plc_mission_running : {modbus_table}")
+
 
             data_x1 = recv_data[1]
             data_y1 = recv_data[2]
@@ -411,6 +429,8 @@ if __name__ == '__main__':
             # s.write_data(address=12, data=1)
             # s.write_data(address=13, data=1)
             s.write_data(address=11, data=[0,1,1])
+            modbus_table = modbus_table[:11]+[0,1,1]+modbus_table[14:]
+            logger.info(f" plc_mission_fin : {modbus_table}")
 
         elif recv_data[0] == 0:
             # 함수 실행이후 초기화 이전 13번 주소에 0을 작성

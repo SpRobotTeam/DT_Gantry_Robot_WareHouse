@@ -14,6 +14,15 @@ from ERROR.error import NotEnoughSpaceError, SimError, ProductNotExistError
 
 from SIM.EVAL.evaluator import Evaluator
 
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
+log_file_handler = logging.FileHandler(f"./logs/{__name__}.log")
+
+logger.addHandler(log_file_handler)
+
+logger.info("______________________________________________________________________\nProgram start")
+
 web = False
 manual = False
 
@@ -347,9 +356,7 @@ if __name__ == "__main__":
                     pass
 
 
-            
-                
-            
+        
         else:
             # SPDTw.__init__()
             SPDTw.default_setting(container_name='default')
@@ -396,18 +403,24 @@ if __name__ == "__main__":
                 
                 if action == 'IN':
                     try:
-                        moved_distance = SPDTw.Inbound(product_name=product_name, DOM=dom, testing_mode = True)
+                        moved_distance, lot = SPDTw.Inbound(product_name=product_name, DOM=dom, testing_mode = True)
+                        logger.info(f"IN {lot}")
                         sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
                         unit_time_past += sum([d*s for d,s in zip(moved_distance, GANTRY_MOVING_SPEED)])
                     except NotEnoughSpaceError: # 공간 부족 시
                         mission_offset += 1 # 다음 미션으로 (현 미션 스킵)
                         print("입고 명령 무시 : 창고 공간 부족")
+                        logger.error("입고 실패")
                         continue
                 elif action == 'OUT':
                     try:
-                        moved_distance = SPDTw.Outbound(product_name=product_name, testing_mode = 1)
+                        moved_distance, lot = SPDTw.Outbound(product_name=product_name, testing_mode = 1)
+                        logger.info(f"OUT {lot}")
+
                     except ProductNotExistError:
                         print("출고 명령 무시 : 해당 품목의 상품 없음")
+                        logger.error(f"출고 실패")
+                        
                         continue
                     sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
                     unit_time_past += sum([d*s for d,s in zip(moved_distance, GANTRY_MOVING_SPEED)])
