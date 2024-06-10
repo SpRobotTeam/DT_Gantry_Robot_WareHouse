@@ -18,10 +18,9 @@ home_path = os.path.expanduser('~')
 import logging
 logger = logging.getLogger('plc_motion006')
 logger.setLevel(logging.WARNING)
-logger
 pathlib.Path("./logs").mkdir(parents=True, exist_ok=True)
 pathlib.Path("./logs/'plc_motion006'.log").touch
-log_file_handler = logging.handlers.RotatingFileHandler(filename=f"./logs/'plc_motion006'.log", 
+log_file_handler = logging.handlers.RotatingFileHandler(filename="./logs/'plc_motion006'.log", 
                                                         mode="a",
                                                         backupCount= 3,
                                                         maxBytes= 1024*1024*512

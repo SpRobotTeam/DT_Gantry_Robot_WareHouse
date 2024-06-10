@@ -1,6 +1,7 @@
 # import sys, os
 # sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
+import logging.handlers
 from WCS import SPWCS
 import random as rand
 import time
@@ -17,7 +18,6 @@ from SIM.EVAL.evaluator import Evaluator
 import logging
 logger = logging.getLogger('main')
 logger.setLevel(logging.WARNING)
-
 pathlib.Path("./logs").mkdir(parents=True, exist_ok=True)
 pathlib.Path("./logs/main.log").touch
 log_file_handler = logging.handlers.RotatingFileHandler(filename="./logs/main.log", 
