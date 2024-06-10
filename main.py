@@ -18,7 +18,7 @@ import logging
 logger = logging.getLogger('main')
 logger.setLevel(logging.WARNING)
 
-pathlib.Path.touch("./logs/main.log")
+pathlib.Path("./logs/main.log").touch
 log_file_handler = logging.FileHandler("./logs/main.log")
 
 logger.addHandler(log_file_handler)
