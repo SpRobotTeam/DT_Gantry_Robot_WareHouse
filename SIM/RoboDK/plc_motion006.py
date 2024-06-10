@@ -17,16 +17,16 @@ home_path = os.path.expanduser('~')
 
 import logging
 logger = logging.getLogger('plc_motion006')
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 pathlib.Path("./logs").mkdir(parents=True, exist_ok=True)
-pathlib.Path("./logs/'plc_motion006'.log").touch
-log_file_handler = logging.handlers.RotatingFileHandler(filename="./logs/'plc_motion006'.log", 
-                                                        mode="a",
-                                                        backupCount= 3,
-                                                        maxBytes= 1024*1024*512
-                                                        )
-log_file_formater = logging.Formatter("{asctime} {levelname} {filename}>{funcName} {massage}", style='{')
-logger.addHandler(log_file_formater)
+pathlib.Path("./logs/plc_motion006.log").touch
+log_file_handler = logging.handlers.RotatingFileHandler(filename="./logs/plc_motion006.log", 
+                                    mode="a",
+                                    backupCount= 3,
+                                    maxBytes= 1024*1024*512
+                                    )
+log_formater = logging.Formatter("{asctime} {levelname} {filename}>{funcName} {message}", style='{')
+log_file_handler.setFormatter(log_formater)
 logger.addHandler(log_file_handler)
 
 logger.info("______________________________________________________________________\nProgram start")
@@ -368,7 +368,7 @@ home_motions(gantry, gripper, conveyor, gantry_home, open_gripper, con_pitch)
 # delete_item("box")
 # items = define_model()
 # add_model.save_model()
-modbus_table = [0] * 20
+modbus_table = last_modbus_table = [0] * 20
 
 if __name__ == '__main__':
 
@@ -381,8 +381,8 @@ if __name__ == '__main__':
     # s.write_data(address=12, data=1)
     # s.write_data(address=13, data=0)
     s.write_data(address=11, data=[0,1,0])
-    modbus_table = modbus_table[:11]+[0,1,0]+modbus_table[14:]
-    logger.info(f" plc_ready : {modbus_table}")
+    modbus_table = last_modbus_table = modbus_table[:11]+[0,1,0]+modbus_table[14:]
+    logger.info(f" plc_ready :\t\t\t\t{modbus_table}")
 
     cam_streamer = Thread(target=camera_stream, daemon=True)
     cam_streamer.start()
@@ -392,7 +392,8 @@ if __name__ == '__main__':
 
         recv_data = s.read_data(address=0, num = 20)
         modbus_table = recv_data
-        logger.info(f" plc_data_reading : {modbus_table}")
+        if modbus_table != last_modbus_table:
+            logger.info(f" plc_data_reading :\t\t{modbus_table}")
 
         # if not s.read_data(address=0):
         # if not recv_data[0]:
@@ -407,8 +408,8 @@ if __name__ == '__main__':
             # s.write_data(address=12, data=0)
             s.write_data(address=11, data=[1,0,0])
             modbus_table = modbus_table[:11]+[1,0,0]+modbus_table[14:]
-            logger.info(f" plc_mission_recived : {modbus_table[1:4]} -> {modbus_table[5:8]}")
-            logger.info(f" plc_mission_running : {modbus_table}")
+            logger.info(f" plc_mission_recived :\t{modbus_table[1:4]} -> {modbus_table[5:8]}")
+            logger.info(f" plc_mission_running :\t{modbus_table}")
 
 
             data_x1 = recv_data[1]
@@ -438,7 +439,7 @@ if __name__ == '__main__':
             # s.write_data(address=13, data=1)
             s.write_data(address=11, data=[0,1,1])
             modbus_table = modbus_table[:11]+[0,1,1]+modbus_table[14:]
-            logger.info(f" plc_mission_fin : {modbus_table}")
+            logger.info(f" plc_mission_fin :\t\t{modbus_table}")
 
         elif recv_data[0] == 0:
             # 함수 실행이후 초기화 이전 13번 주소에 0을 작성

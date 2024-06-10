@@ -17,16 +17,16 @@ from SIM.EVAL.evaluator import Evaluator
 
 import logging
 logger = logging.getLogger('main')
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 pathlib.Path("./logs").mkdir(parents=True, exist_ok=True)
 pathlib.Path("./logs/main.log").touch
 log_file_handler = logging.handlers.RotatingFileHandler(filename="./logs/main.log", 
-                                                        mode="a",
-                                                        backupCount= 3,
-                                                        maxBytes= 1024*1024*512
-                                                        )
-log_file_formater = logging.Formatter("{asctime} {levelname} {filename}>{funcName} {massage}", style='{')
-logger.addHandler(log_file_formater)
+                                    mode="a",
+                                    backupCount= 3,
+                                    maxBytes= 1024*1024*512
+                                    )
+log_formater = logging.Formatter("{asctime} {levelname} {filename}>{funcName} {message}", style='{')
+log_file_handler.setFormatter(log_formater)
 logger.addHandler(log_file_handler)
 
 logger.info("______________________________________________________________________\nProgram start")
