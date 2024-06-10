@@ -1,5 +1,5 @@
 #!/bin/python
-import sys, os
+import sys, os, pathlib
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 current_working_directory = os.getcwd()
 
@@ -17,7 +17,9 @@ home_path = os.path.expanduser('~')
 import logging
 logger = logging.getLogger('plc_motion006')
 logger.setLevel(logging.WARNING)
-log_file_handler = logging.FileHandler(f"./logs/{'plc_motion006'}.log")
+
+pathlib.Path.touch("./logs/'plc_motion006'.log")
+log_file_handler = logging.FileHandler(f"./logs/'plc_motion006'.log", mode="w+")
 
 logger.addHandler(log_file_handler)
 

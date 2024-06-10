@@ -6,7 +6,7 @@ import random as rand
 import time
 # from MW import PLC_com
 # import pprint
-import os, sys
+import os, sys, pathlib
 import subprocess, asyncio # concurrent.futures
 import csv
 
@@ -17,6 +17,8 @@ from SIM.EVAL.evaluator import Evaluator
 import logging
 logger = logging.getLogger('main')
 logger.setLevel(logging.WARNING)
+
+pathlib.Path.touch("./logs/main.log")
 log_file_handler = logging.FileHandler("./logs/main.log")
 
 logger.addHandler(log_file_handler)
