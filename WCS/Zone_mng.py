@@ -194,6 +194,7 @@ class zone_manager():
 
             while not self.Modbus_inst.mission_running:    
                 self.Modbus_inst.write(address=0, set_list=set_list)
+                time.sleep(0.5)
                 # self.Modbus_inst.plc_check()
 
             lot = area_from.grid[loc_from[0]][loc_from[1]].pop()

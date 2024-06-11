@@ -7,7 +7,23 @@ import numpy as np
 from threading import Thread, Event
 import time
 from MW import modbus_sim
-import os
+import os, pathlib
+
+import logging
+logger = logging.getLogger('main')
+logger.setLevel(logging.DEBUG)
+pathlib.Path("../logs").mkdir(parents=True, exist_ok=True)
+pathlib.Path("../logs/main.log").touch
+log_file_handler = logging.handlers.RotatingFileHandler(filename="../logs/main.log", 
+                                    mode="a",
+                                    backupCount= 3,
+                                    maxBytes= 1024*1024*512,
+                                    encoding='utf-8'
+                                    )
+log_formater = logging.Formatter("{asctime} {levelname} {filename}>{funcName} {message}", style='{')
+log_file_handler.setFormatter(log_formater)
+logger.addHandler(log_file_handler)
+
 
 # sim = True
 sim = False
@@ -135,15 +151,26 @@ class client():
                 if mode == 'DI':
                     if address == 0:
                         self.client.write_multiple_coils(bits_addr=1,       bits_value=set_list[1:])
+                        logger.info(f" address : {address}, \t set_list : {set_list}")
                         self.client.write_multiple_coils(bits_addr=address, bits_value=set_list[:1])
+                        logger.info(f" address : {address}, \t set_list : {set_list}")
+
                     else:
                         self.client.write_multiple_coils(bits_addr=address, bits_value=set_list)
+                        logger.info(f" address : {address}, \t set_list : {set_list}")
+
                 else:
                     if address == 0:
                         self.client.write_multiple_registers(regs_addr=1,       regs_value=set_list[1:])
+                        logger.info(f" address : {address}, \t set_list : {set_list}")
+
                         self.client.write_multiple_registers(regs_addr=address, regs_value=set_list[:1])
+                        logger.info(f" address : {address}, \t set_list : {set_list}")
+
                     else:
                         self.client.write_multiple_registers(regs_addr=address, regs_value=set_list)
+                        logger.info(f" address : {address}, \t set_list : {set_list}")
+
         except Exception as e:
             print(f"mbus write error : {e}")
         finally:
