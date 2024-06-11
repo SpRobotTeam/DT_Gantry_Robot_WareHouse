@@ -238,8 +238,10 @@ if __name__ == "__main__":
         op_mode = int(op_input)
     elif op_input:
         op_mode = op_input.lower()
-        if op_mode == 'n':
-            op_mode = 'no_sim'
+        if op_mode in ['n','ㅜ']:
+            op_mode = 'n'
+        elif op_mode in ['s', 'ㄴ']:
+            op_mode = 's'
     else:
         op_mode = None
         manual = True
@@ -249,7 +251,7 @@ if __name__ == "__main__":
         if op_mode[0].lower() in ['s', 'n']:
             if op_mode == 's':
                 print("알고리즘 평가 기준 생성 모드로 WCS를 실행합니다!")
-            elif op_mode == 'n':
+            elif op_mode[0].lower() == 'n':
                 print("알고리즘 테스트 모드(모드버스 무효화)로 WCS를 실행합니다!")
                 
             # manual = False

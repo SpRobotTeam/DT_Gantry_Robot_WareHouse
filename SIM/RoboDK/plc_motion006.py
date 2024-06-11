@@ -294,7 +294,10 @@ def move_to_out(x, y, z):
     child_item.Delete()
 
 def move_to_in(x, y, z):
-    box = conveyor_material_input()
+    box = None
+    while not box:
+        box = conveyor_material_input()
+        
     target_name = f"Point_{x:02}-{y:02}-{z:02}"
     target = items[target_name]
     Frame = items[f'TeachingPoints_{x:02}-{y:02}-{z:02}']
