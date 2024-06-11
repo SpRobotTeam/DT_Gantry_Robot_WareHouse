@@ -187,8 +187,14 @@ class zone_manager():
             set_list = [1] + global_loc_from + [1] + global_loc_to + [2] + [0]
             self.Modbus_inst.mission_enabled = False
             self.Modbus_inst.mission_running = False
-            
-            self.Modbus_inst.write(address=0, set_list=set_list)
+
+            while not self.Modbus_inst.mission_enabled:
+                # self.Modbus_inst.plc_check()
+                continue
+
+            while not self.Modbus_inst.mission_running:    
+                self.Modbus_inst.write(address=0, set_list=set_list)
+                # self.Modbus_inst.plc_check()
 
             lot = area_from.grid[loc_from[0]][loc_from[1]].pop()
             self.Area_dict['Gantry'].grid[0][0].append(lot) # 변경 여부 검토 필요
