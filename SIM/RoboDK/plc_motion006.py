@@ -297,7 +297,7 @@ def move_to_in(x, y, z):
     box = None
     while not box:
         box = conveyor_material_input()
-        
+
     target_name = f"Point_{x:02}-{y:02}-{z:02}"
     target = items[target_name]
     Frame = items[f'TeachingPoints_{x:02}-{y:02}-{z:02}']
@@ -310,6 +310,7 @@ def move_to_in(x, y, z):
     box.setParent(Frame)
 
     gantry.MoveJ(pretarget, blocking=True)
+    return box
 
 
 def move_to_position(x1, y1, z1, x2, y2, z2):
@@ -425,11 +426,16 @@ if __name__ == '__main__':
             data_z2 = recv_data[7]
 
             if data_x1 == 0 and data_y1 == 0 and data_z1 == 0:
-                move_to_in(data_x2, data_y2, data_z2)
+                box = None
+                while box:
+                    box = move_to_in(data_x2, data_y2, data_z2)
+                    logger.info(f"IN\t{[data_x2, data_y2, data_z2]}")
             elif data_x2 == 0 and data_y2 == 0 and data_z2 == 0:
                 move_to_out(data_x1, data_y1, data_z1)
+                logger.info(f"OUT\t{[data_x2, data_y2, data_z2]}")
             else:
                 move_to_position(data_x1, data_y1, data_z1, data_x2, data_y2, data_z2)
+                logger.info(f"MOVE\t{[data_x2, data_y2, data_z2]}")
 
             # s.write_data(address=11, data=0)
             # s.write_data(address=12, data=1)
