@@ -102,6 +102,7 @@ def load_box():
     box_path = f"{parent_path}box.sld"
     box_item = RDK.AddFile(box_path)
     box = RDK.Item(box_item.Name())
+    
     box_counter += 1
     box.setName("box_" + str(box_counter))  # box에 고유한 이름 부여
     return box
@@ -482,7 +483,7 @@ if __name__ == '__main__':
         # DataBank 상태 출력
         print("Holding Registers from address 0 to 12:   ", s.databank.get_holding_registers(0, 13))
 
-        sleep(0.2)
+        # sleep(0.2)
         
 
         print("=======================================================")
