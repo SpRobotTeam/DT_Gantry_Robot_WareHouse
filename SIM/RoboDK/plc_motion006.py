@@ -97,7 +97,7 @@ def camera_stream():
 
 def load_box():
     global box_counter
-    parent_path = os.path.dirname(__file__)+"\\" if 'nt' in os.name else "~//" 
+    parent_path = os.path.dirname(__file__)+("\\" if 'nt' in os.name else "/") 
     box_path = f"{parent_path}box.sld"
     box_item = RDK.AddFile(box_path)
     box = RDK.Item(box_item.Name())
