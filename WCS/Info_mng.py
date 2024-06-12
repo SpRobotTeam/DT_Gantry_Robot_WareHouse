@@ -86,6 +86,7 @@ class Base_info (product_manager, container_manager, wh_manager):
             reserved_time=None,
             manual_loc=[],
             testing_mode = None,
+            lot = None
             )->list:
         '''
         입고 명령
@@ -145,8 +146,8 @@ class Base_info (product_manager, container_manager, wh_manager):
         # elif area_total_product_amount >= destination_area.INVENTORY_LIMIT: # 다른 전략 필요
         #     print("적재 한계에 도달 하였습니다. \n정렬 작업을 진행할 수 없습니다.")
         #     raise NotEnoughSpaceError
-        
-        lot = f"{self.product_templet_dict[product_name]['lot_head']}-{DOM}-{registered_product_amount+1:04d}"
+        if not lot or (lot in list(self.product_I_dict.keys())):
+            lot = f"{self.product_templet_dict[product_name]['lot_head']}-{DOM}-{registered_product_amount+1:04d}"
         
 
         In_area.grid[0][0].append(lot) # 박스 추가 : 변경 여부 검토 필요
@@ -203,13 +204,14 @@ class Base_info (product_manager, container_manager, wh_manager):
         self.register_item(
                          I_id=registered_product_amount,
                          product_name=product_name, 
+                         lot=lot,
                          DOM = DOM,
                          manufactor=manufactor,
                          WH_name   = WH_name,
                          Zone_name = Zone_name,
                          Area_name = Area_name,
-                        #  bin_location= f"{WH_name}_{Zone_name}_{Area_name}_{loc[0]:03d}{loc[1]:03d}{loc[2]:03d}",
-                        bin_location=loc
+                         # bin_location= f"{WH_name}_{Zone_name}_{Area_name}_{loc[0]:03d}{loc[1]:03d}{loc[2]:03d}",
+                         bin_location=loc                         
                          )
         
         self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name].inventory[lot] = {

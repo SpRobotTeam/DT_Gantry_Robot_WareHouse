@@ -397,8 +397,9 @@ if __name__ == '__main__':
 
         recv_data = s.read_data(address=0, num = 20)
         modbus_table = recv_data
-        if modbus_table != last_modbus_table:
+        if modbus_table[:9] != last_modbus_table[:9] or modbus_table[11:] != last_modbus_table[11:]:
             logger.info(f" plc_data_reading :\t\t{modbus_table}")
+            last_modbus_table = modbus_table
 
         # if not s.read_data(address=0):
         # if not recv_data[0]:
@@ -415,7 +416,6 @@ if __name__ == '__main__':
             modbus_table = modbus_table[:11]+[1,0,0]+modbus_table[14:]
             logger.info(f" plc_mission_recived :\t{modbus_table[1:4]} -> {modbus_table[5:8]}")
             logger.info(f" plc_mission_running :\t{modbus_table}")
-
 
             data_x1 = recv_data[1]
             data_y1 = recv_data[2]
@@ -435,10 +435,10 @@ if __name__ == '__main__':
                         logger.exception(f"{e} : {e.with_traceback()}")
             elif data_x2 == 0 and data_y2 == 0 and data_z2 == 0:
                 move_to_out(data_x1, data_y1, data_z1)
-                logger.info(f"OUT\t{[data_x2, data_y2, data_z2]}")
+                logger.info(f"OUT\t{[data_x1, data_y1, data_z1]}")
             else:
                 move_to_position(data_x1, data_y1, data_z1, data_x2, data_y2, data_z2)
-                logger.info(f"MOVE\t{[data_x2, data_y2, data_z2]}")
+                logger.info(f"MOVE\t{[data_x1, data_y1, data_z1]} -> {[data_x2, data_y2, data_z2]}")
 
             # s.write_data(address=11, data=0)
             # s.write_data(address=12, data=1)

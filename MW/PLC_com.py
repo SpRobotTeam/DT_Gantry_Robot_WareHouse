@@ -149,25 +149,25 @@ class client():
         try:
             if set_list and self.client.open():
                 if mode == 'DI':
-                    if address == 0:
-                        self.client.write_multiple_coils(bits_addr=1,       bits_value=set_list[1:])
-                        logger.info(f" address : {address}, \t set_list : {set_list}")
-                        self.client.write_multiple_coils(bits_addr=address, bits_value=set_list[:1])
-                        logger.info(f" address : {address}, \t set_list : {set_list}")
+                    # if address == 0:
+                    #     self.client.write_multiple_coils(bits_addr=1,       bits_value=set_list[1:])
+                    #     logger.info(f" address : {address}, \t set_list : {set_list}")
+                    #     self.client.write_multiple_coils(bits_addr=address, bits_value=set_list[:1])
+                    #     logger.info(f" address : {address}, \t set_list : {set_list}")
 
-                    else:
+                    # else:
                         self.client.write_multiple_coils(bits_addr=address, bits_value=set_list)
                         logger.info(f" address : {address}, \t set_list : {set_list}")
 
                 else:
-                    if address == 0:
-                        self.client.write_multiple_registers(regs_addr=1,       regs_value=set_list[1:])
-                        logger.info(f" address : {address}, \t set_list : {set_list}")
+                    # if address == 0:
+                    #     self.client.write_multiple_registers(regs_addr=1,       regs_value=set_list[1:])
+                    #     logger.info(f" address : {address}, \t set_list : {set_list}")
 
-                        self.client.write_multiple_registers(regs_addr=address, regs_value=set_list[:1])
-                        logger.info(f" address : {address}, \t set_list : {set_list}")
+                    #     self.client.write_multiple_registers(regs_addr=address, regs_value=set_list[:1])
+                    #     logger.info(f" address : {address}, \t set_list : {set_list}")
 
-                    else:
+                    # else:
                         self.client.write_multiple_registers(regs_addr=address, regs_value=set_list)
                         logger.info(f" address : {address}, \t set_list : {set_list}")
 

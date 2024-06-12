@@ -246,7 +246,8 @@ class product_manager():
                     WH_name:str,
                     Zone_name:str,
                     Area_name:str,
-                    bin_location:list
+                    bin_location:list,
+                    lot=None,
 
                     ):
       
@@ -254,7 +255,8 @@ class product_manager():
         lot_head = self.product_templet_dict[product_name]['lot_head']
         I_id = f"{len([i for i in self.product_I_dict.keys()if lot_head in i])+1:04d}"
         lot_tail = f"{DOM}-{I_id}"
-        lot = f"{lot_head}-{lot_tail}"
+        if not lot:
+            lot = f"{lot_head}-{lot_tail}"
 
         self.product_I_dict[lot]={
                 'I_id'              : I_id,
