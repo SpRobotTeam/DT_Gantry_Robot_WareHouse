@@ -157,7 +157,7 @@ class client():
 
                     # else:
                         self.client.write_multiple_coils(bits_addr=address, bits_value=set_list)
-                        logger.info(f" address : {address}, \t set_list : {set_list}")
+                        # logger.info(f" address : {address}, \t set_list : {set_list}")
 
                 else:
                     # if address == 0:
@@ -169,11 +169,12 @@ class client():
 
                     # else:
                         self.client.write_multiple_registers(regs_addr=address, regs_value=set_list)
-                        logger.info(f" address : {address}, \t set_list : {set_list}")
-
+                        # logger.info(f" address : {address}, \t set_list : {set_list}")
+    
         except Exception as e:
             print(f"mbus write error : {e}")
         finally:
+            logger.info(f" address : {address}, \t set_list : {set_list}")
             self.client.close
             end_time = time.time()
             
