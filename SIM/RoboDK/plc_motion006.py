@@ -141,15 +141,15 @@ def define_model():
 
 
 box_counter = 0
-def load_box():
-    global box_counter
-    parent_path = os.path.dirname(__file__)+ ("\\" if 'nt' in os.name else "/" )
-    box_path = f"{parent_path}box.sld"
-    box_item = RDK.AddFile(box_path)
-    box = RDK.Item(box_item.Name())
-    box_counter += 1
-    box.setName("box_" + str(box_counter))  # box에 고유한 이름 부여
-    return box
+# def load_box():
+#     global box_counter
+#     parent_path = os.path.dirname(__file__)+ ("\\" if 'nt' in os.name else "/" )
+#     box_path = f"{parent_path}box.sld"
+#     box_item = RDK.AddFile(box_path)
+#     box = RDK.Item(box_item.Name())
+#     box_counter += 1
+#     box.setName("box_" + str(box_counter))  # box에 고유한 이름 부여
+#     return box
 
 def find_child_item(parent_item, child_name):
     child_items = parent_item.Childs()
@@ -244,16 +244,24 @@ def move_to_target_forFULL(target_name, i, x, y, z):
 # 박스준비 onConveyor
 def conveyor_material_input():
     conveyor.MoveJ(con_pitch)
-    box = load_box()
-    box.setParent(conveyor_TCP)
+    while not find_child_item(conveyor_TCP, "box_"):
+        box = load_box()
+        box.setParent(conveyor_TCP)
+    logger.debug("box_in")
+        
     conveyor.MoveJ(con_home)
     gantry.MoveJ(UP_pickup.Joints())
     gantry.MoveJ(IN_pickup.Joints())
     gripper.MoveJ(close_gripper.Joints())
-    box.setParent(gripper_TCP)
+    while not find_child_item(gripper_TCP, "box_"):
+        box.setParent(gripper_TCP)
+        time.sleep(0.05)
+    
     conveyor.MoveJ(con_pitch)
     gantry.MoveJ(UP_pickup.Joints())
+    logger.debug("box_pickedUp")
     return box
+    
 
 def remove_box_from_conveyor(box):
     gantry.MoveJ(UP_pickup.Joints())
@@ -295,8 +303,7 @@ def move_to_out(x, y, z):
 
 def move_to_in(x, y, z):
     box = None
-    while not box:
-        box = conveyor_material_input()
+    box = conveyor_material_input()
 
     target_name = f"Point_{x:02}-{y:02}-{z:02}"
     target = items[target_name]
