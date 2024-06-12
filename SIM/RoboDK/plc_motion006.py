@@ -427,9 +427,12 @@ if __name__ == '__main__':
 
             if data_x1 == 0 and data_y1 == 0 and data_z1 == 0:
                 box = None
-                while box:
-                    box = move_to_in(data_x2, data_y2, data_z2)
-                    logger.info(f"IN\t{[data_x2, data_y2, data_z2]}")
+                while not box:
+                    try:
+                        box = move_to_in(data_x2, data_y2, data_z2)
+                        logger.info(f"IN\t{[data_x2, data_y2, data_z2]}")
+                    except Exception as e:
+                        logger.exception(f"{e} : {e.with_traceback()}")
             elif data_x2 == 0 and data_y2 == 0 and data_z2 == 0:
                 move_to_out(data_x1, data_y1, data_z1)
                 logger.info(f"OUT\t{[data_x2, data_y2, data_z2]}")
