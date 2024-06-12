@@ -4,6 +4,7 @@ import sys, os, pathlib
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 current_working_directory = os.getcwd()
 
+
 from pyModbusTCP.server import ModbusServer, DataBank
 
 from robodk import robolink
@@ -260,6 +261,13 @@ def conveyor_material_input():
     conveyor.MoveJ(con_pitch)
     gantry.MoveJ(UP_pickup.Joints())
     logger.debug("box_pickedUp")
+
+    parent_item = gripper_TCP
+    child_item = find_child_item(parent_item, "box_")
+    if not child_item:
+        logger.error("IN\tbox_not_created")
+        raise RuntimeError # SIM_ObjectNotExistError
+    
     return box
     
 
@@ -317,6 +325,14 @@ def move_to_in(x, y, z):
     box.setParent(Frame)
 
     gantry.MoveJ(pretarget, blocking=True)
+
+    frame_name = f"TeachingPoints_{x:02}-{y:02}-{z:02}"
+    parent_item = items[frame_name]
+    child_item = find_child_item(parent_item, "box_")
+    if not child_item:
+        logger.error("IN\tbox_not_loaded")
+        raise RuntimeError # SIM_ObjectNotExistError
+
     return box
 
 

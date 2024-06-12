@@ -14,6 +14,10 @@ class DB_ObjectNotExistError(Exception):
     def __init__(self):
         super().__init__('요청한 항목이 DB 목록에 없습니다.')  
 
+class SIM_ObjectNotExistError(Exception):
+    def __init__(self):
+        super().__init__('요청한 항목이 시뮬레이션에 없습니다.')  
+
 
 # error_code_dict = {
 #                 'invalid_input' : ['입력이 유효하지 않습니다. 다시 입력해 주세요.'],
