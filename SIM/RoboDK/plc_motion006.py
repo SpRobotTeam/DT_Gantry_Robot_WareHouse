@@ -483,10 +483,10 @@ if __name__ == '__main__':
 
 
         # DataBank 상태 출력
-        logger.debug(f"Holding Registers from address 0 to 12:   {s.databank.get_holding_registers(0, 13)}")
+        # logger.debug(f"Holding Registers from address 0 to 12:   {s.databank.get_holding_registers(0, 13)}")
 
         # sleep(0.2)
         
 
-        logger.debug("=======================================================")
+        # logger.debug("=======================================================")
 
