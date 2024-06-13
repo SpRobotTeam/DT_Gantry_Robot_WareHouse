@@ -116,8 +116,10 @@ class modbus_inst():
         self.heartbeat_flag = 0
 
         # 주소 0에서 9까지 초기값을 0으로 설정합니다.
-        for address in range(15):
-            self.databank.set_holding_registers(address, [0])
+        # for address in range(15):
+        #     self.databank.set_holding_registers(address, [0])
+        self.databank.set_holding_registers(0, [0]*20)
+
 
     def write_data(self, address, data):
         if type(data) == type([]):

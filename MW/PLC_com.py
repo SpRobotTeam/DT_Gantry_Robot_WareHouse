@@ -198,15 +198,15 @@ class client():
                 if recieved and type(self.modbus_data)==type([]):
                     break
         
-        if self.modbus_data[0] == 1 and self.modbus_data[11] == 0 and self.modbus_data[12] == 1 and self.modbus_data[13] == 1:
+        if self.modbus_data[11] == 0 and self.modbus_data[12] == 1 and self.modbus_data[13] == 1:
             self.mission_enabled = False
             self.mission_running = False
 
-        elif self.modbus_data[0] == 0 and self.modbus_data[11] == 0 and self.modbus_data[12] == 1 and self.modbus_data[13] == 0:
+        elif self.modbus_data[11] == 0 and self.modbus_data[12] == 1 and self.modbus_data[13] == 0:
             self.mission_enabled = True
             self.mission_running = False
             
-        elif self.modbus_data[0] == 1 and self.modbus_data[11] == 1 and self.modbus_data[12] == 0 and self.modbus_data[13] == 0:
+        elif self.modbus_data[11] == 1 and self.modbus_data[12] == 0 and self.modbus_data[13] == 0:
             self.mission_enabled = False
             self.mission_running = True
             

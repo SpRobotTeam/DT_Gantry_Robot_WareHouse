@@ -230,11 +230,14 @@ class zone_manager():
                         #         area_to.grid[loc_to[0]][loc_to[1]].append(lot)
                         #         print(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
                         #         break
-                        if (self.Modbus_inst.modbus_data[1:10] == set_list and
-                            not self.Modbus_inst.mission_running):
+                        try:
+                            if (self.Modbus_inst.modbus_data[:10] == set_list and
+                                not self.Modbus_inst.mission_running):
 
-                            self.new_mission_finished = True
-                            self.Modbus_inst.write(0,set_list=[0]*9)
+                                self.new_mission_finished = True
+                                self.Modbus_inst.write(0,set_list=[0]*9)
+                        except IndexError:
+                            pass
 
                         if (self.Modbus_inst.mission_enabled and 
                             self.new_mission_finished and 
