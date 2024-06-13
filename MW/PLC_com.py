@@ -221,6 +221,7 @@ class client():
         while True:
             self.plc_check()
             time.sleep(self.loop_interval)
+            time.sleep(0.5)
             
 
 
