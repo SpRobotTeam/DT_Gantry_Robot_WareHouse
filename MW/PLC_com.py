@@ -11,19 +11,22 @@ import os, pathlib
 
 import logging
 logger = logging.getLogger('main')
-logger.setLevel(logging.DEBUG)
-pathlib.Path("../logs").mkdir(parents=True, exist_ok=True)
-pathlib.Path("../logs/main.log").touch
-log_file_handler = logging.handlers.RotatingFileHandler(filename="../logs/main.log", 
-                                    mode="a",
-                                    backupCount= 3,
-                                    maxBytes= 1024*1024*512,
-                                    encoding='utf-8'
-                                    )
-log_formater = logging.Formatter("{asctime} {levelname} {filename}>{funcName} {message}", style='{')
-log_file_handler.setFormatter(log_formater)
-logger.addHandler(log_file_handler)
+# logger.setLevel(logging.DEBUG)
+# pathlib.Path("../logs").mkdir(parents=True, exist_ok=True)
+# pathlib.Path("../logs/main.log").touch
+# log_file_handler = logging.handlers.RotatingFileHandler(filename="../logs/main.log", 
+#                                     mode="a",
+#                                     backupCount= 3,
+#                                     maxBytes= 1024*1024*512,
+#                                     encoding='utf-8'
+#                                     )
+# log_formater = logging.Formatter("{asctime} {levelname} {filename}>{funcName} {message}", style='{')
+# log_file_handler.setFormatter(log_formater)
+# logger.addHandler(log_file_handler)
 
+# log_streamer = logging.StreamHandler()
+# log_streamer.setFormatter(log_formater)
+# logger.addHandler(log_streamer)
 
 # sim = True
 sim = False
@@ -113,24 +116,24 @@ class client():
                     recv_data = self.client.read_holding_registers(address+iter*125, last_nb)
                     if recv_data:
                         self.get_list += (list(recv_data))
-                    # print (f"\n\nget_list____________________________\n{self.get_list}\n\n")
+                    # logger.info (f"\n\nget_list____________________________\n{self.get_list}\n\n")
             else:
-                print("port open error")
+                logger.info("port open error")
             
             # time.sleep(0.5)
         except KeyboardInterrupt:
-            print("closing modbus communication...")
+            logger.info("closing modbus communication...")
             # self.client.close()
         except Exception as e:
-            print(f"mbus read error : {e}")
-            print(f"closing modbus communication...")
+            logger.info(f"mbus read error : {e}")
+            logger.info(f"closing modbus communication...")
             # self.client.close()
         finally:
             self.client.close()
             end_time = time.time()
-            # print (f"\n\nnp.array____________________________\n{np.array(self.get_list).reshape(-1, reshape).tolist()}\n\n")
+            # logger.info (f"\n\nnp.array____________________________\n{np.array(self.get_list).reshape(-1, reshape).tolist()}\n\n")
             
-            # print(f"mbus read : {end_time - start_time :.3f}s")
+            # logger.info(f"mbus read : {end_time - start_time :.3f}s")
             
             # logger.logger(mission='mbus read', etc=f"{end_time - start_time :.2f}s")
             if connected:
@@ -172,27 +175,28 @@ class client():
                         # logger.info(f" address : {address}, \t set_list : {set_list}")
     
         except Exception as e:
-            print(f"mbus write error : {e}")
+            logger.error(f"mbus write error : {e.with_traceback()}")
         finally:
             logger.info(f" address : {address}, \t set_list : {set_list}")
             self.client.close
             end_time = time.time()
             
-            # print(f"mbus write : {end_time-start_time:.3f}s")
+            # logger.debug(f"mbus write : {end_time-start_time:.3f}s")
             
-            # logger.logger(mission='mbus write', etc=f"{end_time - start_time :.2f}s")
+            # logger.debug(mission='mbus write', etc=f"{end_time - start_time :.2f}s")
 
     def plc_check(self):
         reshape = 20
         
+        iter = 0
         while True:
-            time.sleep(0.1)
+            time.sleep(0.01)
             try:
                 self.modbus_data = self.read(address=0, nb=reshape, reshape=reshape)[0]
                 recieved = True
             except IndexError or TypeError:
                 recieved = False
-                print("M/B failed")
+                logger.debug("M/B failed")
                 continue
             finally:
                 if recieved and type(self.modbus_data)==type([]):
@@ -256,9 +260,9 @@ class plc_com(client, server):
 
         # i = 0
         # while(True):
-        #     # print(c.read(address=0, nb=100, reshape=10))
+        #     # logger.info(c.read(address=0, nb=100, reshape=10))
         #     # c.write(address=0,set_list=[i])
-        #     print(modbus_inst.read(address=0, nb=100, reshape=10))
+        #     logger.info(modbus_inst.read(address=0, nb=100, reshape=10))
         #     modbus_inst.write(address=0,set_list=[i])
         #     time.sleep(self.loop_interval)
         #     i= i+1 if i<9 else 0
@@ -284,9 +288,9 @@ if __name__ == '__main__':
     
     # i = 0
     # while(True):
-    #     # print(c.read(address=0, nb=100, reshape=10))
+    #     # logger.info(c.read(address=0, nb=100, reshape=10))
     #     # c.write(address=0,set_list=[i])
-    #     print(modbus_inst.read(address=0, nb=100, reshape=10))
+    #     logger.info(modbus_inst.read(address=0, nb=100, reshape=10))
     #     modbus_inst.write(address=0,set_list=[i])
     #     # time.sleep(1)
     #     i= i+1 if i<9 else 0

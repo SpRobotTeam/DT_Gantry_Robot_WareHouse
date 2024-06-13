@@ -30,6 +30,10 @@ log_formater = logging.Formatter("{asctime} {levelname} {filename}>{funcName} {m
 log_file_handler.setFormatter(log_formater)
 logger.addHandler(log_file_handler)
 
+log_streamer = logging.StreamHandler()
+log_streamer.setFormatter(log_formater)
+logger.addHandler(log_streamer)
+
 logger.info("______________________________________________________________________\nProgram start")
 
 web = False
@@ -74,7 +78,7 @@ class main(SPWCS.GantryWCS):
         if name in self.product_templet_dict.keys():
             lot = self.product_templet_dict[name]['lot_head']
         else:
-            print(f"{name}은 등록되지 않은 상품입니다.")
+            logger.info(f"{name}은 등록되지 않은 상품입니다.")
             return 1
         if not num:
             num = len([i for i in self.WH_dict['WH_DT'].Zone_dict['Zone_Gantry'].Area_dict['Area_01'].inventory.keys() if lot in i])
@@ -250,9 +254,9 @@ if __name__ == "__main__":
     try:
         if op_mode[0].lower() in ['s', 'n']:
             if op_mode == 's':
-                print("알고리즘 평가 기준 생성 모드로 WCS를 실행합니다!")
+                logger.info("알고리즘 평가 기준 생성 모드로 WCS를 실행합니다!")
             elif op_mode[0].lower() == 'n':
-                print("알고리즘 테스트 모드(모드버스 무효화)로 WCS를 실행합니다!")
+                logger.info("알고리즘 테스트 모드(모드버스 무효화)로 WCS를 실행합니다!")
                 
             # manual = False
             seed = None
@@ -357,11 +361,11 @@ if __name__ == "__main__":
                     #     WCS.GantryWCS.rearrange_area(self=SPDTw, WH_name=WH_name, Zone_name=Zone_name, Area_name=Area_name, offset=num, HEIGHT=Zone.Area_dict[Area_name].HEIGHT)
                 
                     if command == 'l':
-                        print(SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].grid)
+                        logger.info(SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].grid)
 
 
                     if command == 'c':
-                        print("WCS 종료 중 ... ")
+                        logger.info("WCS 종료 중 ... ")
                         break
                 except:
                     pass
@@ -420,8 +424,8 @@ if __name__ == "__main__":
                         unit_time_past += sum([d*s for d,s in zip(moved_distance, GANTRY_MOVING_SPEED)])
                     except NotEnoughSpaceError: # 공간 부족 시
                         mission_offset += 1 # 다음 미션으로 (현 미션 스킵)
-                        print("입고 명령 무시 : 창고 공간 부족")
-                        logger.error(f"IN 실패 {product_name} NotEnoughSpaceError")
+                        logger.info("입고 명령 무시 : 창고 공간 부족")
+                        logger.warning(f"IN 실패 {product_name} NotEnoughSpaceError")
                         continue
                 elif action == 'OUT':
                     try:
@@ -429,8 +433,8 @@ if __name__ == "__main__":
                         logger.info(f"OUT {lot}")
 
                     except ProductNotExistError:
-                        print("출고 명령 무시 : 해당 품목의 상품 없음")
-                        logger.error(f"OUT 실패 {product_name} ProductNotExistError")
+                        logger.info("출고 명령 무시 : 해당 품목의 상품 없음")
+                        logger.warning(f"OUT 실패 {product_name} ProductNotExistError")
                         
                         continue
                     sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
@@ -440,14 +444,14 @@ if __name__ == "__main__":
                     pass
                 
                 if action == 'WAIT':
-                    print(
+                    logger.info(
                         f"mission_{_+1-mission_offset} fin (mission list # {_})\n"+
                         f"Waiting time : {wait_time}"+
                         f"Total Unit time past : {unit_time_past}\n"+
                         "-----------------------------------------------------------"+"\n"
                         )
                 else:
-                    print(
+                    logger.info(
                         f"\nMission_{_+1-mission_offset} fin! fin (mission list # {_})\n"+
                         f"moved_distance : {moved_distance}\n"+
                         f"Unit time past : {sum([d*s for d,s in zip(moved_distance, GANTRY_MOVING_SPEED)])}\n"+
@@ -461,7 +465,7 @@ if __name__ == "__main__":
                 grid_list=SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].grid
                 )
 
-            print(
+            logger.info(
                 f"test_fin \n"+
                 f"Sum of moved distance : {sum_distance} \n"+
                 f"Total Unit time past  : {unit_time_past}\n" +

@@ -6,7 +6,27 @@ import math
 import numpy as np
 import MW.PLC_com as PLC_com
 import time
-import os
+import os, pathlib
+
+import logging
+logger = logging.getLogger('main')
+# logger.setLevel(logging.DEBUG)
+# pathlib.Path("../logs").mkdir(parents=True, exist_ok=True)
+# pathlib.Path("../logs/main.log").touch
+# log_file_handler = logging.handlers.RotatingFileHandler(filename="../logs/main.log", 
+#                                     mode="a",
+#                                     backupCount= 3,
+#                                     maxBytes= 1024*1024*512,
+#                                     encoding='utf-8'
+#                                     )
+# log_formater = logging.Formatter("{asctime} {levelname} {filename}>{funcName} {message}", style='{')
+# log_file_handler.setFormatter(log_formater)
+# logger.addHandler(log_file_handler)
+
+
+# log_streamer = logging.StreamHandler()
+# log_streamer.setFormatter(log_formater)
+# logger.addHandler(log_streamer)
 
 PORT = 502 if 'nt' in os.name else 2502
 
@@ -169,9 +189,9 @@ class zone_manager():
 
     def waiting_Gantry_get_ready(self):
         while (not self.Modbus_inst.mission_enabled) or (self.Modbus_inst.mission_running):
-            print("waiting for the Gantry is ready...")
+            logger.info("waiting for the Gantry is ready...")
             time.sleep(0.5)
-        print("PLC READY !")
+        logger.info("PLC READY !")
 
 
     
@@ -199,9 +219,11 @@ class zone_manager():
                         if self.Modbus_inst.modbus_data[13]:
                             self.new_mission_finished = True
                             
-                            lot = self.Area_dict['Gantry'].grid[0][0].pop()
+                            lot = area_from.grid[loc_from[0]][loc_from[1]].pop()
+                            # self.Area_dict['Gantry'].grid[0][0].append(lot)
+                            # lot = self.Area_dict['Gantry'].grid[0][0].pop()
                             area_to.grid[loc_to[0]][loc_to[1]].append(lot)
-                            print(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
+                            logger.info(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
                             self.Modbus_inst.write(0,set_list=[0]*9)
                             
                     else:
@@ -228,7 +250,7 @@ class zone_manager():
                         #     if recieved and type(res)==type([]) and res[11:13] == [0,1]:
                         #         lot = self.Area_dict['Gantry'].grid[0][0].pop()
                         #         area_to.grid[loc_to[0]][loc_to[1]].append(lot)
-                        #         print(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
+                        #         logger.info(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
                         #         break
                         try:
                             if (self.Modbus_inst.modbus_data[:10] == set_list and
@@ -245,7 +267,7 @@ class zone_manager():
 
                             lot = self.Area_dict['Gantry'].grid[0][0].pop()
                             area_to.grid[loc_to[0]][loc_to[1]].append(lot)
-                            print(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
+                            logger.info(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
                             break
                     # else:
                     #     pass
@@ -256,7 +278,7 @@ class zone_manager():
 
                 lot = self.Area_dict['Gantry'].grid[0][0].pop()
                 area_to.grid[loc_to[0]][loc_to[1]].append(lot)
-                print(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
+                logger.info(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
                 self.new_mission_finished = True
         
         # 리스트 [XY 평면 이동 거리, Z축 이동 거리] 반환

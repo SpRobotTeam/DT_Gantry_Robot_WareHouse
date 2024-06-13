@@ -137,7 +137,7 @@ class modbus_inst():
 def define_model():
     all_items = RDK.ItemList()
     for item in all_items:
-        print(item.Name())
+        logger.debug(item.Name())
     items = {}
     for item in all_items:
         items[item.Name()] = item
@@ -483,10 +483,10 @@ if __name__ == '__main__':
 
 
         # DataBank 상태 출력
-        print("Holding Registers from address 0 to 12:   ", s.databank.get_holding_registers(0, 13))
+        logger.debug(f"Holding Registers from address 0 to 12:   {s.databank.get_holding_registers(0, 13)}")
 
         # sleep(0.2)
         
 
-        print("=======================================================")
+        logger.debug("=======================================================")
 
