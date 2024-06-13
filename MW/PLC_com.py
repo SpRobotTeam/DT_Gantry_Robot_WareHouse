@@ -186,32 +186,32 @@ class client():
         reshape = 20
         
         while True:
+            time.sleep(0.1)
             try:
-                status = self.read(address=0, nb=reshape, reshape=reshape)[0]
+                self.modbus_data = self.read(address=0, nb=reshape, reshape=reshape)[0]
                 recieved = True
             except IndexError or TypeError:
                 recieved = False
                 print("M/B failed")
                 continue
             finally:
-                if recieved and type(status)==type([]):
+                if recieved and type(self.modbus_data)==type([]):
                     break
         
-        if status[0] == 1 and status[11] == 0 and status[12] == 1 and status[13] == 1:
-            self.write(0,set_list=[0]*9)
+        if self.modbus_data[0] == 1 and self.modbus_data[11] == 0 and self.modbus_data[12] == 1 and self.modbus_data[13] == 1:
             self.mission_enabled = False
             self.mission_running = False
 
-        elif status[0] == 0 and status[11] == 0 and status[12] == 1 and status[13] == 0:
+        elif self.modbus_data[0] == 0 and self.modbus_data[11] == 0 and self.modbus_data[12] == 1 and self.modbus_data[13] == 0:
             self.mission_enabled = True
             self.mission_running = False
             
-        elif status[0] == 1 and status[11] == 1 and status[12] == 0 and status[13] == 0:
+        elif self.modbus_data[0] == 1 and self.modbus_data[11] == 1 and self.modbus_data[12] == 0 and self.modbus_data[13] == 0:
             self.mission_enabled = False
             self.mission_running = True
             
         
-        self.modbus_HR = status
+        self.modbus_HR = self.modbus_data
 
     def loop(self):
         while True:
