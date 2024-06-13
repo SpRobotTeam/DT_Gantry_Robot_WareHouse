@@ -258,6 +258,7 @@ class zone_manager():
 
                                 self.new_mission_finished = True
                                 self.Modbus_inst.write(0,set_list=[0]*9)
+                                time.sleep(0.5)
                         except IndexError:
                             pass
 

@@ -135,7 +135,7 @@ class client():
             
             # logger.info(f"mbus read : {end_time - start_time :.3f}s")
             
-            # logger.logger(mission='mbus read', etc=f"{end_time - start_time :.2f}s")
+            # logger.info(mission='mbus read', etc=f"{end_time - start_time :.2f}s")
             if connected:
                 return np.array(self.get_list).reshape(-1, reshape).tolist()
             else:
@@ -177,7 +177,7 @@ class client():
         except Exception as e:
             logger.error(f"mbus write error : {e.with_traceback()}")
         finally:
-            logger.info(f" address : {address}, \t set_list : {set_list}")
+            logger.debug(f" address : {address}, \t set_list : {set_list}")
             self.client.close
             end_time = time.time()
             
