@@ -73,14 +73,14 @@
     cd ./Gantry_robot_warehouse
     ```
 4. 의존 패키지 설치 (Python 버전 3.6 이상 필요)
- 1. repository 디렉토리에서 아래 명령 실행
-    ```
-    pip install -r pip_requirements.txt
-    ```
- 2. (오류 발생 시) QT5 웹 소켓 
-    ```
-    apt-get install libqt5websockets5-dev
-    ```
+    - repository 디렉토리에서 아래 명령 실행
+        ```
+        pip install -r pip_requirements.txt
+        ```
+    - (오류 발생 시) QT5 웹 소켓 
+        ```
+        apt-get install libqt5websockets5-dev
+        ```
 5. RoboDK 시뮬레이션 실행
     ```
     python SIM\RoboDK\plc_motion006.py
