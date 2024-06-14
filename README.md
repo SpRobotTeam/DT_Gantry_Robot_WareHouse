@@ -6,7 +6,7 @@
  - 창고형 갠트리 운영을 위한 디지털 트윈 시스템 구축
 
 ### 개념 정리 - 노션
-[공유 페이지](https://cloudy-rule-316.notion.site/68288352350048ff82300f51217bb229?pvs=4 "프로젝트 노션 페이지")
+[공유 페이지](https://expensive-chatter-5f2.notion.site/e5fbadc76a014c44bd19caba0a98b826?pvs=4 "프로젝트 노션 페이지")
 <!-- 
 [팀 노션 페이지](https://www.notion.so/DTw-395d57d4720445a4bf8d06fbc176af5e?pvs=4) -->
 
