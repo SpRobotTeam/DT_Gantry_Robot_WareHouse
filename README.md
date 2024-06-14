@@ -18,34 +18,34 @@
 <details>
   <summary><b>디렉토리 구조</b></summary>
 ```html
-    📦Gantry_robot_warehouse    
-    ┣ 📂main.py                     # 전채 시스템 실행
-    ┣ 📂WCS                         # 공간 구성, 편집 및 제어
-    ┃   ┣ 📜SPWCS.py                # WCS 시스템
-    ┃   ┣ 📜Info_mng.py             # 상품, 품목 등 정보 제어
-    ┃   ┣ 📜WH_mng.py               # 창고 공간 제어
-    ┃   ┣ 📜Zone_mng.py             # 중규모 공간 제어
-    ┃   ┗ 📜Area_mng.py             # 소규모 공간 제어
-    ┣ 📂MW
-    ┃   ┣ 📜Company_mng.py          # 회사, 거래처 등 정보 구성, 편집
-    ┃   ┣ 📜modbus_sim.py           # 모드버스 통신 (테스트용)
-    ┃   ┣ 📜PLC_com.py              # 모드버스 통신
-    ┃   ┗ 📜Product_mng.py          # 제품 품목 구성, 편집    
-    ┣ 📂API                         
-    ┃   ┣ 📜DB_mng.py               # DB 제어(적용 안됨)
-    ┃   ┗ 📜odoo_api_wrapper.py     # WMS 연동 (적용 안됨)
-    ┣ 📂SIM                         
-    ┃   ┣ 📂EVAL                    # 알고리즘 평가
-    ┃   ┃   ┣ 📜eval_list           # 평가 데이터
-    ┃   ┃   ┗ 📜mission_list        # 미션 리스트
-    ┃   ┣ 📂RoboDK                  # 시뮬레이션
-    ┃   ┃   ┣ 📜plc_motion006.py    # 시뮬레이션 실행
-    ┃   ┃   ┣ 📜wcs_plc_{DATE}.rdk  # 시뮬레이션 환경 파일
-    ┃   ┃   ┗ 📜e.t.c ...           # 기타
-    ┣ 📂ERROR                       # 에러 처리
-    ┣ 📂logs                        # 로그
-    ┣ 📂WEB                         # 웹 기반 구동
-    ┗ 📜pip_requirements.txt        # 의존성 페키지 목록
+📦Gantry_robot_warehouse    
+┣ 📂main.py                     # 전채 시스템 실행
+┣ 📂WCS                         # 공간 구성, 편집 및 제어
+┃   ┣ 📜SPWCS.py                # WCS 시스템
+┃   ┣ 📜Info_mng.py             # 상품, 품목 등 정보 제어
+┃   ┣ 📜WH_mng.py               # 창고 공간 제어
+┃   ┣ 📜Zone_mng.py             # 중규모 공간 제어
+┃   ┗ 📜Area_mng.py             # 소규모 공간 제어
+┣ 📂MW
+┃   ┣ 📜Company_mng.py          # 회사, 거래처 등 정보 구성, 편집
+┃   ┣ 📜modbus_sim.py           # 모드버스 통신 (테스트용)
+┃   ┣ 📜PLC_com.py              # 모드버스 통신
+┃   ┗ 📜Product_mng.py          # 제품 품목 구성, 편집    
+┣ 📂API                         
+┃   ┣ 📜DB_mng.py               # DB 제어(적용 안됨)
+┃   ┗ 📜odoo_api_wrapper.py     # WMS 연동 (적용 안됨)
+┣ 📂SIM                         
+┃   ┣ 📂EVAL                    # 알고리즘 평가
+┃   ┃   ┣ 📜eval_list           # 평가 데이터
+┃   ┃   ┗ 📜mission_list        # 미션 리스트
+┃   ┣ 📂RoboDK                  # 시뮬레이션
+┃   ┃   ┣ 📜plc_motion006.py    # 시뮬레이션 실행
+┃   ┃   ┣ 📜wcs_plc_{DATE}.rdk  # 시뮬레이션 환경 파일
+┃   ┃   ┗ 📜e.t.c ...           # 기타
+┣ 📂ERROR                       # 에러 처리
+┣ 📂logs                        # 로그
+┣ 📂WEB                         # 웹 기반 구동
+┗ 📜pip_requirements.txt        # 의존성 페키지 목록
 ```
 </details>
 
