@@ -14,8 +14,10 @@
 ### 구성
 시스템 플로우차트
 ![플로우 차트](https://github.com/SpRobotTeam/DT_Gantry_Robot_WareHouse/blob/basic_only/doc/%EA%B0%A0%ED%8A%B8%EB%A6%AC%20%EA%B8%B0%EB%B0%98%20DTw%20%EC%8B%9C%EC%8A%A4%ED%85%9C%20%EC%9E%91%EC%97%85%20%ED%9D%90%EB%A6%84%EB%8F%84.drawio.png)
+
 <details>
   <summary><b>디렉토리 구조</b></summary>
+```html
     📦Gantry_robot_warehouse    
     ┣ 📂main.py                     # 전채 시스템 실행
     ┣ 📂WCS                         # 공간 구성, 편집 및 제어
@@ -44,6 +46,8 @@
     ┣ 📂logs                        # 로그
     ┣ 📂WEB                         # 웹 기반 구동
     ┗ 📜pip_requirements.txt        # 의존성 페키지 목록
+```
+</details>
 
 ## 시뮬레이션 설정/구성 요소
 
