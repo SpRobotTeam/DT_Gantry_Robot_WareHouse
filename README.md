@@ -17,6 +17,7 @@
 
 <details>
   <summary><b>디렉토리 구조</b></summary>
+
 ```html
 📦Gantry_robot_warehouse    
 ┣ 📂main.py                     # 전채 시스템 실행
