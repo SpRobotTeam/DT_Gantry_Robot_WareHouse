@@ -17,7 +17,7 @@ MODE = "FF"
 class Base_info (product_manager, container_manager, wh_manager):
     def __init__(self, op_mode = None):
         self.op_mode = op_mode
-        if op_mode in ['no_sim']:   
+        if op_mode[0] in ['n']:   
             self.sim_skip = True
         else:
             self.sim_skip = False
@@ -86,8 +86,13 @@ class Base_info (product_manager, container_manager, wh_manager):
             reserved_time=None,
             manual_loc=[],
             testing_mode = None,
-            ):
-        
+            lot = None
+            )->list:
+        '''
+        입고 명령
+
+        출력 : [`moved_distance`,`lot`]
+        '''
         sum_distance = [0,0]
 
         if not DOM:
@@ -141,8 +146,8 @@ class Base_info (product_manager, container_manager, wh_manager):
         # elif area_total_product_amount >= destination_area.INVENTORY_LIMIT: # 다른 전략 필요
         #     print("적재 한계에 도달 하였습니다. \n정렬 작업을 진행할 수 없습니다.")
         #     raise NotEnoughSpaceError
-        
-        lot = f"{self.product_templet_dict[product_name]['lot_head']}-{DOM}-{registered_product_amount+1:04d}"
+        if not lot or (lot in list(self.product_I_dict.keys())):
+            lot = f"{self.product_templet_dict[product_name]['lot_head']}-{DOM}-{registered_product_amount+1:04d}"
         
 
         In_area.grid[0][0].append(lot) # 박스 추가 : 변경 여부 검토 필요
@@ -199,13 +204,14 @@ class Base_info (product_manager, container_manager, wh_manager):
         self.register_item(
                          I_id=registered_product_amount,
                          product_name=product_name, 
+                         lot=lot,
                          DOM = DOM,
                          manufactor=manufactor,
                          WH_name   = WH_name,
                          Zone_name = Zone_name,
                          Area_name = Area_name,
-                        #  bin_location= f"{WH_name}_{Zone_name}_{Area_name}_{loc[0]:03d}{loc[1]:03d}{loc[2]:03d}",
-                        bin_location=loc
+                         # bin_location= f"{WH_name}_{Zone_name}_{Area_name}_{loc[0]:03d}{loc[1]:03d}{loc[2]:03d}",
+                         bin_location=loc                         
                          )
         
         self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name].inventory[lot] = {
@@ -230,11 +236,11 @@ class Base_info (product_manager, container_manager, wh_manager):
               + f"{' 정렬 완료됨'if priority == 1 else ''}" if MODE == "AO" else ''  #AO
               )
         
-        if testing_mode:
-            return sum_distance
-        else:
-            return None    
-
+        # if testing_mode:
+        #     return sum_distance
+        # else:
+        #     return None    
+        return [sum_distance, lot]
 
     def Outbound(self, 
                  lot:str=None, 
@@ -242,8 +248,12 @@ class Base_info (product_manager, container_manager, wh_manager):
                 #  loc:list=None, 
                  reserved_time=None, 
                  testing_mode = None,
-                 ):  #lot_head/name
-        
+                 )->list:  #lot_head/name
+        '''
+        출고 명령
+
+        출력 : [`moved_distance`,`lot`]
+        '''
         # loc = self.find_loc(name)
         if not lot:
             if product_name:
@@ -359,11 +369,11 @@ class Base_info (product_manager, container_manager, wh_manager):
 
         print(f"{lot} 출고 완료",
               f"")
-        if testing_mode == 1:
-            return sum_distance 
-        else:
-            return None 
-
+        # if testing_mode == 1:
+        #     return sum_distance 
+        # else:
+        #     return None 
+        return [sum_distance, lot]
 
 
     def sort_item(self, WH_name, Zone_name, Area_name, lot, loc, height = None, offset = 1):

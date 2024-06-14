@@ -6,7 +6,27 @@ import math
 import numpy as np
 import MW.PLC_com as PLC_com
 import time
-import os
+import os, pathlib
+
+import logging
+logger = logging.getLogger('main')
+# logger.setLevel(logging.DEBUG)
+# pathlib.Path("../logs").mkdir(parents=True, exist_ok=True)
+# pathlib.Path("../logs/main.log").touch
+# log_file_handler = logging.handlers.RotatingFileHandler(filename="../logs/main.log", 
+#                                     mode="a",
+#                                     backupCount= 3,
+#                                     maxBytes= 1024*1024*512,
+#                                     encoding='utf-8'
+#                                     )
+# log_formater = logging.Formatter("{asctime} {levelname} {filename}>{funcName} {message}", style='{')
+# log_file_handler.setFormatter(log_formater)
+# logger.addHandler(log_file_handler)
+
+
+# log_streamer = logging.StreamHandler()
+# log_streamer.setFormatter(log_formater)
+# logger.addHandler(log_streamer)
 
 PORT = 502 if 'nt' in os.name else 2502
 
@@ -169,9 +189,9 @@ class zone_manager():
 
     def waiting_Gantry_get_ready(self):
         while (not self.Modbus_inst.mission_enabled) or (self.Modbus_inst.mission_running):
-            print("waiting for the Gantry is ready...")
+            logger.info("waiting for the Gantry is ready...")
             time.sleep(0.5)
-        print("PLC READY !")
+        logger.info("PLC READY !")
 
 
     
@@ -181,55 +201,94 @@ class zone_manager():
 
         HEIGHT = max(area_from.HEIGHT, area_to.HEIGHT)
 
-        if not MODBUS_SIM_SKIP :
-            self.waiting_Gantry_get_ready()
+        self.new_mission_finished = False
+        while not self.new_mission_finished:
+            if not MODBUS_SIM_SKIP :
+                self.waiting_Gantry_get_ready()
 
-            set_list = [1] + global_loc_from + [1] + global_loc_to + [2] + [0]
-            self.Modbus_inst.mission_enabled = False
-            self.Modbus_inst.mission_running = False
-            
-            self.Modbus_inst.write(address=0, set_list=set_list)
+                set_list = [1] + global_loc_from + [1] + global_loc_to + [2] + [0]
+                self.Modbus_inst.mission_enabled = False
+                self.Modbus_inst.mission_running = False
 
-            lot = area_from.grid[loc_from[0]][loc_from[1]].pop()
-            self.Area_dict['Gantry'].grid[0][0].append(lot) # 변경 여부 검토 필요
-            
-            
+                while not self.Modbus_inst.mission_enabled: # 갠트리 작동 완료 까지 대기
+                    # self.Modbus_inst.plc_check()
+                    continue
+
+                while not (self.Modbus_inst.mission_running or self.new_mission_finished): # 갠트리 명령 대기 중
+                    if self.Modbus_inst.modbus_data[:10] == set_list:
+                        if self.Modbus_inst.modbus_data[13]:
+                            self.new_mission_finished = True
+                            
+                            lot = area_from.grid[loc_from[0]][loc_from[1]].pop()
+                            # self.Area_dict['Gantry'].grid[0][0].append(lot)
+                            # lot = self.Area_dict['Gantry'].grid[0][0].pop()
+                            area_to.grid[loc_to[0]][loc_to[1]].append(lot)
+                            logger.info(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
+                            self.Modbus_inst.write(0,set_list=[0]*9)
+                            
+                    else:
+                        self.Modbus_inst.write(address=0, set_list=set_list)
+                    time.sleep(0.5)
+                    # self.Modbus_inst.plc_check()
+
+                if not self.new_mission_finished:
+                    lot = area_from.grid[loc_from[0]][loc_from[1]].pop()
+                    self.Area_dict['Gantry'].grid[0][0].append(lot) # 변경 여부 검토 필요
                 
-            while True:
-                # try:
-                #     res = self.Modbus_inst.read(address=0, nb = 20, reshape= 20) # [0]
+                
                     
-                #     recieved = True
-                # except IndexError or TypeError:
-                #     recieved = False
-                #     continue
+                    while True:
+                        # try:
+                        #     res = self.Modbus_inst.read(address=0, nb = 20, reshape= 20) # [0]
+                            
+                        #     recieved = True
+                        # except IndexError or TypeError:
+                        #     recieved = False
+                        #     continue
 
-                # finally:
-                #     if recieved and type(res)==type([]) and res[11:13] == [0,1]:
-                #         lot = self.Area_dict['Gantry'].grid[0][0].pop()
-                #         area_to.grid[loc_to[0]][loc_to[1]].append(lot)
-                #         print(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
-                #         break
-                
-                if not self.Modbus_inst.mission_running and self.Modbus_inst.mission_enabled:
-                    lot = self.Area_dict['Gantry'].grid[0][0].pop()
-                    area_to.grid[loc_to[0]][loc_to[1]].append(lot)
-                    print(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
-                    break
+                        # finally:
+                        #     if recieved and type(res)==type([]) and res[11:13] == [0,1]:
+                        #         lot = self.Area_dict['Gantry'].grid[0][0].pop()
+                        #         area_to.grid[loc_to[0]][loc_to[1]].append(lot)
+                        #         logger.info(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
+                        #         break
+                        try:
+                            if (self.Modbus_inst.modbus_data[:10] == set_list and
+                                not self.Modbus_inst.mission_running):
 
-        elif MODBUS_SIM_SKIP:
-            lot = area_from.grid[loc_from[0]][loc_from[1]].pop()
-            self.Area_dict['Gantry'].grid[0][0].append(lot) # 변경 여부 검토 필요
+                                self.new_mission_finished = True
+                                self.Modbus_inst.write(0,set_list=[0]*9)
+                                time.sleep(0.5)
+                        except IndexError:
+                            pass
 
-            lot = self.Area_dict['Gantry'].grid[0][0].pop()
-            area_to.grid[loc_to[0]][loc_to[1]].append(lot)
-            print(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
+                        if (self.Modbus_inst.mission_enabled and 
+                            self.new_mission_finished and 
+                            not self.Modbus_inst.mission_running):
+
+                            lot = self.Area_dict['Gantry'].grid[0][0].pop()
+                            area_to.grid[loc_to[0]][loc_to[1]].append(lot)
+                            logger.info(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
+                            break
+                    # else:
+                    #     pass
+
+            elif MODBUS_SIM_SKIP:
+                lot = area_from.grid[loc_from[0]][loc_from[1]].pop()
+                self.Area_dict['Gantry'].grid[0][0].append(lot) # 변경 여부 검토 필요
+
+                lot = self.Area_dict['Gantry'].grid[0][0].pop()
+                area_to.grid[loc_to[0]][loc_to[1]].append(lot)
+                logger.info(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
+                self.new_mission_finished = True
         
         # 리스트 [XY 평면 이동 거리, Z축 이동 거리] 반환
         
         dist = [loc_to-loc_from for loc_from,loc_to in zip(global_loc_from,global_loc_to)]
-        return [math.sqrt(pow(dist[0],2)+pow(dist[1],2)),
-                abs(HEIGHT-global_loc_from[-1])+abs(HEIGHT-global_loc_to[-1])]
+        return_val =  [math.sqrt(pow(dist[0],2)+pow(dist[1],2)),
+                        abs(HEIGHT-global_loc_from[-1])+abs(HEIGHT-global_loc_to[-1])]
+        
+        return return_val # if not self.write(0,set_list=[0]*9) else [0,0]
 
     # def pick_item(self, lot, Area_name, ):
     #     set_list = [1] + loc + [1] + Out.ORIGIN_POINT + [2]

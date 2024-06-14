@@ -1,18 +1,40 @@
 # import sys, os
 # sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
+import logging.handlers
 from WCS import SPWCS
 import random as rand
 import time
 # from MW import PLC_com
 # import pprint
-import os, sys
+import os, sys, pathlib
 import subprocess, asyncio # concurrent.futures
 import csv
 
 from ERROR.error import NotEnoughSpaceError, SimError, ProductNotExistError
 
 from SIM.EVAL.evaluator import Evaluator
+
+import logging
+logger = logging.getLogger('main')
+logger.setLevel(logging.DEBUG)
+pathlib.Path("./logs").mkdir(parents=True, exist_ok=True)
+pathlib.Path("./logs/main.log").touch
+log_file_handler = logging.handlers.RotatingFileHandler(filename="./logs/main.log", 
+                                    mode="a",
+                                    backupCount= 3,
+                                    maxBytes= 1024*125,
+                                    encoding='utf-8'
+                                    )
+log_formater = logging.Formatter("{asctime} {levelname} {filename}>{funcName} {message}", style='{')
+log_file_handler.setFormatter(log_formater)
+logger.addHandler(log_file_handler)
+
+log_streamer = logging.StreamHandler()
+log_streamer.setFormatter(log_formater)
+logger.addHandler(log_streamer)
+
+logger.info("______________________________________________________________________\nProgram start")
 
 web = False
 manual = False
@@ -56,7 +78,7 @@ class main(SPWCS.GantryWCS):
         if name in self.product_templet_dict.keys():
             lot = self.product_templet_dict[name]['lot_head']
         else:
-            print(f"{name}은 등록되지 않은 상품입니다.")
+            logger.info(f"{name}은 등록되지 않은 상품입니다.")
             return 1
         if not num:
             num = len([i for i in self.WH_dict['WH_DT'].Zone_dict['Zone_Gantry'].Area_dict['Area_01'].inventory.keys() if lot in i])
@@ -220,8 +242,10 @@ if __name__ == "__main__":
         op_mode = int(op_input)
     elif op_input:
         op_mode = op_input.lower()
-        if op_mode == 'n':
-            op_mode = 'no_sim'
+        if op_mode in ['n','ㅜ']:
+            op_mode = 'n'
+        elif op_mode in ['s', 'ㄴ']:
+            op_mode = 's'
     else:
         op_mode = None
         manual = True
@@ -230,9 +254,9 @@ if __name__ == "__main__":
     try:
         if op_mode[0].lower() in ['s', 'n']:
             if op_mode == 's':
-                print("알고리즘 평가 기준 생성 모드로 WCS를 실행합니다!")
-            elif op_mode == 'n':
-                print("알고리즘 테스트 모드(모드버스 무효화)로 WCS를 실행합니다!")
+                logger.info("알고리즘 평가 기준 생성 모드로 WCS를 실행합니다!")
+            elif op_mode[0].lower() == 'n':
+                logger.info("알고리즘 테스트 모드(모드버스 무효화)로 WCS를 실행합니다!")
                 
             # manual = False
             seed = None
@@ -337,19 +361,17 @@ if __name__ == "__main__":
                     #     WCS.GantryWCS.rearrange_area(self=SPDTw, WH_name=WH_name, Zone_name=Zone_name, Area_name=Area_name, offset=num, HEIGHT=Zone.Area_dict[Area_name].HEIGHT)
                 
                     if command == 'l':
-                        print(SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].grid)
+                        logger.info(SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].grid)
 
 
                     if command == 'c':
-                        print("WCS 종료 중 ... ")
+                        logger.info("WCS 종료 중 ... ")
                         break
                 except:
                     pass
 
 
-            
-                
-            
+        
         else:
             # SPDTw.__init__()
             SPDTw.default_setting(container_name='default')
@@ -396,18 +418,24 @@ if __name__ == "__main__":
                 
                 if action == 'IN':
                     try:
-                        moved_distance = SPDTw.Inbound(product_name=product_name, DOM=dom, testing_mode = True)
+                        moved_distance, lot = SPDTw.Inbound(product_name=product_name, DOM=dom, testing_mode = True)
+                        logger.info(f"IN {lot}")
                         sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
                         unit_time_past += sum([d*s for d,s in zip(moved_distance, GANTRY_MOVING_SPEED)])
                     except NotEnoughSpaceError: # 공간 부족 시
                         mission_offset += 1 # 다음 미션으로 (현 미션 스킵)
-                        print("입고 명령 무시 : 창고 공간 부족")
+                        logger.info("입고 명령 무시 : 창고 공간 부족")
+                        logger.warning(f"IN 실패 {product_name} NotEnoughSpaceError")
                         continue
                 elif action == 'OUT':
                     try:
-                        moved_distance = SPDTw.Outbound(product_name=product_name, testing_mode = 1)
+                        moved_distance, lot = SPDTw.Outbound(product_name=product_name, testing_mode = 1)
+                        logger.info(f"OUT {lot}")
+
                     except ProductNotExistError:
-                        print("출고 명령 무시 : 해당 품목의 상품 없음")
+                        logger.info("출고 명령 무시 : 해당 품목의 상품 없음")
+                        logger.warning(f"OUT 실패 {product_name} ProductNotExistError")
+                        
                         continue
                     sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
                     unit_time_past += sum([d*s for d,s in zip(moved_distance, GANTRY_MOVING_SPEED)])
@@ -416,14 +444,14 @@ if __name__ == "__main__":
                     pass
                 
                 if action == 'WAIT':
-                    print(
+                    logger.info(
                         f"mission_{_+1-mission_offset} fin (mission list # {_})\n"+
                         f"Waiting time : {wait_time}"+
                         f"Total Unit time past : {unit_time_past}\n"+
                         "-----------------------------------------------------------"+"\n"
                         )
                 else:
-                    print(
+                    logger.info(
                         f"\nMission_{_+1-mission_offset} fin! fin (mission list # {_})\n"+
                         f"moved_distance : {moved_distance}\n"+
                         f"Unit time past : {sum([d*s for d,s in zip(moved_distance, GANTRY_MOVING_SPEED)])}\n"+
@@ -431,13 +459,13 @@ if __name__ == "__main__":
                         "-----------------------------------------------------------"+"\n"
                         )
                     
-            eval_score = Evaluator(mode=op_mode, SEED=seed)
+            eval_score = Evaluator(mode=op_mode, SEED=seed, mission_length = LEAST_MISSION_LENGTH)
             final_score, time_score, position_score, average_height = eval_score.evaluate(
                 time_past=unit_time_past, 
                 grid_list=SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].grid
                 )
 
-            print(
+            logger.info(
                 f"test_fin \n"+
                 f"Sum of moved distance : {sum_distance} \n"+
                 f"Total Unit time past  : {unit_time_past}\n" +
