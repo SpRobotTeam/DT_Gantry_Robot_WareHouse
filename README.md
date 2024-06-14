@@ -52,7 +52,7 @@
 ## 시뮬레이션 설정/구성 요소
 
 ### 창고 크기
-20x20x5 -> 7x6x5
+- 7x6x5 : 현 파일 설정, 20x20x5로 변경 필요
 
 <!-- #### -->
 <!-- #### 박스 규격 통일 
@@ -64,29 +64,29 @@
 
 ## 설치 및 실행 (WMS 연동 없음)
 1. OS 버전에 맞는 RoboDK 설치 -> [다운로드 페이지 (개인정보 입력 필요)](https://robodk.com/ko/download)
-    설치위치와 기능은 기본 설정을 그대로 사용함 
+    - 설치위치와 기능은 기본 설정을 그대로 사용함 
 1. git 레포지토리 복사
 1. repository 디렉토리로 이동
-``` 
-cd ./Gantry_robot_warehouse
-```
+    ``` 
+    cd ./Gantry_robot_warehouse
+    ```
 1. 의존 패키지 설치 (Python 버전 3.6 이상 필요)
  - repository 디렉토리에서 아래 명령 실행
-```
-pip install -r pip_requirements.txt
-```
-1. (오류 발생 시) QT5 웹 소켓 
-```
-apt-get install libqt5websockets5-dev
-```
+    ```
+    pip install -r pip_requirements.txt
+    ```
+ - (오류 발생 시) QT5 웹 소켓 
+    ```
+    apt-get install libqt5websockets5-dev
+    ```
 1. RoboDK 시뮬레이션 실행
-```
-python SIM\RoboDK\plc_motion006.py
-```
+    ```
+    python SIM\RoboDK\plc_motion006.py
+    ```
 1. WCS 실행 (다른 터미널에서)
-```
-python main.py
-```
+    ```
+    python main.py
+    ```
 
 
 ## 구현 단계
