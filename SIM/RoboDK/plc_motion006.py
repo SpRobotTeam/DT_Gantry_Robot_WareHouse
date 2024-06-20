@@ -37,13 +37,17 @@ if not 'nt' in os.name:
     subprocess.Popen(["sh", home_path+"/RoboDK/RoboDK-Start.sh"])
     time.sleep(10)
 
+parent_path = os.path.dirname(__file__)+("\\" if 'nt' in os.name else "/") 
+if os.getcwd() not in parent_path:
+    parent_path = os.getcwd() + ("\\" if 'nt' in os.name else "/") + parent_path
+
 RDK = robolink.Robolink()
 if 'nt' in os.name:
     # RDK.AddFile(os.path.dirname(__file__)+"\\"+"wcs_plc_20240203_183935.rdk")
-    RDK.AddFile(os.path.dirname(__file__)+"\\"+"wcs_plc_20240508_133800.rdk")
+    RDK.AddFile(parent_path+"wcs_plc_20240508_133800.rdk")
     # RDK.AddFile(os.path.dirname(__file__)+"\\"+"wcs_plc_20240513_133800.rdk")
 else:
-    RDK.AddFile(os.path.dirname(__file__)+"/"+"wcs_plc_20240508_133800.rdk")
+    RDK.AddFile(parent_path+"wcs_plc_20240508_133800.rdk")
 # station_item = RDK.AddFile("wcs_plc_20240508_133800.rdk")
 # station = RDK.Item(station_item.Name())
 # station.setName("station")
@@ -98,7 +102,7 @@ def camera_stream():
 
 def load_box():
     global box_counter
-    parent_path = os.path.dirname(__file__)+("\\" if 'nt' in os.name else "/") 
+    
     box_path = f"{parent_path}box.sld"
     box_item = RDK.AddFile(box_path)
     box = RDK.Item(box_item.Name())
