@@ -382,7 +382,7 @@ def move_to_position(x1, y1, z1, x2, y2, z2):
 # create_frames_and_targets(points, gantry, RDK, pallet, x, y, z)
 
 pallet = RDK.Item("pallet")
-create_frames_and_targets(make_points(20,20,5), gantry, RDK, pallet, 20, 20, 5)
+# create_frames_and_targets(make_points(20,20,5), gantry, RDK, pallet, 20, 20, 5)
 
 
 
