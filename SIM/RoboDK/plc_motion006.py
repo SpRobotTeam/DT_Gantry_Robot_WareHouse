@@ -38,16 +38,16 @@ if not 'nt' in os.name:
     time.sleep(10)
 
 parent_path = os.path.dirname(__file__)+("\\" if 'nt' in os.name else "/") 
-if os.getcwd() not in parent_path:
+if os.getcwd()[0].lower()+os.getcwd()[1:] not in parent_path[0].lower()+parent_path[1:]:
     parent_path = os.getcwd() + ("\\" if 'nt' in os.name else "/") + parent_path
 
 RDK = robolink.Robolink()
 if 'nt' in os.name:
     # RDK.AddFile(os.path.dirname(__file__)+"\\"+"wcs_plc_20240203_183935.rdk")
-    RDK.AddFile(parent_path+"wcs_plc_20240508_133800.rdk")
+    RDK.AddFile(parent_path+"wcs_plc_20240624_150000.rdk")
     # RDK.AddFile(os.path.dirname(__file__)+"\\"+"wcs_plc_20240513_133800.rdk")
 else:
-    RDK.AddFile(parent_path+"wcs_plc_20240508_133800.rdk")
+    RDK.AddFile(parent_path+"wcs_plc_20240624_150000.rdk")
 # station_item = RDK.AddFile("wcs_plc_20240508_133800.rdk")
 # station = RDK.Item(station_item.Name())
 # station.setName("station")
@@ -199,10 +199,10 @@ def home_motions(gantry, gripper, conveyor, gantry_home, open_gripper, con_pitch
 
 # 각 축에 대해 사용자 정의 개의 포인트 생성
 def make_points(x, y, z):
-    base_point = [4200, 550, 1050]
+    base_point = [3200, 750, 1330] #[4200, 550, 1050]
     points = []
-    x_pitch = 500 # 500
-    y_pitch = 500 # 300
+    x_pitch = 700 # 500
+    y_pitch = 700 # 300
     z_pitch = -135
 
     for k in range(z):
@@ -381,7 +381,8 @@ def move_to_position(x1, y1, z1, x2, y2, z2):
 # points = make_points(x, y, z)
 # create_frames_and_targets(points, gantry, RDK, pallet, x, y, z)
 
-# create_frames_and_targets(make_points(20,6,5), gantry, RDK, pallet, 20, 6, 5)
+pallet = RDK.Item("pallet")
+create_frames_and_targets(make_points(20,20,5), gantry, RDK, pallet, 20, 20, 5)
 
 
 
