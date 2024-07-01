@@ -7,6 +7,26 @@ import numpy as np
 from threading import Thread, Event
 import time
 from MW import modbus_sim
+import os, pathlib
+
+import logging
+logger = logging.getLogger('main')
+# logger.setLevel(logging.DEBUG)
+# pathlib.Path("../logs").mkdir(parents=True, exist_ok=True)
+# pathlib.Path("../logs/main.log").touch
+# log_file_handler = logging.handlers.RotatingFileHandler(filename="../logs/main.log", 
+#                                     mode="a",
+#                                     backupCount= 3,
+#                                     maxBytes= 1024*1024*512,
+#                                     encoding='utf-8'
+#                                     )
+# log_formater = logging.Formatter("{asctime} {levelname} {filename}>{funcName} {message}", style='{')
+# log_file_handler.setFormatter(log_formater)
+# logger.addHandler(log_file_handler)
+
+# log_streamer = logging.StreamHandler()
+# log_streamer.setFormatter(log_formater)
+# logger.addHandler(log_streamer)
 
 # sim = True
 sim = False
@@ -96,26 +116,26 @@ class client():
                     recv_data = self.client.read_holding_registers(address+iter*125, last_nb)
                     if recv_data:
                         self.get_list += (list(recv_data))
-                    # print (f"\n\nget_list____________________________\n{self.get_list}\n\n")
+                    # logger.info (f"\n\nget_list____________________________\n{self.get_list}\n\n")
             else:
-                print("port open error")
+                logger.info("port open error")
             
             # time.sleep(0.5)
         except KeyboardInterrupt:
-            print("closing modbus communication...")
+            logger.info("closing modbus communication...")
             # self.client.close()
         except Exception as e:
-            print(f"mbus read error : {e}")
-            print(f"closing modbus communication...")
+            logger.info(f"mbus read error : {e}")
+            logger.info(f"closing modbus communication...")
             # self.client.close()
         finally:
             self.client.close()
             end_time = time.time()
-            # print (f"\n\nnp.array____________________________\n{np.array(self.get_list).reshape(-1, reshape).tolist()}\n\n")
+            # logger.info (f"\n\nnp.array____________________________\n{np.array(self.get_list).reshape(-1, reshape).tolist()}\n\n")
             
-            # print(f"mbus read : {end_time - start_time :.3f}s")
+            # logger.info(f"mbus read : {end_time - start_time :.3f}s")
             
-            # logger.logger(mission='mbus read', etc=f"{end_time - start_time :.2f}s")
+            # logger.info(mission='mbus read', etc=f"{end_time - start_time :.2f}s")
             if connected:
                 return np.array(self.get_list).reshape(-1, reshape).tolist()
             else:
@@ -132,54 +152,76 @@ class client():
         try:
             if set_list and self.client.open():
                 if mode == 'DI':
-                    self.client.write_multiple_coils(bits_addr=address, bits_value=set_list)
+                    # if address == 0:
+                    #     self.client.write_multiple_coils(bits_addr=1,       bits_value=set_list[1:])
+                    #     logger.info(f" address : {address}, \t set_list : {set_list}")
+                    #     self.client.write_multiple_coils(bits_addr=address, bits_value=set_list[:1])
+                    #     logger.info(f" address : {address}, \t set_list : {set_list}")
+
+                    # else:
+                        self.client.write_multiple_coils(bits_addr=address, bits_value=set_list)
+                        # logger.info(f" address : {address}, \t set_list : {set_list}")
+
                 else:
-                    self.client.write_multiple_registers(regs_addr=address, regs_value=set_list)
+                    # if address == 0:
+                    #     self.client.write_multiple_registers(regs_addr=1,       regs_value=set_list[1:])
+                    #     logger.info(f" address : {address}, \t set_list : {set_list}")
+
+                    #     self.client.write_multiple_registers(regs_addr=address, regs_value=set_list[:1])
+                    #     logger.info(f" address : {address}, \t set_list : {set_list}")
+
+                    # else:
+                        self.client.write_multiple_registers(regs_addr=address, regs_value=set_list)
+                        # logger.info(f" address : {address}, \t set_list : {set_list}")
+    
         except Exception as e:
-            print(f"mbus write error : {e}")
+            logger.error(f"mbus write error : {e.with_traceback()}")
         finally:
+            logger.debug(f" address : {address}, \t set_list : {set_list}")
             self.client.close
             end_time = time.time()
             
-            # print(f"mbus write : {end_time-start_time:.3f}s")
+            # logger.debug(f"mbus write : {end_time-start_time:.3f}s")
             
-            # logger.logger(mission='mbus write', etc=f"{end_time - start_time :.2f}s")
+            # logger.debug(mission='mbus write', etc=f"{end_time - start_time :.2f}s")
 
     def plc_check(self):
         reshape = 20
         
+        iter = 0
         while True:
+            time.sleep(0.01)
             try:
-                status = self.read(address=0, nb=reshape, reshape=reshape)[0]
+                self.modbus_data = self.read(address=0, nb=reshape, reshape=reshape)[0]
                 recieved = True
             except IndexError or TypeError:
                 recieved = False
-                print("M/B failed")
+                logger.debug("M/B failed")
                 continue
             finally:
-                if recieved and type(status)==type([]):
+                if recieved and type(self.modbus_data)==type([]):
                     break
         
-        if status[0] == 1 and status[11] == 0 and status[12] == 1 and status[13] == 1:
+        if self.modbus_data[11] == 0 and self.modbus_data[12] == 1 and self.modbus_data[13] == 1:
             self.mission_enabled = False
             self.mission_running = False
-            self.write(0,set_list=[0]*9)
 
-        elif status[0] == 0 and status[11] == 0 and status[12] == 1 and status[13] == 0:
+        elif self.modbus_data[11] == 0 and self.modbus_data[12] == 1 and self.modbus_data[13] == 0:
             self.mission_enabled = True
             self.mission_running = False
             
-        elif status[0] == 1 and status[11] == 1 and status[12] == 0 and status[13] == 0:
+        elif self.modbus_data[11] == 1 and self.modbus_data[12] == 0 and self.modbus_data[13] == 0:
             self.mission_enabled = False
             self.mission_running = True
             
         
-        self.modbus_HR = status
+        self.modbus_HR = self.modbus_data
 
     def loop(self):
         while True:
             self.plc_check()
             time.sleep(self.loop_interval)
+            time.sleep(0.5)
             
 
 
@@ -190,8 +232,7 @@ class plc_com(client, server):
 
     def __init__(self, 
                  host='127.0.0.1', # '127.0.0.1', '192.168.0.65'
-                #  port=2502, 
-                 port= 502, 
+                 port=502,
                  unit_id=1,
                  loop_interval:float=0.5, 
                  h_regs_size:int=65536, 
@@ -201,7 +242,9 @@ class plc_com(client, server):
         
         self.loop_interval = loop_interval
         if sim:
-            server.__init__(self,host=host, port=port, unit_id=unit_id)
+            server.__init__(self,host=host, 
+                            port=port, 
+                            unit_id=unit_id)
             sim_Thread = Thread(target=modbus_sim.loop, args=[0.25], daemon=True)
             sim_Thread.start()
 
@@ -218,9 +261,9 @@ class plc_com(client, server):
 
         # i = 0
         # while(True):
-        #     # print(c.read(address=0, nb=100, reshape=10))
+        #     # logger.info(c.read(address=0, nb=100, reshape=10))
         #     # c.write(address=0,set_list=[i])
-        #     print(modbus_inst.read(address=0, nb=100, reshape=10))
+        #     logger.info(modbus_inst.read(address=0, nb=100, reshape=10))
         #     modbus_inst.write(address=0,set_list=[i])
         #     time.sleep(self.loop_interval)
         #     i= i+1 if i<9 else 0
@@ -234,7 +277,10 @@ if __name__ == '__main__':
 
     # c = client(host='127.0.0.1', port=502, unit_id=1)
     # c.write(address=0,set_list=[0])
-    modbus_inst = plc_com(loop_interval=0.5)
+    modbus_inst = plc_com(
+        loop_interval=0.5,
+        port=502 if 'nt' in os.name else 2502
+        )
     # while True:
     #     c.read()
     #     time.sleep(1)
@@ -243,9 +289,9 @@ if __name__ == '__main__':
     
     # i = 0
     # while(True):
-    #     # print(c.read(address=0, nb=100, reshape=10))
+    #     # logger.info(c.read(address=0, nb=100, reshape=10))
     #     # c.write(address=0,set_list=[i])
-    #     print(modbus_inst.read(address=0, nb=100, reshape=10))
+    #     logger.info(modbus_inst.read(address=0, nb=100, reshape=10))
     #     modbus_inst.write(address=0,set_list=[i])
     #     # time.sleep(1)
     #     i= i+1 if i<9 else 0

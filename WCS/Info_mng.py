@@ -9,7 +9,7 @@ from MW.Product_mng import container_manager, product_manager
 import datetime as dt
 import math
 
-from ERROR.error import NotEnoughSpaceError
+from ERROR.error import NotEnoughSpaceError, ProductNotExistError
 
 
 MODE = "FF"
@@ -17,8 +17,14 @@ MODE = "FF"
 class Base_info (product_manager, container_manager, wh_manager):
     def __init__(self, op_mode = None):
         self.op_mode = op_mode
+        if op_mode[0] in ['n']:   
+            self.sim_skip = True
+        else:
+            self.sim_skip = False
+        # if op_mode != None and op_mode[0] in ['s', ]:
+        #     self.sim_skip = True
+            
         self.WH_dict = {}
-
         container_manager.__init__(self)
         
         product_manager.__init__(self, container_manager)        
@@ -80,8 +86,13 @@ class Base_info (product_manager, container_manager, wh_manager):
             reserved_time=None,
             manual_loc=[],
             testing_mode = None,
-            ):
-        
+            lot = None
+            )->list:
+        '''
+        입고 명령
+
+        출력 : [`moved_distance`,`lot`]
+        '''
         sum_distance = [0,0]
 
         if not DOM:
@@ -119,21 +130,24 @@ class Base_info (product_manager, container_manager, wh_manager):
         destination_area = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name]
         In_area          = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict['In']
 
+        area_total_product_amount = len([i for i in destination_area.inventory.keys() 
+                                      if 'loc' in destination_area.inventory[i].keys()])
+
         present_product_amount = len([i for i in destination_area.inventory.keys() 
                                       if self.product_templet_dict[product_name]['lot_head'] in i])
         
         registered_product_amount = len([i for i in self.product_I_dict.keys() 
                                       if self.product_templet_dict[product_name]['lot_head'] in i])
         
-        if present_product_amount >= destination_area.INVENTORY_CRITICAL_LIMIT: # 물건을 하나씩 집는 동안은 해결 불능
+        if area_total_product_amount >= destination_area.INVENTORY_CRITICAL_LIMIT: # 물건을 하나씩 집는 동안은 해결 불능
             print("최종 적재 한계에 도달 하였습니다. \n입고 작업 및 정렬 작업을 진행할 수 없습니다.")
             raise NotEnoughSpaceError
         
-        elif present_product_amount >= destination_area.INVENTORY_LIMIT: # 다른 전략 필요
-            print("적재 한계에 도달 하였습니다. \n정렬 작업을 진행할 수 없습니다.")
-            raise NotEnoughSpaceError
-        
-        lot = f"{self.product_templet_dict[product_name]['lot_head']}-{DOM}-{registered_product_amount+1:04d}"
+        # elif area_total_product_amount >= destination_area.INVENTORY_LIMIT: # 다른 전략 필요
+        #     print("적재 한계에 도달 하였습니다. \n정렬 작업을 진행할 수 없습니다.")
+        #     raise NotEnoughSpaceError
+        if not lot or (lot in list(self.product_I_dict.keys())):
+            lot = f"{self.product_templet_dict[product_name]['lot_head']}-{DOM}-{registered_product_amount+1:04d}"
         
 
         In_area.grid[0][0].append(lot) # 박스 추가 : 변경 여부 검토 필요
@@ -176,7 +190,7 @@ class Base_info (product_manager, container_manager, wh_manager):
                                     #                  zip([0,0,height],In_area.origin_point)].index(lot)],
                                     area_to=destination_area, 
                                     loc_to = loc,
-                                    MODBUS_SIM_SKIP = self.op_mode
+                                    MODBUS_SIM_SKIP = self.sim_skip
                                     ) 
                                 
         sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
@@ -190,13 +204,14 @@ class Base_info (product_manager, container_manager, wh_manager):
         self.register_item(
                          I_id=registered_product_amount,
                          product_name=product_name, 
+                         lot=lot,
                          DOM = DOM,
                          manufactor=manufactor,
                          WH_name   = WH_name,
                          Zone_name = Zone_name,
                          Area_name = Area_name,
-                        #  bin_location= f"{WH_name}_{Zone_name}_{Area_name}_{loc[0]:03d}{loc[1]:03d}{loc[2]:03d}",
-                        bin_location=loc
+                         # bin_location= f"{WH_name}_{Zone_name}_{Area_name}_{loc[0]:03d}{loc[1]:03d}{loc[2]:03d}",
+                         bin_location=loc                         
                          )
         
         self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name].inventory[lot] = {
@@ -221,11 +236,11 @@ class Base_info (product_manager, container_manager, wh_manager):
               + f"{' 정렬 완료됨'if priority == 1 else ''}" if MODE == "AO" else ''  #AO
               )
         
-        if testing_mode == 1:
-            return sum_distance
-        else:
-            return None    
-
+        # if testing_mode:
+        #     return sum_distance
+        # else:
+        #     return None    
+        return [sum_distance, lot]
 
     def Outbound(self, 
                  lot:str=None, 
@@ -233,21 +248,32 @@ class Base_info (product_manager, container_manager, wh_manager):
                 #  loc:list=None, 
                  reserved_time=None, 
                  testing_mode = None,
-                 ):  #lot_head/name
-        
+                 )->list:  #lot_head/name
+        '''
+        출고 명령
+
+        출력 : [`moved_distance`,`lot`]
+        '''
         # loc = self.find_loc(name)
         if not lot:
             if product_name:
-                for i in self.product_I_dict.keys():
+                product_I_dict_sorted = dict(sorted(self.product_I_dict.items()))
+
+
+                for i in product_I_dict_sorted.keys():
                     if (
-                        self.product_I_dict[i]['product_name'] == product_name and
-                        'bin_location' in list(self.product_I_dict[i].keys())
+                        product_I_dict_sorted[i]['product_name'] == product_name and
+                        'bin_location' in list(product_I_dict_sorted[i].keys())
                         ):
                         lot = i
                         break
 
             # elif loc:
-            
+
+        if not lot:
+            raise ProductNotExistError
+            # return None
+
         sum_distance = [0,0]
 
         print(f"출고 대상 : {lot}")
@@ -294,7 +320,7 @@ class Base_info (product_manager, container_manager, wh_manager):
                     loc_from = [loc[0],loc[1],len(deposition_area.grid[loc[0]][loc[1]])-1],
                     area_to = deposition_area,
                     loc_to = deposition_loc,
-                    MODBUS_SIM_SKIP = self.op_mode
+                    MODBUS_SIM_SKIP = self.sim_skip
                     )
                 
                 sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
@@ -312,7 +338,7 @@ class Base_info (product_manager, container_manager, wh_manager):
                 # loc_to = [0, 0, [a+b for a,b in 
                 #         zip([0,0,height],Out_area.origin_point)]]
                 loc_to = [0,0,0],
-                MODBUS_SIM_SKIP = self.op_mode
+                MODBUS_SIM_SKIP = self.sim_skip
             )
 
             sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
@@ -343,11 +369,11 @@ class Base_info (product_manager, container_manager, wh_manager):
 
         print(f"{lot} 출고 완료",
               f"")
-        if testing_mode == 1:
-            return sum_distance 
-        else:
-            return None 
-
+        # if testing_mode == 1:
+        #     return sum_distance 
+        # else:
+        #     return None 
+        return [sum_distance, lot]
 
 
     def sort_item(self, WH_name, Zone_name, Area_name, lot, loc, height = None, offset = 1):
@@ -406,7 +432,7 @@ class Base_info (product_manager, container_manager, wh_manager):
                             loc_from = destination_area.inventory[upper_item_list[i]],
                             area_to = destination_area,
                             loc_to = temporal_destination_loc,
-                            MODBUS_SIM_SKIP = self.op_mode
+                            MODBUS_SIM_SKIP = self.sim_skip
                             )
 
                         sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
@@ -422,7 +448,7 @@ class Base_info (product_manager, container_manager, wh_manager):
                         loc_from = deposition_loc,
                         area_to = destination_area,
                         loc_to = destination_loc,
-                        MODBUS_SIM_SKIP = self.op_mode
+                        MODBUS_SIM_SKIP = self.sim_skip
                         )
                     
                     sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
@@ -446,7 +472,7 @@ class Base_info (product_manager, container_manager, wh_manager):
                                 loc_from = destination_area.inventory[upper_item_list[i]],
                                 area_to = destination_area,
                                 loc_to = temporal_destination_loc,
-                                MODBUS_SIM_SKIP = self.op_mode
+                                MODBUS_SIM_SKIP = self.sim_skip
                                 )
                             sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
 
@@ -499,7 +525,7 @@ class Base_info (product_manager, container_manager, wh_manager):
                 loc_from    = loc_from,
                 area_to     = destination_area,
                 loc_to      = loc_to,
-                MODBUS_SIM_SKIP = self.op_mode
+                MODBUS_SIM_SKIP = self.sim_skip
             )
             
             sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
@@ -527,10 +553,11 @@ class Base_info (product_manager, container_manager, wh_manager):
         if not offset:
             offset = 0
 
-        present_product_amount = len(list(destination_area.inventory.keys()))
+        area_total_product_amount = len([i for i in destination_area.inventory.keys()
+                                         if 'loc' in destination_area.inventory[i]])
                                           
-        iteration = (present_product_amount-offset)//HEIGHT
-        if (present_product_amount-offset)%HEIGHT:
+        iteration = (area_total_product_amount-offset)//HEIGHT
+        if (area_total_product_amount-offset)%HEIGHT:
             iteration += 1
 
         for i in range(offset, iteration):

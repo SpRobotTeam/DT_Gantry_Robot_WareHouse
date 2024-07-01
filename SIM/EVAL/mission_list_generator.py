@@ -9,6 +9,8 @@ import csv
 SEED = 12345
 MISSION_LIMMIT = 1000
 ACTION_WEIGHTS = [0.5, 0.3, 0.2]
+IN_FREQUENCY  = [1,1,1,1] # [5, 1, 3, 4]
+OUT_FREQUENCY = [1,1,1,1] # [5, 1, 2, 4]
 
 setting = ['', SEED, MISSION_LIMMIT, *ACTION_WEIGHTS]
 
@@ -24,9 +26,10 @@ SEED = int(SEED)
 MISSION_LIMMIT = int(MISSION_LIMMIT)
 ACTION_WEIGHTS = setting[3:]
 
-print(sys.argv)
-print(setting)
-print(SEED)
+if __name__ == '__main__':
+    print(sys.argv)
+    print(setting)
+    print(SEED)
 
 class mission_list_generator():
     action_list = ['IN', 'OUT', 'WAIT']
@@ -68,8 +71,11 @@ class mission_list_generator():
         
         iteration = 1
         # for iteration in range(100):
+        max_item = 0
+
         while iteration < MISSION_LIMMIT +1 :
-            print(f"iter : {iteration}")
+            if __name__ == '__main__':
+                print(f"iter : {iteration}")
             val = None
             if self.id == 0:
                 val = self.action_in()
@@ -97,6 +103,12 @@ class mission_list_generator():
                     # self.write(iteration, action())
             self.write(iteration, val)
             iteration += 1
+            max_item = max(max_item, len(self.item_list))
+        if __name__ == '__main__':
+            print(
+                f"Max amount of items :\t{max_item}\n" # +
+                # f""
+                    )
             
 
 
@@ -109,7 +121,10 @@ class mission_list_generator():
         dom = dt.datetime(2020,1,1) + dt.timedelta(days = self.Rand.randint(0,(dt.datetime(2025,12,12)-dt.datetime(2020,1,1)).days))
         
         if not product_id:
-            product_id = self.Rand.choice(list(self.item_type_dict.keys()))
+            product_id = list(self.item_type_dict.keys())[
+                self.Rand.choices(range(len(self.item_type_dict.keys())), 
+                IN_FREQUENCY)[0]
+                ]
 
         io_f = self.item_type_dict[product_id]['io_f']
         # new_item.update(
@@ -123,7 +138,8 @@ class mission_list_generator():
         # )
         self.item_list.append(new_item)
         
-        print(f"IN\tID: {self.id:04d}\tProduct_id: {product_id}") #d
+        if __name__ == '__main__':
+            print(f"IN\tID: {self.id:04d}\tProduct_id: {product_id}") #d
         return({'action':'IN', 'product_id':product_id, 'dom':dom})
 
 
@@ -131,7 +147,10 @@ class mission_list_generator():
         self.last_action = 'OUT'
 
         if not product_id:
-            product_id = self.Rand.choice(self.item_type_dict.keys())
+            product_id = list(self.item_type_dict.keys())[
+                self.Rand.choices(range(len(self.item_type_dict.keys())), 
+                IN_FREQUENCY)
+                ]
         
         out_item_list = []
         for i in self.item_list:
@@ -154,15 +173,17 @@ class mission_list_generator():
         
         id = out_item['item_id']                                                
 
-        print(f"OUT\tID: {id:04d}\tProduct_id: {product_id}")
-        self.item_list.remove(out_item)
+        if __name__ == '__main__':
+            print(f"OUT\tID: {id:04d}\tProduct_id: {product_id}")
+            self.item_list.remove(out_item)
         return({'action':'OUT', 'product_id':product_id})
         
 
     def action_wait(self):
         self.last_action = 'WAIT'
         wait_time = self.Rand.randint(61,1800)
-        print(f"WAIT\twait_time: {wait_time}")
+        if __name__ == '__main__':
+            print(f"WAIT\twait_time: {wait_time}")
         return({'action':'WAIT', 'wait_time':wait_time})
 
 
@@ -178,16 +199,19 @@ class mission_list_generator():
     
         else:
             if action_dict['action'] == 'WAIT':
-                print(f"recived:\taction: {action_dict['action']}, \twait_time: {action_dict['wait_time']}")
+                if __name__ == '__main__':
+                    print(f"recived:\taction: {action_dict['action']}, \twait_time: {action_dict['wait_time']}")
                 write_list = [action_dict['wait_time']]
             elif action_dict['action'] in ['IN', 'OUT']:
-                print(f"recived:\taction: {action_dict['action']}, \tProduct_id: {action_dict['product_id']}")
+                if __name__ == '__main__':
+                    print(f"recived:\taction: {action_dict['action']}, \tProduct_id: {action_dict['product_id']}")
                 write_list = [action_dict['product_id']]
                 if action_dict['action'] == 'IN':
                     # date = str(action_dict['dom'].year)[-2:]+str(action_dict['dom'].month)+str(action_dict['dom'].day)
                     date = f"{action_dict['dom'].year:04d}{action_dict['dom'].month:02d}{action_dict['dom'].day:02d}"
                     write_list.append(date)
-        print(f"current item list (amount : {len(self.item_list)}) : \n{[[i['item_id'],i['product_id']] for i in self.item_list]}\n")
+        if __name__ == '__main__':
+            print(f"current item list (amount : {len(self.item_list)}) : \n{[[i['item_id'],i['product_id']] for i in self.item_list]}\n")
         with open(self.file_name,'a+', newline='') as csv_editor:
             csv_appender = csv.writer(csv_editor)
             csv_appender.writerow([iter, action_dict['action']]+write_list)

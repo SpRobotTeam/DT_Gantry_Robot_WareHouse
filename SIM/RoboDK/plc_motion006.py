@@ -1,7 +1,9 @@
 #!/bin/python
-import sys, os
+import logging.handlers
+import sys, os, pathlib
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 current_working_directory = os.getcwd()
+
 
 from pyModbusTCP.server import ModbusServer, DataBank
 
@@ -11,12 +13,37 @@ from robodk import *
 from robolink import *
 # import add_model
 from time import sleep
+import subprocess
+home_path = os.path.expanduser('~')
+
+import logging
+logger = logging.getLogger('plc_motion006')
+logger.setLevel(logging.DEBUG)
+pathlib.Path("./logs").mkdir(parents=True, exist_ok=True)
+pathlib.Path("./logs/plc_motion006.log").touch
+log_file_handler = logging.handlers.RotatingFileHandler(filename="./logs/plc_motion006.log", 
+                                    mode="a",
+                                    backupCount= 3,
+                                    maxBytes= 1024*1024*512,
+                                    encoding='utf-8'
+                                    )
+log_formater = logging.Formatter("{asctime} {levelname} {filename}>{funcName} {message}", style='{')
+log_file_handler.setFormatter(log_formater)
+logger.addHandler(log_file_handler)
+
+logger.info("______________________________________________________________________\nProgram start")
+
+if not 'nt' in os.name:
+    subprocess.Popen(["sh", home_path+"/RoboDK/RoboDK-Start.sh"])
+    time.sleep(10)
 
 RDK = robolink.Robolink()
 if 'nt' in os.name:
+    # RDK.AddFile(os.path.dirname(__file__)+"\\"+"wcs_plc_20240203_183935.rdk")
     RDK.AddFile(os.path.dirname(__file__)+"\\"+"wcs_plc_20240508_133800.rdk")
+    # RDK.AddFile(os.path.dirname(__file__)+"\\"+"wcs_plc_20240513_133800.rdk")
 else:
-    RDK.AddFile("~//"+"wcs_plc_20240508_133800.rdk")
+    RDK.AddFile(os.path.dirname(__file__)+"/"+"wcs_plc_20240508_133800.rdk")
 # station_item = RDK.AddFile("wcs_plc_20240508_133800.rdk")
 # station = RDK.Item(station_item.Name())
 # station.setName("station")
@@ -71,9 +98,11 @@ def camera_stream():
 
 def load_box():
     global box_counter
-    box_path = f"box.sld"
+    parent_path = os.path.dirname(__file__)+("\\" if 'nt' in os.name else "/") 
+    box_path = f"{parent_path}box.sld"
     box_item = RDK.AddFile(box_path)
     box = RDK.Item(box_item.Name())
+    
     box_counter += 1
     box.setName("box_" + str(box_counter))  # box에 고유한 이름 부여
     return box
@@ -82,12 +111,15 @@ class modbus_inst():
     def __init__(self, host='127.0.0.1', port=502, unit_id=1):
         self.databank = DataBank()
         self.server = ModbusServer(host=host, port=port, no_block=True, data_bank=self.databank)
+
         self.server.start()
         self.heartbeat_flag = 0
 
         # 주소 0에서 9까지 초기값을 0으로 설정합니다.
-        for address in range(15):
-            self.databank.set_holding_registers(address, [0])
+        # for address in range(15):
+        #     self.databank.set_holding_registers(address, [0])
+        self.databank.set_holding_registers(0, [0]*20)
+
 
     def write_data(self, address, data):
         if type(data) == type([]):
@@ -105,7 +137,7 @@ class modbus_inst():
 def define_model():
     all_items = RDK.ItemList()
     for item in all_items:
-        print(item.Name())
+        logger.debug(item.Name())
     items = {}
     for item in all_items:
         items[item.Name()] = item
@@ -113,14 +145,15 @@ def define_model():
 
 
 box_counter = 0
-def load_box():
-    global box_counter
-    box_path = f"box.sld"
-    box_item = RDK.AddFile(box_path)
-    box = RDK.Item(box_item.Name())
-    box_counter += 1
-    box.setName("box_" + str(box_counter))  # box에 고유한 이름 부여
-    return box
+# def load_box():
+#     global box_counter
+#     parent_path = os.path.dirname(__file__)+ ("\\" if 'nt' in os.name else "/" )
+#     box_path = f"{parent_path}box.sld"
+#     box_item = RDK.AddFile(box_path)
+#     box = RDK.Item(box_item.Name())
+#     box_counter += 1
+#     box.setName("box_" + str(box_counter))  # box에 고유한 이름 부여
+#     return box
 
 def find_child_item(parent_item, child_name):
     child_items = parent_item.Childs()
@@ -164,8 +197,8 @@ def home_motions(gantry, gripper, conveyor, gantry_home, open_gripper, con_pitch
 def make_points(x, y, z):
     base_point = [4200, 550, 1050]
     points = []
-    x_pitch = 500
-    y_pitch = 300
+    x_pitch = 500 # 500
+    y_pitch = 500 # 300
     z_pitch = -135
 
     for k in range(z):
@@ -215,16 +248,31 @@ def move_to_target_forFULL(target_name, i, x, y, z):
 # 박스준비 onConveyor
 def conveyor_material_input():
     conveyor.MoveJ(con_pitch)
-    box = load_box()
-    box.setParent(conveyor_TCP)
+    while not find_child_item(conveyor_TCP, "box_"):
+        box = load_box()
+        box.setParent(conveyor_TCP)
+    logger.debug("box_in")
+        
     conveyor.MoveJ(con_home)
     gantry.MoveJ(UP_pickup.Joints())
     gantry.MoveJ(IN_pickup.Joints())
     gripper.MoveJ(close_gripper.Joints())
-    box.setParent(gripper_TCP)
+    while not find_child_item(gripper_TCP, "box_"):
+        box.setParent(gripper_TCP)
+        time.sleep(0.05)
+    
     conveyor.MoveJ(con_pitch)
     gantry.MoveJ(UP_pickup.Joints())
+    logger.debug("box_pickedUp")
+
+    parent_item = gripper_TCP
+    child_item = find_child_item(parent_item, "box_")
+    if not child_item:
+        logger.error("IN\tbox_not_created")
+        raise RuntimeError # SIM_ObjectNotExistError
+    
     return box
+    
 
 def remove_box_from_conveyor(box):
     gantry.MoveJ(UP_pickup.Joints())
@@ -265,7 +313,9 @@ def move_to_out(x, y, z):
     child_item.Delete()
 
 def move_to_in(x, y, z):
+    box = None
     box = conveyor_material_input()
+
     target_name = f"Point_{x:02}-{y:02}-{z:02}"
     target = items[target_name]
     Frame = items[f'TeachingPoints_{x:02}-{y:02}-{z:02}']
@@ -278,6 +328,15 @@ def move_to_in(x, y, z):
     box.setParent(Frame)
 
     gantry.MoveJ(pretarget, blocking=True)
+
+    frame_name = f"TeachingPoints_{x:02}-{y:02}-{z:02}"
+    parent_item = items[frame_name]
+    child_item = find_child_item(parent_item, "box_")
+    if not child_item:
+        logger.error("IN\tbox_not_loaded")
+        raise RuntimeError # SIM_ObjectNotExistError
+
+    return box
 
 
 def move_to_position(x1, y1, z1, x2, y2, z2):
@@ -317,7 +376,9 @@ def move_to_position(x1, y1, z1, x2, y2, z2):
 # x = 4; y = 4; z = 2
 # points = make_points(x, y, z)
 # create_frames_and_targets(points, gantry, RDK, pallet, x, y, z)
-create_frames_and_targets(make_points(20,20,5), gantry, RDK, pallet, 20, 20, 5)
+
+# create_frames_and_targets(make_points(20,6,5), gantry, RDK, pallet, 20, 6, 5)
+
 
 
 home_motions(gantry, gripper, conveyor, gantry_home, open_gripper, con_pitch)
@@ -335,18 +396,24 @@ home_motions(gantry, gripper, conveyor, gantry_home, open_gripper, con_pitch)
 
 # move_to_position(4,4,2,3,3,2)
 
-delete_item("box")
-items = define_model()
+# delete_item("box")
+# items = define_model()
 # add_model.save_model()
-
+modbus_table = last_modbus_table = [0] * 20
 
 if __name__ == '__main__':
 
-    s = modbus_inst()
+    s = modbus_inst(
+        port=502 if 'nt' in os.name else 2502
+
+
+    )
     # s.write_data(address=11, data=0)
     # s.write_data(address=12, data=1)
     # s.write_data(address=13, data=0)
     s.write_data(address=11, data=[0,1,0])
+    modbus_table = last_modbus_table = modbus_table[:11]+[0,1,0]+modbus_table[14:]
+    logger.info(f" plc_ready :\t\t\t\t{modbus_table}")
 
     cam_streamer = Thread(target=camera_stream, daemon=True)
     cam_streamer.start()
@@ -355,6 +422,10 @@ if __name__ == '__main__':
         s.databank.set_holding_registers(10, [s.heartbeat_flag])
 
         recv_data = s.read_data(address=0, num = 20)
+        modbus_table = recv_data
+        if modbus_table[:9] != last_modbus_table[:9] or modbus_table[11:] != last_modbus_table[11:]:
+            logger.info(f" plc_data_reading :\t\t{modbus_table}")
+            last_modbus_table = modbus_table
 
         # if not s.read_data(address=0):
         # if not recv_data[0]:
@@ -368,6 +439,9 @@ if __name__ == '__main__':
             # s.write_data(address=11, data=1)
             # s.write_data(address=12, data=0)
             s.write_data(address=11, data=[1,0,0])
+            modbus_table = modbus_table[:11]+[1,0,0]+modbus_table[14:]
+            logger.info(f" plc_mission_recived :\t{modbus_table[1:4]} -> {modbus_table[5:8]}")
+            logger.info(f" plc_mission_running :\t{modbus_table}")
 
             data_x1 = recv_data[1]
             data_y1 = recv_data[2]
@@ -378,11 +452,16 @@ if __name__ == '__main__':
             data_z2 = recv_data[7]
 
             if data_x1 == 0 and data_y1 == 0 and data_z1 == 0:
-                move_to_in(data_x2, data_y2, data_z2)
+                box = None
+                while not box:
+                    box = move_to_in(data_x2, data_y2, data_z2)
+                    logger.info(f"IN\t{[data_x2, data_y2, data_z2]}")
             elif data_x2 == 0 and data_y2 == 0 and data_z2 == 0:
                 move_to_out(data_x1, data_y1, data_z1)
+                logger.info(f"OUT\t{[data_x1, data_y1, data_z1]}")
             else:
                 move_to_position(data_x1, data_y1, data_z1, data_x2, data_y2, data_z2)
+                logger.info(f"MOVE\t{[data_x1, data_y1, data_z1]} -> {[data_x2, data_y2, data_z2]}")
 
             # s.write_data(address=11, data=0)
             # s.write_data(address=12, data=1)
@@ -395,6 +474,8 @@ if __name__ == '__main__':
             # s.write_data(address=12, data=1)
             # s.write_data(address=13, data=1)
             s.write_data(address=11, data=[0,1,1])
+            modbus_table = modbus_table[:11]+[0,1,1]+modbus_table[14:]
+            logger.info(f" plc_mission_fin :\t\t{modbus_table}")
 
         elif recv_data[0] == 0:
             # 함수 실행이후 초기화 이전 13번 주소에 0을 작성
@@ -402,10 +483,10 @@ if __name__ == '__main__':
 
 
         # DataBank 상태 출력
-        print("Holding Registers from address 0 to 12:   ", s.databank.get_holding_registers(0, 13))
+        # logger.debug(f"Holding Registers from address 0 to 12:   {s.databank.get_holding_registers(0, 13)}")
 
-        sleep(0.2)
+        # sleep(0.2)
         
 
-        print("=======================================================")
+        # logger.debug("=======================================================")
 

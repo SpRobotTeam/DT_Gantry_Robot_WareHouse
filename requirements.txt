@@ -1,0 +1,6 @@
+# require python > 3.6
+
+pip install pymodbustcp
+pip install robodk
+
+apt-get install libqt5websockets5-dev
