@@ -1,10 +1,11 @@
 import logging
 import datetime as dt
-date = f"{dt.datetime.now().year[-2]:02d}{dt.datetime.now().month:02d}{dt.datetime.now().day[-2]:02d}"
+
+date = dt.datetime.now().strftime("%y%m%d")
 
 
 logging.basicConfig(
-                    filename=date, 
+                    filename=f"logs/{date}.log",
                     level=logging.DEBUG,
-                    format='%'
+                    format='%(asctime)s %(levelname)s %(filename)s>%(funcName)s %(message)s'
                     )

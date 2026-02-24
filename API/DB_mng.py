@@ -1,65 +1,61 @@
+import os
 import psycopg2
 
 
 class DB_handler:
-        
-    def __init__(self):
-        self.db = psycopg2.connect(host='localhost', dbname='mydb',user='admiv',password='admin',port=5432)
 
+    def __init__(self):
+        self.db = psycopg2.connect(
+            host=os.environ.get('DB_HOST', 'localhost'),
+            dbname=os.environ.get('DB_NAME', 'mydb'),
+            user=os.environ.get('DB_USER', 'admin'),
+            password=os.environ.get('DB_PASSWORD', 'admin'),
+            port=int(os.environ.get('DB_PORT', 5432))
+        )
         self.cursor = self.db.cursor()
 
     def __del__(self):
-        self.db.close()
         self.cursor.close()
+        self.db.close()
 
-    def execute(self,query,args={}):
-        self.cursor.execute(query,args)
+    def execute(self, query, args={}):
+        self.cursor.execute(query, args)
         row = self.cursor.fetchall()
         return row
 
     def commit(self):
-        self.cursor.commit()
+        self.db.commit()
 
-    
+    def insert(self, schema, table, column, data):
+        sql = "INSERT INTO %s.%s (%s) VALUES (%%s) ;"
+        self.cursor.execute(
+            sql % (schema, table, column),
+            (data,)
+        )
+        self.db.commit()
 
-    def insert(self, schema, table, colum, data): # create
-        sql = f" INSERT INTO {schema}.{table}({colum}) VALUES ('{data}') ;"
+    def read(self, schema, table, column):
+        sql = "SELECT %s FROM %s.%s ;"
         try:
-            self.cursor.execute(sql)
-            self.db.commit()
-        except Exception as e:
-            print(f"error while inserting : {e}")
-
-
-
-    def read(self, schema, table, colum): #read
-        sql = f" SELECT {colum} from {schema}.{table} ;"
-        try:
-            self.cursor.execute(sql)
+            self.cursor.execute(sql % (column, schema, table))
             result = self.cursor.fetchall()
         except Exception as e:
-            result = f"error while reading : {e}"
-            print(result)
-        finally:
-            return result
-        
+            result = None
+            print(f"error while reading : {e}")
+        return result
 
+    def update(self, schema, table, column, value, condition_column, condition_value):
+        sql = "UPDATE %s.%s SET %s = %%s WHERE %s = %%s ;"
+        self.cursor.execute(
+            sql % (schema, table, column, condition_column),
+            (value, condition_value)
+        )
+        self.db.commit()
 
-    def update(self, schema, table, colum, value, condition): #update
-        sql = f" UPDATE {schema}.{table} SET {colum}='{value}' WHERE {colum}='{condition}' ;"
-        try:
-            self.cursor.execute(sql)
-            self.db.commit()
-        except Exception as e:
-            print(f"error while updating : {e}")
-
-
-    
-    def delete(self, schema, table, condition): # delete
-        sql = f" DELETE FROM {schema}.{table} WHERE ('{condition}') ;"
-        try:
-            self.cursor.execute(sql)
-            self.db.commit()
-        except Exception as e:
-            print(f"error while deleting : {e}")
-    
+    def delete(self, schema, table, condition_column, condition_value):
+        sql = "DELETE FROM %s.%s WHERE %s = %%s ;"
+        self.cursor.execute(
+            sql % (schema, table, condition_column),
+            (condition_value,)
+        )
+        self.db.commit()
