@@ -127,6 +127,230 @@
 - [ ] 패키지로 작성 (제품화)
 
 
+---
+
+## 📖 상세 사용법 가이드
+
+### 시작하기
+시스템을 사용하기 전에 다음 단계를 순서대로 따라하세요:
+
+1. **환경 확인**
+   ```bash
+   python --version  # Python 3.6 이상 필요
+   ```
+
+2. **의존성 설치**
+   ```bash
+   pip install -r pip_requirements.txt
+   ```
+
+3. **RoboDK 설치** (시뮬레이션 사용 시)
+   - [RoboDK 다운로드 페이지](https://robodk.com/ko/download)에서 설치
+
+### 🎮 운영 모드별 사용법
+
+시스템은 4가지 운영 모드를 지원합니다:
+
+#### 1. 웹 인터페이스 모드 (권장)
+```bash
+streamlit run WEB/web_main.py
+```
+
+**웹 인터페이스 기능:**
+- **입고 탭**: 제품 선택, 수량 입력, 예약 스케줄링
+- **출고 탭**: FIFO/랜덤/직접 선택 출고, 벌크 출고
+- **정보 등록/수정**: 제품, 컨테이너, 저장공간 관리
+- **재고 목록**: 실시간 재고 모니터링
+- **제어**: WCS 시스템 리셋 및 제어
+
+**외부 시스템 연동:**
+- WMS 시스템: `http://192.168.0.40:8069/`
+- 모니터링 시스템: `http://192.168.0.40:8091/`
+
+#### 2. 수동 모드 (대화형)
+```bash
+python main.py
+# 모드 선택에서 Enter 키만 누르기
+```
+
+**수동 모드 명령어:**
+- `n [상품명]`: 상품 템플릿 등록 (기본값: 'default')
+- `i [수량]`: 입고 처리 (기본값: 8개)
+- `o [수량]`: 출고 처리 (기본값: 전체)
+- `p [lot번호]`: 특정 상품 출고
+- `l`: 구역 물품 리스트 출력
+- `c`: 시스템 종료
+
+**사용 예시:**
+```bash
+>> n 제품A          # 제품A 템플릿 생성
+>> i 10             # 10개 입고
+>> l                # 재고 확인
+>> o 5              # 5개 출고
+>> c                # 종료
+```
+
+#### 3. 시뮬레이션/테스트 모드
+```bash
+python main.py
+# 모드 선택: 'N' 입력 (시뮬레이션 없음) 또는 'S' 입력 (평가 모드)
+# SEED 입력: 6자리 숫자 (예: 123456)
+```
+
+**평가 모드 기능:**
+- 성능 벤치마킹
+- 알고리즘 비교 (First-Fit vs Adaptive Optimization)
+- 자동화된 미션 실행
+- 종합 점수 산출
+
+#### 4. 하드웨어 연동 모드
+```bash
+# 1단계: RoboDK 시뮬레이션 시작
+python SIM/RoboDK/plc_motion006.py
+
+# 2단계: WCS 시스템 시작 (새 터미널)
+python main.py
+```
+
+### 📋 명령어 레퍼런스
+
+#### 웹 인터페이스 단축키
+| 기능 | 위치 | 설명 |
+|------|------|------|
+| 입고 처리 | 입고 탭 | 제품 선택 후 수량 입력 |
+| FIFO 출고 | 출고 탭 → 순차 출고 | 가장 오래된 상품부터 출고 |
+| 랜덤 출고 | 출고 탭 → 무작위 출고 | 임의 상품 출고 |
+| 재고 확인 | 재고 목록 탭 | 실시간 재고 현황 |
+| 시스템 리셋 | 제어 탭 | 전체 시스템 초기화 |
+
+#### CLI 명령어 상세
+| 명령어 | 매개변수 | 예시 | 설명 |
+|--------|----------|------|------|
+| `n` | [상품명] | `n 상품A` | 새 상품 템플릿 생성 |
+| `i` | [수량] | `i 15` | 지정 수량 입고 |
+| `o` | [수량] | `o 10` | 지정 수량 출고 |
+| `p` | [lot번호] | `p 1234` | 특정 lot 출고 |
+| `l` | 없음 | `l` | 재고 리스트 출력 |
+| `c` | 없음 | `c` | 시스템 종료 |
+
+### 📊 성능 모니터링
+
+#### 시스템 상태 확인
+```bash
+# 로그 파일 확인
+tail -f logs/main.log
+
+# 재고 상태 확인 (웹 인터페이스)
+# http://localhost:8501 → 재고 목록 탭
+
+# PLC 통신 상태 확인
+tail -f logs/plc_motion006.log
+```
+
+#### 성능 지표
+- **시간 점수**: 로봇 이동 거리 기반 효율성
+- **위치 점수**: 저장 공간 분산도 (표준편차)
+- **통합 점수**: 시간 × 위치 점수 조합
+
+### 🔧 문제해결 FAQ
+
+#### Q1: 웹 인터페이스가 시작되지 않을 때
+```bash
+# 포트 사용 확인
+netstat -an | grep 8501
+
+# Streamlit 재설치
+pip uninstall streamlit
+pip install streamlit==1.28.2
+
+# 방화벽 확인 (Linux)
+sudo ufw allow 8501
+```
+
+#### Q2: RoboDK 연결 실패
+```bash
+# RoboDK 서비스 상태 확인
+ps aux | grep RoboDK
+
+# 포트 확인 (기본: 20500)
+netstat -an | grep 20500
+
+# 재시작
+python SIM/RoboDK/plc_motion006.py
+```
+
+#### Q3: Modbus 통신 오류
+```bash
+# PLC 시뮬레이터 시작
+python MW/modbus_sim.py
+
+# 네트워크 연결 확인
+ping 192.168.0.40
+telnet 192.168.0.40 502
+```
+
+#### Q4: 의존성 설치 오류
+```bash
+# Qt5 웹소켓 설치 (Ubuntu/Debian)
+sudo apt-get install libqt5websockets5-dev
+
+# Python 버전 확인
+python --version  # 3.6 이상 필요
+
+# 권한 문제 해결
+pip install --user -r pip_requirements.txt
+```
+
+#### Q5: 로그 파일이 생성되지 않을 때
+```bash
+# logs 디렉토리 생성
+mkdir -p logs
+
+# 권한 확인
+chmod 755 logs/
+touch logs/main.log
+```
+
+### 🌐 네트워크 설정
+
+#### 기본 설정
+- **WCS 포트**: 기본 Python 실행
+- **웹 인터페이스**: 8501 포트
+- **Modbus TCP**: 502 포트
+- **RoboDK**: 20500 포트
+
+#### 외부 시스템 연동
+```bash
+# 네트워크 설정 확인
+cat network.ps1
+
+# IP 주소 설정 (필요시 수정)
+# WMS: 192.168.0.40:8069
+# 모니터링: 192.168.0.40:8091
+```
+
+### 📈 고급 사용법
+
+#### 알고리즘 커스터마이징
+시스템은 두 가지 최적화 알고리즘을 지원합니다:
+- **First-Fit (FF)**: 빠른 배치, 단순한 로직
+- **Adaptive Optimization (AO)**: 공간 효율성 최적화
+
+`WCS/Info_mng.py`에서 알고리즘 선택 가능.
+
+#### 배치 작업 스크립팅
+```python
+# 예시: 대량 입고 스크립트
+from main import main
+
+wcs = main()
+wcs.default_setting(container_name='대량처리')
+
+# 100개 제품 자동 입고
+for i in range(100):
+    wcs.Inbound(product_name='제품A')
+```
+
 ## QnA
 ### 문의처
 maroon@spsystems.co.kr
