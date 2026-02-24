@@ -81,6 +81,8 @@ class main(SPWCS.GantryWCS):
         self.WH_dict = {}
         self.default_setting(container_name=container_name)
         self.product_I_dict = {}
+        self._registered_count = {}
+        self._lots_by_product = {}
     
     def get_info(self, args):#->dict|list:
         '''
@@ -166,6 +168,7 @@ class main(SPWCS.GantryWCS):
         self.WareHouse.add_zone({
             'Zone_name'      : self.Zone_name,
             'container'      : self.container_dict[container_name],
+            'sim_skip'       : self.sim_skip,
         })
         
         self.Zone = self.WareHouse.Zone_dict[self.Zone_name]
@@ -258,11 +261,10 @@ if __name__ == "__main__":
             file_name = f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list/mission_list_SEED-{seed:06d}.csv"
 
             if not os.path.isfile(file_name):
-                
-                # os.system(f"{PYTHON_NAME} {os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py {seed} {LEAST_MISSION_LENGTH*2}")
-                with open(os.devnull, 'wb') as devnull:
-                    subprocess.check_call([PYTHON_NAME, f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py", str(seed), str(LEAST_MISSION_LENGTH*2)],
-                                          stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+
+                print(f"미션 리스트 생성 중 (SEED={seed:06d}, {LEAST_MISSION_LENGTH*2}건) ...")
+                subprocess.check_call([PYTHON_NAME, f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py", str(seed), str(LEAST_MISSION_LENGTH*2)])
+                print("미션 리스트 생성 완료!")
                 time.sleep(5)
 
     except:
@@ -361,13 +363,15 @@ if __name__ == "__main__":
         
         else:
             # SPDTw.__init__()
+            print("창고 초기화 중 ...")
             SPDTw.default_setting(container_name='default')
-            
+            print("창고 초기화 완료!")
 
             unit_time_past = 0
             sum_distance = [0,0]
             GANTRY_MOVING_SPEED = [1,1]
 
+            print("미션 리스트 로딩 중 ...")
             mission_length = 0
             with open(file_name,'r', newline='') as csv_editor:
                 reader = csv.reader(csv_editor)
@@ -375,17 +379,44 @@ if __name__ == "__main__":
                     mission_length += 1
 
             if mission_length < LEAST_MISSION_LENGTH*2:
-                # os.system(f"{PYTHON_NAME} {os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py {seed} {LEAST_MISSION_LENGTH*2}")
-                subprocess.check_call([PYTHON_NAME, f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py", str(seed), str(LEAST_MISSION_LENGTH*2)],
-                                          stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+                print(f"미션 리스트 재생성 중 ({LEAST_MISSION_LENGTH*2}건) ...")
+                subprocess.check_call([PYTHON_NAME, f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py", str(seed), str(LEAST_MISSION_LENGTH*2)])
                 mission_length = LEAST_MISSION_LENGTH
 
             mission_offset = 0
 
             with open(file_name,'r', newline='') as csv_editor:
                 all_missions = list(csv.reader(csv_editor))
+            print(f"미션 리스트 로딩 완료! ({len(all_missions)}건)")
+
+            # 미션 처리 시 터미널에는 진행률만, 상세 로그는 파일에만 기록
+            logger.removeHandler(log_streamer)
+
+            _inventory_limit = (
+                SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name]
+                .Area_dict['Area_01'].INVENTORY_CRITICAL_LIMIT
+            )
+
+            print(f"\n미션 처리 시작 (총 {LEAST_MISSION_LENGTH:,}건, 창고용량: {_inventory_limit})")
+            print("=" * 60)
+            _progress_step = max(1, LEAST_MISSION_LENGTH // 100)  # 1% 단위
+            _start_time = time.time()
+            _cnt = {'IN': 0, 'OUT': 0, 'WAIT': 0, 'skip_full': 0, 'skip_empty': 0}
 
             for _ in range(LEAST_MISSION_LENGTH):
+
+                if _ % _progress_step == 0 and _ > 0:
+                    _pct = _ * 100 // LEAST_MISSION_LENGTH
+                    _elapsed = time.time() - _start_time
+                    _eta = _elapsed / _ * (LEAST_MISSION_LENGTH - _)
+                    _inv_count = len(SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].inventory)
+                    print(
+                        f"\r  [{'#' * (_pct // 5):20s}] {_pct:3d}% ({_:,}/{LEAST_MISSION_LENGTH:,}) "
+                        f"경과:{_elapsed:.0f}s 남은:{_eta:.0f}s | "
+                        f"IN:{_cnt['IN']:,} OUT:{_cnt['OUT']:,} WAIT:{_cnt['WAIT']:,} "
+                        f"재고:{_inv_count}/{_inventory_limit} "
+                        f"스킵:{_cnt['skip_full']+_cnt['skip_empty']}",
+                        end="", flush=True)
 
                 action = product_name = dom = wait_time = None
 
@@ -400,34 +431,35 @@ if __name__ == "__main__":
                             dom = line[3]
                     elif action in ['WAIT']:
                         wait_time = line[2]
-                
+
                 if action == 'IN':
                     try:
                         moved_distance, lot = SPDTw.Inbound(product_name=product_name, DOM=dom, testing_mode = True)
+                        _cnt['IN'] += 1
                         logger.info(f"IN {lot}")
                         sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
                         unit_time_past += sum([d*s for d,s in zip(moved_distance, GANTRY_MOVING_SPEED)])
-                    except NotEnoughSpaceError: # 공간 부족 시
-                        mission_offset += 1 # 다음 미션으로 (현 미션 스킵)
+                    except NotEnoughSpaceError:
+                        mission_offset += 1
+                        _cnt['skip_full'] += 1
                         logger.info("입고 명령 무시 : 창고 공간 부족")
                         logger.warning(f"IN 실패 {product_name} NotEnoughSpaceError")
                         continue
                 elif action == 'OUT':
                     try:
                         moved_distance, lot = SPDTw.Outbound(product_name=product_name, testing_mode = 1)
+                        _cnt['OUT'] += 1
                         logger.info(f"OUT {lot}")
-
                     except ProductNotExistError:
+                        _cnt['skip_empty'] += 1
                         logger.info("출고 명령 무시 : 해당 품목의 상품 없음")
                         logger.warning(f"OUT 실패 {product_name} ProductNotExistError")
-                        
                         continue
                     sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
                     unit_time_past += sum([d*s for d,s in zip(moved_distance, GANTRY_MOVING_SPEED)])
                 elif action == 'WAIT':
-                    # unit_time_past += wait_time
-                    pass
-                
+                    _cnt['WAIT'] += 1
+
                 if action == 'WAIT':
                     logger.info(
                         f"mission_{_+1-mission_offset} fin (mission list # {_})\n"+
@@ -443,12 +475,39 @@ if __name__ == "__main__":
                         f"Total Unit time past : {unit_time_past}\n"+
                         "-----------------------------------------------------------"+"\n"
                         )
-                    
+
+            _elapsed = time.time() - _start_time
+            _inv_count = len(SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].inventory)
+            print(
+                f"\r  [{'#' * 20}] 100% ({LEAST_MISSION_LENGTH:,}/{LEAST_MISSION_LENGTH:,}) "
+                f"완료! ({_elapsed:.1f}s)"
+                f"                                                  ")
+            print(
+                f"  결과 - IN:{_cnt['IN']:,} | OUT:{_cnt['OUT']:,} | WAIT:{_cnt['WAIT']:,} | "
+                f"재고:{_inv_count}/{_inventory_limit} | "
+                f"스킵(공간부족):{_cnt['skip_full']} 스킵(상품없음):{_cnt['skip_empty']}")
+            print("=" * 60)
+
+            # 터미널 로그 출력 복원
+            logger.addHandler(log_streamer)
+
             eval_score = Evaluator(mode=op_mode, SEED=seed, mission_length = LEAST_MISSION_LENGTH)
             final_score, time_score, position_score, average_height = eval_score.evaluate(
-                time_past=unit_time_past, 
+                time_past=unit_time_past,
                 grid_list=SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].grid
                 )
+
+            print(f"\n{'=' * 60}")
+            print(f"  평가 결과 (SEED={seed:06d})")
+            print(f"  {'─' * 40}")
+            print(f"  총 이동거리   : [{sum_distance[0]:.1f}, {sum_distance[1]:.1f}]")
+            print(f"  총 소요시간   : {unit_time_past:,.1f}")
+            print(f"  높이 표준편차 : {average_height:.4f}")
+            print(f"  {'─' * 40}")
+            print(f"  시간 점수     : {time_score*100:.2f}%")
+            print(f"  위치 점수     : {position_score:.2f}")
+            print(f"  종합 점수     : {final_score*100:.2f}%")
+            print(f"{'=' * 60}")
 
             logger.info(
                 f"test_fin \n"+

@@ -10,21 +10,25 @@ logger = logging.getLogger('main')
 PORT = 502 if 'nt' in os.name else 2502
 
 class zone_manager():
-    def __init__(self, 
+    def __init__(self,
                  zone_properties_dict
                  ):
         if not len(zone_properties_dict['container'].keys()):
             self.CONTAINER = {
                                 'name'      : 'default',
-                                'length'    : 300, 
-                                'width'     : 200, 
+                                'length'    : 300,
+                                'width'     : 200,
                                 'height'    : 200,
                                 'gap'       : 200
                                 }
         else:
             self.CONTAINER = zone_properties_dict['container']
-        
-        self.Modbus_inst = PLC_com.plc_com(port = PORT)
+
+        self.sim_skip = zone_properties_dict.get('sim_skip', False)
+        if not self.sim_skip:
+            self.Modbus_inst = PLC_com.plc_com(port = PORT)
+        else:
+            self.Modbus_inst = None
         self.Area_dict = {}
         self.ZONE_NAME = zone_properties_dict['Zone_name']
 
@@ -112,54 +116,42 @@ class zone_manager():
     
 
 
-    def optimal_pos_find(self, Area_name, outbound_freq, priority, origin = None, lot=None):  # origin=[0,0], #! mode('FF' or 'AO' ...) 관련 수정 필요
+    def optimal_pos_find(self, Area_name, outbound_freq, priority, origin = None, lot=None):
         '''
         구역 특성과 상품의 outbound_freq, priority에 따라 적절한 위치 탐색
 
-        현재 First-Fit 과 유사한 방식 사용
-        높이가 0인 곳 부터 찾다가 `AREA_DICT`에 설정된 높이 한계 까지 찾아감
+        높이 인덱스(_positions_by_height)를 활용한 O(1)~O(k) 탐색
         '''
-        iter = 0
-        if len(outbound_freq) == 0 or outbound_freq[0].lower() != 'l':
-        # global_loc = [0,0,0]
-            for z in range(0,self.Area_dict[Area_name].HEIGHT):
-                for x in range(self.Area_dict[Area_name].COL):
-                    for y in range(self.Area_dict[Area_name].ROW):
-                        if origin and [x,y] == origin: # 같은 X,Y 좌표 회피
-                            continue
-                        elif len(self.Area_dict[Area_name].grid[x][y]) == z:
-                            iter += 1
-                            if iter >= priority:
-                                # return[x,y]
-                                return [
-                                    x ,# + self.Area_dict[Area_name].ORIGIN_POINT[0],
-                                    y ,# + self.Area_dict[Area_name].ORIGIN_POINT[1],
-                                    len(self.Area_dict[Area_name].grid[x][y]) # + self.Area_dict[Area_name].ORIGIN_POINT[2]]
-                                ]
-                                # break
-                            else:
-                                continue
-        
-        else:
-            for z in range(0,self.Area_dict[Area_name].HEIGHT):
-                for x in range(self.Area_dict[Area_name].COL-1, -1, -1):
-                    for y in range(self.Area_dict[Area_name].ROW-1, -1, -1):
-                        if origin and [x,y] == origin: # 같은 X,Y 좌표 회피
-                            continue
-                        elif len(self.Area_dict[Area_name].grid[x][y]) == z:
-                            iter += 1
-                            if iter >= priority:
-                                # return[x,y]
-                                return [
-                                    x ,# + self.Area_dict[Area_name].ORIGIN_POINT[0],
-                                    y ,# + self.Area_dict[Area_name].ORIGIN_POINT[1],
-                                    len(self.Area_dict[Area_name].grid[x][y]) # + self.Area_dict[Area_name].ORIGIN_POINT[2]]
-                                ]
-                                # break
-                            else:
-                                continue
-        
-       
+        area = self.Area_dict[Area_name]
+        reverse = len(outbound_freq) > 0 and outbound_freq[0].lower() == 'l'
+
+        # 모든 위치가 가득 찬 경우
+        if area._min_height >= area.HEIGHT:
+            return False
+
+        # priority==1, origin 없음: 최소 높이에서 바로 선택 (O(1)~O(k))
+        if priority == 1 and not origin:
+            positions = area._positions_by_height[area._min_height]
+            if not positions:
+                return False
+            pos = max(positions) if reverse else min(positions)
+            return [pos[0], pos[1], area._min_height]
+
+        # 일반 경로: 높이 인덱스 순회
+        origin_tuple = (origin[0], origin[1]) if origin else None
+        iter_count = 0
+        for z in range(area.HEIGHT):
+            positions = area._positions_by_height[z]
+            if not positions:
+                continue
+            sorted_positions = sorted(positions, reverse=reverse)
+            for pos in sorted_positions:
+                if origin_tuple and pos == origin_tuple:
+                    continue
+                iter_count += 1
+                if iter_count >= priority:
+                    return [pos[0], pos[1], z]
+
         return False
 
 
@@ -251,17 +243,12 @@ class zone_manager():
 
             elif MODBUS_SIM_SKIP:
                 lot = area_from.grid[loc_from[0]][loc_from[1]].pop()
-                self.Area_dict['Gantry'].grid[0][0].append(lot) # 변경 여부 검토 필요
-
-                lot = self.Area_dict['Gantry'].grid[0][0].pop()
                 area_to.grid[loc_to[0]][loc_to[1]].append(lot)
                 logger.info(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
                 self.new_mission_finished = True
-        
+
         # 리스트 [XY 평면 이동 거리, Z축 이동 거리] 반환
-        
-        dist = [loc_to-loc_from for loc_from,loc_to in zip(global_loc_from,global_loc_to)]
-        return_val =  [math.sqrt(pow(dist[0],2)+pow(dist[1],2)),
-                        abs(HEIGHT-global_loc_from[-1])+abs(HEIGHT-global_loc_to[-1])]
-        
-        return return_val
+        dx = global_loc_to[0] - global_loc_from[0]
+        dy = global_loc_to[1] - global_loc_from[1]
+        return [(dx*dx + dy*dy) ** 0.5,
+                abs(HEIGHT - global_loc_from[2]) + abs(HEIGHT - global_loc_to[2])]

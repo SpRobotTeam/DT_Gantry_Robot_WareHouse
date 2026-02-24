@@ -253,7 +253,7 @@ class product_manager():
       
         
         lot_head = self.product_templet_dict[product_name]['lot_head']
-        I_id = f"{len([i for i in self.product_I_dict.keys()if lot_head in i])+1:04d}"
+        I_id = f"{self._registered_count.get(lot_head, 0)+1:04d}"
         lot_tail = f"{DOM}-{I_id}"
         if not lot:
             lot = f"{lot_head}-{lot_tail}"

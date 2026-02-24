@@ -1,6 +1,28 @@
 import math
 
 
+class TrackedStack(list):
+    """grid[x][y] 스택 - append/pop 시 area의 높이 인덱스 자동 업데이트"""
+    __slots__ = ('_area', '_x', '_y')
+
+    def __init__(self, area, x, y):
+        super().__init__()
+        self._area = area
+        self._x = x
+        self._y = y
+
+    def append(self, item):
+        old_h = len(self)
+        super().append(item)
+        self._area._on_height_change(self._x, self._y, old_h, old_h + 1)
+
+    def pop(self, index=-1):
+        old_h = len(self)
+        item = super().pop(index)
+        self._area._on_height_change(self._x, self._y, old_h, old_h - 1)
+        return item
+
+
 class area_manager():
     '''
 
@@ -43,8 +65,32 @@ class area_manager():
         self.INVENTORY_CRITICAL_LIMIT   = self.COL * self.ROW * self.HEIGHT - self.HEIGHT + 1
         self.INVENTORY_LIMIT            = self.COL * self.ROW * self.HEIGHT - self.HEIGHT*(self.HEIGHT-1)
 
+        # 높이 인덱스: _positions_by_height[h] = height가 h인 (x,y) 집합
+        self._heights = [[0] * self.ROW for _ in range(self.COL)]
+        self._positions_by_height = [set() for _ in range(self.HEIGHT)]
+        self._min_height = 0
+
         self.grid = []
         for x in range(self.COL):
             self.grid.append([])
             for y in range(self.ROW):
-                self.grid[x].append([])
+                self.grid[x].append(TrackedStack(self, x, y))
+                if self.HEIGHT > 0:
+                    self._positions_by_height[0].add((x, y))
+
+    def _on_height_change(self, x, y, old_h, new_h):
+        """grid[x][y]의 높이 변경 시 인덱스 업데이트"""
+        if old_h < self.HEIGHT:
+            self._positions_by_height[old_h].discard((x, y))
+        if new_h < self.HEIGHT:
+            self._positions_by_height[new_h].add((x, y))
+        self._heights[x][y] = new_h
+        if new_h < self._min_height:
+            self._min_height = new_h
+        elif old_h == self._min_height and old_h < self.HEIGHT and not self._positions_by_height[old_h]:
+            for h in range(old_h + 1, self.HEIGHT):
+                if self._positions_by_height[h]:
+                    self._min_height = h
+                    break
+            else:
+                self._min_height = self.HEIGHT

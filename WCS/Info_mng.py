@@ -17,13 +17,15 @@ class Base_info (product_manager, container_manager, wh_manager):
             self.sim_skip = True
         else:
             self.sim_skip = False
-        # if op_mode != None and op_mode[0] in ['s', ]:
-        #     self.sim_skip = True
-            
+
         self.WH_dict = {}
         container_manager.__init__(self)
-        
-        product_manager.__init__(self, container_manager)        
+
+        product_manager.__init__(self, container_manager)
+
+        # 성능 최적화: 카운터 및 인덱스
+        self._registered_count = {}   # lot_head -> 등록된 총 수
+        self._lots_by_product = {}    # product_name -> [lot, lot, ...] (재고에 있는 것만)
 
       
     # def __init__(self, saved_file):
@@ -47,7 +49,8 @@ class Base_info (product_manager, container_manager, wh_manager):
         # self.WH_01.Zone_dict = 
         wh_manager.add_default_zone(self.WH_01, {
                 'Zone_name' : 'Zone_01',
-                'container' : self.container_dict['default']
+                'container' : self.container_dict['default'],
+                'sim_skip'  : self.sim_skip
                 }
             )
         
@@ -123,17 +126,14 @@ class Base_info (product_manager, container_manager, wh_manager):
         destination_area = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name]
         In_area          = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict['In']
 
-        area_total_product_amount = len([i for i in destination_area.inventory.keys() 
-                                      if 'loc' in destination_area.inventory[i].keys()])
+        area_total_product_amount = len(destination_area.inventory)
 
-        present_product_amount = len([i for i in destination_area.inventory.keys() 
-                                      if self.product_templet_dict[product_name]['lot_head'] in i])
-        
-        registered_product_amount = len([i for i in self.product_I_dict.keys() 
-                                      if self.product_templet_dict[product_name]['lot_head'] in i])
+        lot_head = self.product_templet_dict[product_name]['lot_head']
+        registered_product_amount = self._registered_count.get(lot_head, 0)
         
         if area_total_product_amount >= destination_area.INVENTORY_CRITICAL_LIMIT: # 물건을 하나씩 집는 동안은 해결 불능
-            print("최종 적재 한계에 도달 하였습니다. \n입고 작업 및 정렬 작업을 진행할 수 없습니다.")
+            if not testing_mode:
+                print("최종 적재 한계에 도달 하였습니다. \n입고 작업 및 정렬 작업을 진행할 수 없습니다.")
             raise NotEnoughSpaceError
         
         # elif area_total_product_amount >= destination_area.INVENTORY_LIMIT: # 다른 전략 필요
@@ -152,6 +152,8 @@ class Base_info (product_manager, container_manager, wh_manager):
         else:
             # 자동 최적화
             if MODE == "AO":
+                present_product_amount = len([i for i in destination_area.inventory.keys()     #AO
+                                              if lot_head in i])                               #AO
                 if (present_product_amount == 0                                               #AO
                     or (present_product_amount+1)%destination_area.HEIGHT):                   #AO
                     priority = 2                                                              #AO
@@ -210,6 +212,11 @@ class Base_info (product_manager, container_manager, wh_manager):
         self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name].inventory[lot] = {
                         'loc' : loc
                     }
+        # 카운터/인덱스 업데이트
+        self._registered_count[lot_head] = self._registered_count.get(lot_head, 0) + 1
+        if product_name not in self._lots_by_product:
+            self._lots_by_product[product_name] = []
+        self._lots_by_product[product_name].append(lot)
         # 자동 최적화
         if MODE == "AO":
             if priority == 1:                                     #AO
@@ -224,10 +231,11 @@ class Base_info (product_manager, container_manager, wh_manager):
 
                 sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
 
-        print(f"{lot} : {Area_name}{loc}에 입고 완료",
-              f"{'- '+destination_area.grid[loc[0]][loc[1]][-1]+'~'+lot}"
-              + f"{' 정렬 완료됨'if priority == 1 else ''}" if MODE == "AO" else ''  #AO
-              )
+        if not testing_mode:
+            print(f"{lot} : {Area_name}{loc}에 입고 완료",
+                  f"{'- '+destination_area.grid[loc[0]][loc[1]][-1]+'~'+lot}"
+                  + f"{' 정렬 완료됨'if priority == 1 else ''}" if MODE == "AO" else ''  #AO
+                  )
         
         # if testing_mode:
         #     return sum_distance
@@ -247,29 +255,22 @@ class Base_info (product_manager, container_manager, wh_manager):
 
         출력 : [`moved_distance`,`lot`]
         '''
-        # loc = self.find_loc(name)
         if not lot:
             if product_name:
-                product_I_dict_sorted = dict(sorted(self.product_I_dict.items()))
-
-
-                for i in product_I_dict_sorted.keys():
-                    if (
-                        product_I_dict_sorted[i]['product_name'] == product_name and
-                        'bin_location' in list(product_I_dict_sorted[i].keys())
-                        ):
-                        lot = i
+                # 인덱스에서 재고에 있는 첫 번째 lot 검색
+                product_lots = self._lots_by_product.get(product_name, [])
+                for candidate in product_lots:
+                    if 'bin_location' in self.product_I_dict.get(candidate, {}):
+                        lot = candidate
                         break
-
-            # elif loc:
 
         if not lot:
             raise ProductNotExistError
-            # return None
 
         sum_distance = [0,0]
 
-        print(f"출고 대상 : {lot}")
+        if not testing_mode:
+            print(f"출고 대상 : {lot}")
         I_dict      = self.product_I_dict[lot]
         WH_name     = I_dict['WH_name']
         Zone_name   = I_dict['Zone_name']
@@ -336,12 +337,19 @@ class Base_info (product_manager, container_manager, wh_manager):
 
             sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
 
-            rearrange_offset = len(list(deposition_area.inventory.keys()))\
-                                -list(deposition_area.inventory.keys()).index(lot) 
+            inv_keys = list(deposition_area.inventory.keys())
+            rearrange_offset = len(inv_keys) - inv_keys.index(lot)
             
             deposition_area.inventory.pop(lot)
+            out_product_name = self.product_I_dict[lot]['product_name']
             for k in ['WH_name','Zone_name','Area_name','bin_location']:
                 self.product_I_dict[lot].pop(k)
+            # _lots_by_product 인덱스에서 제거
+            if out_product_name in self._lots_by_product:
+                try:
+                    self._lots_by_product[out_product_name].remove(lot)
+                except ValueError:
+                    pass
             
             # 자동 최적화
             if MODE == "AO":
@@ -360,8 +368,8 @@ class Base_info (product_manager, container_manager, wh_manager):
         if Out_area.grid[0][0]:
             Out_area.grid[0][0].pop()
 
-        print(f"{lot} 출고 완료",
-              f"")
+        if not testing_mode:
+            print(f"{lot} 출고 완료")
         # if testing_mode == 1:
         #     return sum_distance 
         # else:
