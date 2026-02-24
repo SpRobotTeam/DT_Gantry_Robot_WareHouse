@@ -224,4 +224,7 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# WSL Zone.Identifier metadata files
+*:Zone.Identifier
+
 # End of https://www.toptal.com/developers/gitignore/api/windows,visualstudiocode,python

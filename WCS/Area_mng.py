@@ -1,45 +1,22 @@
-# import sys, os
-# sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
-
 import math
-# from error import error_code_dict 
-import numpy as np
-import MW.PLC_com as PLC_com
-
 
 
 class area_manager():
     '''
-    
+
     리스트 기반 겐트리 창고의 구역 내 물품 추적 및 이동 순서를 관리하는 메니저
 
     초기화에 구역의 이름:str, 행:float(미터), 열:float(미터), 최대 높이:float(미터), 그리드 형태:str in ['square', 'triangle'], 그리드 사이즈:float(미터) 필요
 
     '''
-    
-    
 
-    # def __init__(self):
-    #     self.area_name = 'Area_01'
-    #     self.row = 7000 // (200+20)
-    #     self.col = 12000 // (300+20)
-    #     self.width = 1600 // 200
-    # def __init__(self, load_data):
-    #     pass
-
-
-    def __init__(self, 
+    def __init__(self,
                  Area_name:str,
-                 origin_point:list, 
-                #  container_type,
-                #  grid_size:list[float], 
+                 origin_point:list,
                  grid_type:str='rectangle',
-                 row_block:int=0, 
-                 col_block:int=0, 
-                 height_block:int=0, 
-                #  row:float=0, 
-                #  col:float=0, 
-                #  height:float=0, 
+                 row_block:int=0,
+                 col_block:int=0,
+                 height_block:int=0,
                  ):
         '''
         구역 그리드 생성
@@ -58,70 +35,16 @@ class area_manager():
         self.AREA_NAME = Area_name
         self.GRID_TYPE = grid_type
         self.ORIGIN_POINT = origin_point
-        
-        # grid_set_num = 0
-        # for j in [[row_block, col_block, height_block], [row, col, height, grid_size]]:
-        #     for i in j:
-        #         if i <= 0:
-        #             grid_set_num+=1
-        #             break
-        #         elif  len(j) == j.index(i):
-        #             break
-        # if grid_set_num >= 2:
-        #     self.error('invalid_input')
-
-        # elif grid_set_num == 0:
-        #     self.col = col_block
-        #     self.row = row_block
-        #     self.height = height_block
-
-        # elif grid_type[0].lower() == 'r':
-        #     self.col    = math.floor(col/grid_size[0])      - self.origin_point[0]
-        #     self.row    = math.floor(row/grid_size[1])      - self.origin_point[1]
-        #     self.height = math.floor(height/grid_size[2])   - self.origin_point[2]
 
         self.COL = col_block
         self.ROW = row_block
         self.HEIGHT = height_block
+        # 최대 적재량에서 정렬 불가능한 높이만큼 제외
         self.INVENTORY_CRITICAL_LIMIT   = self.COL * self.ROW * self.HEIGHT - self.HEIGHT + 1
         self.INVENTORY_LIMIT            = self.COL * self.ROW * self.HEIGHT - self.HEIGHT*(self.HEIGHT-1)
-            
-        # self.grid = []
-        # for j in range(col):
-        #     temp_list = []
-        #     for i in range(row):
-        #         temp_list.append([])
-        #     self.grid.append(temp_list)
-        
-        # self.grid = np.zeros(self.col,self.row,self.height)
+
         self.grid = []
         for x in range(self.COL):
             self.grid.append([])
             for y in range(self.ROW):
                 self.grid[x].append([])
-        
-        # self.empty_space = self.col * self.row
-
-
-    # def split_area(split_num = 2):
-    #     if split_num == 0:
-            
-    #     if split_num%2:
-    #         split_num +=1
-
-        
-
-
-
-
-    # def error(self, error_code, *messages):
-    #     # print(f'오류가 발생했습니다.\n')
-    #     for i in error_code_dict[error_code]:
-    #         print(i)
-    #     if messages:
-    #         print("문제가 발생한 변수는 다음과 같습니다 :")
-    #         for i in messages:
-    #             print(i)
-    #     raise(error_code)
-        
-

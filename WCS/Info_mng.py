@@ -1,11 +1,7 @@
-# import sys, os
-# sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
-
 from WCS.WH_mng import wh_manager
 from WCS.Zone_mng import zone_manager
 from WCS.Area_mng import area_manager
 from MW.Product_mng import container_manager, product_manager
-# import numpy as np
 import datetime as dt
 import math
 
@@ -58,10 +54,7 @@ class Base_info (product_manager, container_manager, wh_manager):
 
 
     def add_WH(self,WH_properties):
-        self.WH_dict[WH_properties['WH_name']] = \
-            locals()[f"{WH_properties['WH_name']}"] = \
-                wh_manager(WH_properties)
-        # self.WH_dict[WH_properties['name']] =  locals()[f"{WH_properties['name']}"]
+        self.WH_dict[WH_properties['WH_name']] = wh_manager(WH_properties)
                 
                                                         
 
@@ -577,8 +570,6 @@ class Base_info (product_manager, container_manager, wh_manager):
                 sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
         
         return sum_distance
-
-    
 
         # # lot = destination_area.grid[x][y][-1]
         # # product_name = self.product_I_dict[lot]['product_name']

@@ -1,14 +1,9 @@
-# import sys, os
-# sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
-
 import logging.handlers
 from WCS import SPWCS
 import random as rand
 import time
-# from MW import PLC_com
-# import pprint
 import os, sys, pathlib
-import subprocess, asyncio # concurrent.futures
+import subprocess
 import csv
 
 from ERROR.error import NotEnoughSpaceError, SimError, ProductNotExistError
@@ -19,7 +14,7 @@ import logging
 logger = logging.getLogger('main')
 logger.setLevel(logging.DEBUG)
 pathlib.Path("./logs").mkdir(parents=True, exist_ok=True)
-pathlib.Path("./logs/main.log").touch
+pathlib.Path("./logs/main.log").touch()
 log_file_handler = logging.handlers.RotatingFileHandler(filename="./logs/main.log", 
                                     mode="a",
                                     backupCount= 3,
@@ -61,13 +56,6 @@ class main(SPWCS.GantryWCS):
         
         SPWCS.GantryWCS.__init__(self, self.op_mode)
 
-    # async def sim_RoboDK(self):
-    #     subprocess.run(
-    #         arg=f"{PYTHON_NAME} {os.path.dirname(os.path.realpath(__file__))}/SIM/RoboDK/plc_motion006.py",
-    #         shell=True, 
-    #         )
-
-
     def multiple_inbound(self, name, num):
         for _ in range(num):
             res = self.Inbound(product_name=name)
@@ -89,7 +77,6 @@ class main(SPWCS.GantryWCS):
                 self.Outbound(product)
                 num -= 1
 
-    # modbus_com = PLC_com.plc_com
     def reset(self, container_name = None):
         self.WH_dict = {}
         self.default_setting(container_name=container_name)
@@ -353,7 +340,7 @@ if __name__ == "__main__":
                         if lot:
                             SPWCS.GantryWCS.Outbound(self=SPDTw, lot=lot)
                         else:
-                            f"입력 {num:04d}와 일치하는 상품이 없습니다."
+                            logger.info(f"입력 {num:04d}와 일치하는 상품이 없습니다.")
 
                     # if command == 'r':
                     #     if not num:
@@ -389,32 +376,30 @@ if __name__ == "__main__":
 
             if mission_length < LEAST_MISSION_LENGTH*2:
                 # os.system(f"{PYTHON_NAME} {os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py {seed} {LEAST_MISSION_LENGTH*2}")
-                subprocess.check_call(["{PYTHON_NAME}", f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py", str(seed), str(LEAST_MISSION_LENGTH*2)],
+                subprocess.check_call([PYTHON_NAME, f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py", str(seed), str(LEAST_MISSION_LENGTH*2)],
                                           stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
                 mission_length = LEAST_MISSION_LENGTH
 
             mission_offset = 0
-            # for _ in range(mission_length):
+
+            with open(file_name,'r', newline='') as csv_editor:
+                all_missions = list(csv.reader(csv_editor))
+
             for _ in range(LEAST_MISSION_LENGTH):
-                
+
                 action = product_name = dom = wait_time = None
 
-                with open(file_name,'r', newline='') as csv_editor:
-                    line_index = 0
-                    mission_list = csv.reader(csv_editor)
-                    for line in mission_list:
-                        if line_index == _ + mission_offset:
-                            action = line[1]
-                        
-                            if action in ['IN', 'OUT']:
-                                product_name = f"{int(line[2]):02d}"
-                                if action == 'IN':
-                                    dom = line[3]
-                            elif action in ['WAIT']:
-                                wait_time = line[2]
-                            break
-                        else:
-                            line_index += 1
+                line_idx = _ + mission_offset
+                if line_idx < len(all_missions):
+                    line = all_missions[line_idx]
+                    action = line[1]
+
+                    if action in ['IN', 'OUT']:
+                        product_name = f"{int(line[2]):02d}"
+                        if action == 'IN':
+                            dom = line[3]
+                    elif action in ['WAIT']:
+                        wait_time = line[2]
                 
                 if action == 'IN':
                     try:

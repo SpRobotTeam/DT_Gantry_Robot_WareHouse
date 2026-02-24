@@ -1,34 +1,14 @@
-# import sys, os
-# sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
-
 from pyModbusTCP.server import ModbusServer, DataBank
 from pyModbusTCP.client import ModbusClient
 import numpy as np
-from threading import Thread, Event
+from threading import Thread
 import time
 from MW import modbus_sim
-import os, pathlib
+import os
 
 import logging
 logger = logging.getLogger('main')
-# logger.setLevel(logging.DEBUG)
-# pathlib.Path("../logs").mkdir(parents=True, exist_ok=True)
-# pathlib.Path("../logs/main.log").touch
-# log_file_handler = logging.handlers.RotatingFileHandler(filename="../logs/main.log", 
-#                                     mode="a",
-#                                     backupCount= 3,
-#                                     maxBytes= 1024*1024*512,
-#                                     encoding='utf-8'
-#                                     )
-# log_formater = logging.Formatter("{asctime} {levelname} {filename}>{funcName} {message}", style='{')
-# log_file_handler.setFormatter(log_formater)
-# logger.addHandler(log_file_handler)
 
-# log_streamer = logging.StreamHandler()
-# log_streamer.setFormatter(log_formater)
-# logger.addHandler(log_streamer)
-
-# sim = True
 sim = False
 
 class server():
@@ -175,10 +155,10 @@ class client():
                         # logger.info(f" address : {address}, \t set_list : {set_list}")
     
         except Exception as e:
-            logger.error(f"mbus write error : {e.with_traceback()}")
+            logger.error(f"mbus write error : {e}")
         finally:
             logger.debug(f" address : {address}, \t set_list : {set_list}")
-            self.client.close
+            self.client.close()
             end_time = time.time()
             
             # logger.debug(f"mbus write : {end_time-start_time:.3f}s")
@@ -194,7 +174,7 @@ class client():
             try:
                 self.modbus_data = self.read(address=0, nb=reshape, reshape=reshape)[0]
                 recieved = True
-            except IndexError or TypeError:
+            except (IndexError, TypeError):
                 recieved = False
                 logger.debug("M/B failed")
                 continue

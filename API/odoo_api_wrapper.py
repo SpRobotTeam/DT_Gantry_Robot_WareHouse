@@ -1,3 +1,4 @@
+import os
 import xmlrpc.client
 from ERROR.error import DB_ObjectNotExistError
 
@@ -58,12 +59,12 @@ class odoo_xmlrpc():
 
 
     def __init__(self, url=None, db=None, username=None, password=None, api_key=None):
-    
-        self.__url      = url if url else 'http://127.0.0.1:28069' # 'http://127.0.0.1:8069'
-        self.__db       = db if db else 'SPDT_DB' # 'mydb'
-        self.__username = username if username else 'maroon@spsystems.co.kr' # 'admin'
-        self.__password = password if password else None
-        self.__api_key  = api_key if api_key else 'aac1974e1026b59408bdca46312f1d011ba4a667' # '8e31c53904665a770c6ce58d44bcb86f4db7bb01'
+
+        self.__url      = url or os.environ.get('ODOO_URL', 'http://127.0.0.1:28069')
+        self.__db       = db or os.environ.get('ODOO_DB', 'SPDT_DB')
+        self.__username = username or os.environ.get('ODOO_USERNAME', '')
+        self.__password = password or os.environ.get('ODOO_PASSWORD', '')
+        self.__api_key  = api_key or os.environ.get('ODOO_API_KEY', '')
         self.__key      = self.__password if self.__password else self.__api_key
 
 
@@ -78,7 +79,7 @@ class odoo_xmlrpc():
                 self.__models = xmlrpc.client.ServerProxy(f'{self.__url}/xmlrpc/2/object')
                 return None
         except Exception as e:
-            print("로그인 과정에서 오류가 발생하였습니다. 에러:{e}")
+            print(f"로그인 과정에서 오류가 발생하였습니다. 에러:{e}")
             return e
     
 
