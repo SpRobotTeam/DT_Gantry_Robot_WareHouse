@@ -466,4 +466,4 @@ if __name__ == "__main__":
 
 
 else:
-    SPDTw = main()
+    pass
