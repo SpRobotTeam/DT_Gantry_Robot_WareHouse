@@ -1,14 +1,9 @@
-# import sys, os
-# sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
-
 import logging.handlers
 from WCS import SPWCS
 import random as rand
 import time
-# from MW import PLC_com
-# import pprint
 import os, sys, pathlib
-import subprocess, asyncio # concurrent.futures
+import subprocess
 import csv
 
 from ERROR.error import NotEnoughSpaceError, SimError, ProductNotExistError
@@ -61,13 +56,6 @@ class main(SPWCS.GantryWCS):
         
         SPWCS.GantryWCS.__init__(self, self.op_mode)
 
-    # async def sim_RoboDK(self):
-    #     subprocess.run(
-    #         arg=f"{PYTHON_NAME} {os.path.dirname(os.path.realpath(__file__))}/SIM/RoboDK/plc_motion006.py",
-    #         shell=True, 
-    #         )
-
-
     def multiple_inbound(self, name, num):
         for _ in range(num):
             res = self.Inbound(product_name=name)
@@ -89,7 +77,6 @@ class main(SPWCS.GantryWCS):
                 self.Outbound(product)
                 num -= 1
 
-    # modbus_com = PLC_com.plc_com
     def reset(self, container_name = None):
         self.WH_dict = {}
         self.default_setting(container_name=container_name)

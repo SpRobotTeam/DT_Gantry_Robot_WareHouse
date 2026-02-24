@@ -1,34 +1,14 @@
-# import sys, os
-# sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
-
 from pyModbusTCP.server import ModbusServer, DataBank
 from pyModbusTCP.client import ModbusClient
 import numpy as np
-from threading import Thread, Event
+from threading import Thread
 import time
 from MW import modbus_sim
-import os, pathlib
+import os
 
 import logging
 logger = logging.getLogger('main')
-# logger.setLevel(logging.DEBUG)
-# pathlib.Path("../logs").mkdir(parents=True, exist_ok=True)
-# pathlib.Path("../logs/main.log").touch
-# log_file_handler = logging.handlers.RotatingFileHandler(filename="../logs/main.log", 
-#                                     mode="a",
-#                                     backupCount= 3,
-#                                     maxBytes= 1024*1024*512,
-#                                     encoding='utf-8'
-#                                     )
-# log_formater = logging.Formatter("{asctime} {levelname} {filename}>{funcName} {message}", style='{')
-# log_file_handler.setFormatter(log_formater)
-# logger.addHandler(log_file_handler)
 
-# log_streamer = logging.StreamHandler()
-# log_streamer.setFormatter(log_formater)
-# logger.addHandler(log_streamer)
-
-# sim = True
 sim = False
 
 class server():

@@ -1,32 +1,11 @@
-# import sys, os
-# sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
-
 from WCS.Area_mng import area_manager
 import math
-import numpy as np
 import MW.PLC_com as PLC_com
 import time
-import os, pathlib
+import os
 
 import logging
 logger = logging.getLogger('main')
-# logger.setLevel(logging.DEBUG)
-# pathlib.Path("../logs").mkdir(parents=True, exist_ok=True)
-# pathlib.Path("../logs/main.log").touch
-# log_file_handler = logging.handlers.RotatingFileHandler(filename="../logs/main.log", 
-#                                     mode="a",
-#                                     backupCount= 3,
-#                                     maxBytes= 1024*1024*512,
-#                                     encoding='utf-8'
-#                                     )
-# log_formater = logging.Formatter("{asctime} {levelname} {filename}>{funcName} {message}", style='{')
-# log_file_handler.setFormatter(log_formater)
-# logger.addHandler(log_file_handler)
-
-
-# log_streamer = logging.StreamHandler()
-# log_streamer.setFormatter(log_formater)
-# logger.addHandler(log_streamer)
 
 PORT = 502 if 'nt' in os.name else 2502
 
@@ -54,9 +33,7 @@ class zone_manager():
         # self.exec()
         
         Area_name = area_properties_dict['Area_name']
-        self.Area_dict[Area_name] = \
-            locals()[Area_name] = \
-                area_manager(
+        self.Area_dict[Area_name] = area_manager(
                     Area_name=Area_name,
                     origin_point=area_properties_dict['origin'],  
                     col_block=area_properties_dict['col'], 
@@ -287,17 +264,4 @@ class zone_manager():
         return_val =  [math.sqrt(pow(dist[0],2)+pow(dist[1],2)),
                         abs(HEIGHT-global_loc_from[-1])+abs(HEIGHT-global_loc_to[-1])]
         
-        return return_val # if not self.write(0,set_list=[0]*9) else [0,0]
-
-    # def pick_item(self, lot, Area_name, ):
-    #     set_list = [1] + loc + [1] + Out.ORIGIN_POINT + [2]
-    #     self.Modbus_inst.write(address=0, set_list=set_list)
-
-    
-
-    
-
-
-    
-    
-
+        return return_val
