@@ -175,10 +175,10 @@ class client():
                         # logger.info(f" address : {address}, \t set_list : {set_list}")
     
         except Exception as e:
-            logger.error(f"mbus write error : {e.with_traceback()}")
+            logger.error(f"mbus write error : {e}")
         finally:
             logger.debug(f" address : {address}, \t set_list : {set_list}")
-            self.client.close
+            self.client.close()
             end_time = time.time()
             
             # logger.debug(f"mbus write : {end_time-start_time:.3f}s")
@@ -194,7 +194,7 @@ class client():
             try:
                 self.modbus_data = self.read(address=0, nb=reshape, reshape=reshape)[0]
                 recieved = True
-            except IndexError or TypeError:
+            except (IndexError, TypeError):
                 recieved = False
                 logger.debug("M/B failed")
                 continue

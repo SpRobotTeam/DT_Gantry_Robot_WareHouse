@@ -93,6 +93,6 @@ class Evaluator():
         average_height = np.mean(height_list) # sum(height_list)/len(height_list)
 
         std = np.std(height_list)
-        position_score = 1/std # 1/(average_height)
+        position_score = 1/std if std > 0 else float('inf')
         
         return [position_score, std]

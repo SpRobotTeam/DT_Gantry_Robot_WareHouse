@@ -211,8 +211,7 @@ class zone_manager():
                 self.Modbus_inst.mission_running = False
 
                 while not self.Modbus_inst.mission_enabled: # 갠트리 작동 완료 까지 대기
-                    # self.Modbus_inst.plc_check()
-                    continue
+                    time.sleep(0.1)
 
                 while not (self.Modbus_inst.mission_running or self.new_mission_finished): # 갠트리 명령 대기 중
                     if self.Modbus_inst.modbus_data[:10] == set_list:

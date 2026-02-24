@@ -148,8 +148,8 @@ class mission_list_generator():
 
         if not product_id:
             product_id = list(self.item_type_dict.keys())[
-                self.Rand.choices(range(len(self.item_type_dict.keys())), 
-                IN_FREQUENCY)
+                self.Rand.choices(range(len(self.item_type_dict.keys())),
+                OUT_FREQUENCY)[0]
                 ]
         
         out_item_list = []
