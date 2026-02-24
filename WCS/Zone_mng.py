@@ -7,7 +7,7 @@ import os
 import logging
 logger = logging.getLogger('main')
 
-PORT = 502 if 'nt' in os.name else 2502
+PORT = PLC_com.DEFAULT_PORT
 
 class zone_manager():
     def __init__(self,

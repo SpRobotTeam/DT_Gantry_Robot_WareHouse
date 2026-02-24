@@ -389,13 +389,15 @@ if __name__ == "__main__":
                 all_missions = list(csv.reader(csv_editor))
             print(f"미션 리스트 로딩 완료! ({len(all_missions)}건)")
 
-            # 미션 처리 시 터미널에는 진행률만, 상세 로그는 파일에만 기록
-            logger.removeHandler(log_streamer)
-
             _inventory_limit = (
                 SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name]
                 .Area_dict['Area_01'].INVENTORY_CRITICAL_LIMIT
             )
+
+            # S 모드: 미션별 상세 로그 유지 / N 모드: 진행률 바만 표시
+            _sim_mode = (op_mode == 's')
+            if not _sim_mode:
+                logger.removeHandler(log_streamer)
 
             print(f"\n미션 처리 시작 (총 {LEAST_MISSION_LENGTH:,}건, 창고용량: {_inventory_limit})")
             print("=" * 60)
@@ -405,7 +407,7 @@ if __name__ == "__main__":
 
             for _ in range(LEAST_MISSION_LENGTH):
 
-                if _ % _progress_step == 0 and _ > 0:
+                if not _sim_mode and _ % _progress_step == 0 and _ > 0:
                     _pct = _ * 100 // LEAST_MISSION_LENGTH
                     _elapsed = time.time() - _start_time
                     _eta = _elapsed / _ * (LEAST_MISSION_LENGTH - _)
@@ -432,16 +434,29 @@ if __name__ == "__main__":
                     elif action in ['WAIT']:
                         wait_time = line[2]
 
+                # S 모드: 미션 시작 로그
+                if _sim_mode:
+                    _inv_count = len(SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].inventory)
+                    _elapsed = time.time() - _start_time
+                    _mission_num = _ + 1 - mission_offset
+                    print(f"\n[미션 {_mission_num:,} / {LEAST_MISSION_LENGTH:,}] "
+                          f"({action}) 상품:{product_name or '-'} | "
+                          f"재고:{_inv_count}/{_inventory_limit} | 경과:{_elapsed:.0f}s")
+
                 if action == 'IN':
                     try:
                         moved_distance, lot = SPDTw.Inbound(product_name=product_name, DOM=dom, testing_mode = True)
                         _cnt['IN'] += 1
+                        if _sim_mode:
+                            print(f"  -> 입고 완료: {lot} | 이동거리: {moved_distance}")
                         logger.info(f"IN {lot}")
                         sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
                         unit_time_past += sum([d*s for d,s in zip(moved_distance, GANTRY_MOVING_SPEED)])
                     except NotEnoughSpaceError:
                         mission_offset += 1
                         _cnt['skip_full'] += 1
+                        if _sim_mode:
+                            print(f"  -> 스킵: 창고 공간 부족")
                         logger.info("입고 명령 무시 : 창고 공간 부족")
                         logger.warning(f"IN 실패 {product_name} NotEnoughSpaceError")
                         continue
@@ -449,9 +464,13 @@ if __name__ == "__main__":
                     try:
                         moved_distance, lot = SPDTw.Outbound(product_name=product_name, testing_mode = 1)
                         _cnt['OUT'] += 1
+                        if _sim_mode:
+                            print(f"  -> 출고 완료: {lot} | 이동거리: {moved_distance}")
                         logger.info(f"OUT {lot}")
                     except ProductNotExistError:
                         _cnt['skip_empty'] += 1
+                        if _sim_mode:
+                            print(f"  -> 스킵: 해당 품목 없음")
                         logger.info("출고 명령 무시 : 해당 품목의 상품 없음")
                         logger.warning(f"OUT 실패 {product_name} ProductNotExistError")
                         continue
@@ -459,6 +478,8 @@ if __name__ == "__main__":
                     unit_time_past += sum([d*s for d,s in zip(moved_distance, GANTRY_MOVING_SPEED)])
                 elif action == 'WAIT':
                     _cnt['WAIT'] += 1
+                    if _sim_mode:
+                        print(f"  -> 대기: {wait_time}")
 
                 if action == 'WAIT':
                     logger.info(
@@ -488,8 +509,9 @@ if __name__ == "__main__":
                 f"스킵(공간부족):{_cnt['skip_full']} 스킵(상품없음):{_cnt['skip_empty']}")
             print("=" * 60)
 
-            # 터미널 로그 출력 복원
-            logger.addHandler(log_streamer)
+            # 터미널 로그 출력 복원 (N 모드에서만 제거했으므로)
+            if not _sim_mode:
+                logger.addHandler(log_streamer)
 
             eval_score = Evaluator(mode=op_mode, SEED=seed, mission_length = LEAST_MISSION_LENGTH)
             final_score, time_score, position_score, average_height = eval_score.evaluate(

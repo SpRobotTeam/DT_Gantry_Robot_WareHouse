@@ -11,6 +11,40 @@ logger = logging.getLogger('main')
 
 sim = False
 
+def _get_windows_host_ip():
+    """WSL2 환경에서 Windows 호스트 IP를 자동 감지"""
+    try:
+        with open('/etc/resolv.conf', 'r') as f:
+            for line in f:
+                if line.strip().startswith('nameserver'):
+                    return line.strip().split()[1]
+    except FileNotFoundError:
+        pass
+    return '127.0.0.1'
+
+def _is_wsl():
+    """WSL 환경 여부 판별"""
+    try:
+        with open('/proc/version', 'r') as f:
+            return 'microsoft' in f.read().lower()
+    except FileNotFoundError:
+        return False
+
+IS_WSL = _is_wsl()
+
+if 'nt' in os.name:
+    # Windows 네이티브: localhost:502
+    DEFAULT_HOST = '127.0.0.1'
+    DEFAULT_PORT = 502
+elif IS_WSL:
+    # WSL → Windows RoboDK: Windows호스트IP:502
+    DEFAULT_HOST = _get_windows_host_ip()
+    DEFAULT_PORT = 502
+else:
+    # 네이티브 Linux: localhost:2502
+    DEFAULT_HOST = '127.0.0.1'
+    DEFAULT_PORT = 2502
+
 class server():
     def __init__(self, 
                  host='127.0.0.1', 
@@ -210,16 +244,19 @@ class client():
 class plc_com(client, server):
     mission_enabled = False
 
-    def __init__(self, 
-                 host='127.0.0.1', # '127.0.0.1', '192.168.0.65'
+    def __init__(self,
+                 host=None,
                  port=502,
                  unit_id=1,
-                 loop_interval:float=0.5, 
-                 h_regs_size:int=65536, 
+                 loop_interval:float=0.5,
+                 h_regs_size:int=65536,
                  d_inputs_size:int=65536,
-                 coils_size:int=0, 
+                 coils_size:int=0,
                  i_regs_size:int=0):
-        
+
+        if host is None:
+            host = DEFAULT_HOST
+        logger.info(f"Modbus 연결 대상: {host}:{port}")
         self.loop_interval = loop_interval
         if sim:
             server.__init__(self,host=host, 

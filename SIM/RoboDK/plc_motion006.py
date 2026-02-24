@@ -21,7 +21,7 @@ logger = logging.getLogger('plc_motion006')
 logger.setLevel(logging.DEBUG)
 pathlib.Path("./logs").mkdir(parents=True, exist_ok=True)
 pathlib.Path("./logs/plc_motion006.log").touch
-log_file_handler = logging.handlers.RotatingFileHandler(filename="./logs/plc_motion006.log", 
+log_file_handler = logging.handlers.RotatingFileHandler(filename="./logs/plc_motion006.log",
                                     mode="a",
                                     backupCount= 3,
                                     maxBytes= 1024*1024*512,
@@ -31,7 +31,14 @@ log_formater = logging.Formatter("{asctime} {levelname} {filename}>{funcName} {m
 log_file_handler.setFormatter(log_formater)
 logger.addHandler(log_file_handler)
 
-logger.info("______________________________________________________________________\nProgram start")
+# 콘솔 출력 핸들러 추가
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(logging.Formatter("{asctime} {levelname} {message}", style='{'))
+logger.addHandler(console_handler)
+
+logger.info("=" * 60)
+logger.info("plc_motion006 시작")
 
 if not 'nt' in os.name:
     subprocess.Popen(["sh", home_path+"/RoboDK/RoboDK-Start.sh"])
@@ -41,13 +48,17 @@ parent_path = os.path.dirname(__file__)+("\\" if 'nt' in os.name else "/")
 if os.getcwd()[0].lower()+os.getcwd()[1:] not in parent_path[0].lower()+parent_path[1:]:
     parent_path = os.getcwd() + ("\\" if 'nt' in os.name else "/") + parent_path
 
+logger.info("RoboDK 연결 중...")
 RDK = robolink.Robolink()
+logger.info("RoboDK 연결 완료")
+
+station_file = parent_path + "wcs_plc_20240624_150000.rdk"
+logger.info(f"스테이션 로딩: {station_file}")
 if 'nt' in os.name:
-    # RDK.AddFile(os.path.dirname(__file__)+"\\"+"wcs_plc_20240203_183935.rdk")
-    RDK.AddFile(parent_path+"wcs_plc_20240624_150000.rdk")
-    # RDK.AddFile(os.path.dirname(__file__)+"\\"+"wcs_plc_20240513_133800.rdk")
+    RDK.AddFile(station_file)
 else:
-    RDK.AddFile(parent_path+"wcs_plc_20240624_150000.rdk")
+    RDK.AddFile(station_file)
+logger.info("스테이션 로딩 완료")
 # station_item = RDK.AddFile("wcs_plc_20240508_133800.rdk")
 # station = RDK.Item(station_item.Name())
 # station.setName("station")
@@ -112,7 +123,7 @@ def load_box():
     return box
 
 class modbus_inst():
-    def __init__(self, host='127.0.0.1', port=502, unit_id=1):
+    def __init__(self, host='0.0.0.0', port=502, unit_id=1):
         self.databank = DataBank()
         self.server = ModbusServer(host=host, port=port, no_block=True, data_bank=self.databank)
 
@@ -384,9 +395,10 @@ def move_to_position(x1, y1, z1, x2, y2, z2):
 pallet = RDK.Item("pallet")
 # create_frames_and_targets(make_points(20,20,5), gantry, RDK, pallet, 20, 20, 5)
 
-
-
+logger.info("모델 아이템 로딩 완료")
+logger.info("갠트리 홈 포지션 이동 중...")
 home_motions(gantry, gripper, conveyor, gantry_home, open_gripper, con_pitch)
+logger.info("갠트리 홈 포지션 완료")
 
 # items = define_model()
 # for i in range(len(points)):
@@ -408,45 +420,36 @@ modbus_table = last_modbus_table = [0] * 20
 
 if __name__ == '__main__':
 
+    modbus_port = 502 if 'nt' in os.name else 2502
+    logger.info(f"Modbus 서버 시작 (port={modbus_port})...")
     s = modbus_inst(
-        port=502 if 'nt' in os.name else 2502
-
-
+        port=modbus_port
     )
-    # s.write_data(address=11, data=0)
-    # s.write_data(address=12, data=1)
-    # s.write_data(address=13, data=0)
     s.write_data(address=11, data=[0,1,0])
     modbus_table = last_modbus_table = modbus_table[:11]+[0,1,0]+modbus_table[14:]
-    logger.info(f" plc_ready :\t\t\t\t{modbus_table}")
+    logger.info(f"Modbus 서버 준비 완료 - 미션 대기 중")
+    logger.info(f"레지스터 상태: {modbus_table}")
 
     cam_streamer = Thread(target=camera_stream, daemon=True)
     cam_streamer.start()
+    logger.info(f"카메라 스트림 시작 (UDP:{UDP_PORT})")
+    logger.info("=" * 60)
+    logger.info("WCS 미션 수신 대기 중... (Ctrl+C로 종료)")
+    logger.info("")
+
+    mission_count = 0
+    _start_time = time.time()
 
     while True:
         s.databank.set_holding_registers(10, [s.heartbeat_flag])
 
         recv_data = s.read_data(address=0, num = 20)
         modbus_table = recv_data
-        if modbus_table[:9] != last_modbus_table[:9] or modbus_table[11:] != last_modbus_table[11:]:
-            logger.info(f" plc_data_reading :\t\t{modbus_table}")
-            last_modbus_table = modbus_table
-
-        # if not s.read_data(address=0):
-        # if not recv_data[0]:
-
-            
 
         if recv_data[0] == 1 and recv_data[13] == 0:
-            # s.write_data(address=0,data=0)
-
-            # 모드버스 11번 주소에 1을 작성하고 모드버스 12번 주소에 0을 작성
-            # s.write_data(address=11, data=1)
-            # s.write_data(address=12, data=0)
+            mission_count += 1
             s.write_data(address=11, data=[1,0,0])
             modbus_table = modbus_table[:11]+[1,0,0]+modbus_table[14:]
-            logger.info(f" plc_mission_recived :\t{modbus_table[1:4]} -> {modbus_table[5:8]}")
-            logger.info(f" plc_mission_running :\t{modbus_table}")
 
             data_x1 = recv_data[1]
             data_y1 = recv_data[2]
@@ -456,42 +459,41 @@ if __name__ == '__main__':
             data_y2 = recv_data[6]
             data_z2 = recv_data[7]
 
+            # 미션 타입 판별
+            if data_x1 == 0 and data_y1 == 0 and data_z1 == 0:
+                mission_type = "IN "
+                pos_str = f"         -> ({data_x2:02d},{data_y2:02d},{data_z2})"
+            elif data_x2 == 0 and data_y2 == 0 and data_z2 == 0:
+                mission_type = "OUT"
+                pos_str = f"({data_x1:02d},{data_y1:02d},{data_z1}) ->         "
+            else:
+                mission_type = "MOV"
+                pos_str = f"({data_x1:02d},{data_y1:02d},{data_z1}) -> ({data_x2:02d},{data_y2:02d},{data_z2})"
+
+            _elapsed = time.time() - _start_time
+            logger.info(f"[#{mission_count:04d}] {mission_type} {pos_str}  실행 중...")
+
+            # 로봇 동작 실행
+            _motion_start = time.time()
             if data_x1 == 0 and data_y1 == 0 and data_z1 == 0:
                 box = None
                 while not box:
                     box = move_to_in(data_x2, data_y2, data_z2)
-                    logger.info(f"IN\t{[data_x2, data_y2, data_z2]}")
             elif data_x2 == 0 and data_y2 == 0 and data_z2 == 0:
                 move_to_out(data_x1, data_y1, data_z1)
-                logger.info(f"OUT\t{[data_x1, data_y1, data_z1]}")
             else:
                 move_to_position(data_x1, data_y1, data_z1, data_x2, data_y2, data_z2)
-                logger.info(f"MOVE\t{[data_x1, data_y1, data_z1]} -> {[data_x2, data_y2, data_z2]}")
+            _motion_time = time.time() - _motion_start
 
-            # s.write_data(address=11, data=0)
-            # s.write_data(address=12, data=1)
-            
-            
-
-            # 함수 실행이후 
-            # 모드버스 11번 주소에 0을 작성하고 모드버스 12번, 13번 주소에 1을 작성
-            # s.write_data(address=11, data=0)
-            # s.write_data(address=12, data=1)
-            # s.write_data(address=13, data=1)
+            # 미션 완료
             s.write_data(address=11, data=[0,1,1])
             modbus_table = modbus_table[:11]+[0,1,1]+modbus_table[14:]
-            logger.info(f" plc_mission_fin :\t\t{modbus_table}")
+            logger.info(f"[#{mission_count:04d}] {mission_type} {pos_str}  완료 ({_motion_time:.1f}s) | 총 경과: {_elapsed:.0f}s")
+
+            last_modbus_table = modbus_table
 
         elif recv_data[0] == 0:
-            # 함수 실행이후 초기화 이전 13번 주소에 0을 작성
             s.write_data(address=13, data=0)
-
-
-        # DataBank 상태 출력
-        # logger.debug(f"Holding Registers from address 0 to 12:   {s.databank.get_holding_registers(0, 13)}")
-
-        # sleep(0.2)
-        
-
-        # logger.debug("=======================================================")
+            if modbus_table[:9] != last_modbus_table[:9] or modbus_table[11:] != last_modbus_table[11:]:
+                last_modbus_table = modbus_table
 
