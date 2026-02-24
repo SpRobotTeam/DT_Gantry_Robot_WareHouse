@@ -14,7 +14,7 @@ class container_manager():
     }
 
     def __init__(self):
-        return self
+        pass
 
 
     # def __init__(self, saved_file):

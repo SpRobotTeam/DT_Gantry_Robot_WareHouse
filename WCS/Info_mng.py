@@ -13,7 +13,7 @@ MODE = "FF"
 class Base_info (product_manager, container_manager, wh_manager):
     def __init__(self, op_mode = None):
         self.op_mode = op_mode
-        if op_mode[0] in ['n']:   
+        if op_mode and op_mode[0] in ['n']:
             self.sim_skip = True
         else:
             self.sim_skip = False
