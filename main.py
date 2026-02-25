@@ -9,6 +9,7 @@ import csv
 from ERROR.error import NotEnoughSpaceError, SimError, ProductNotExistError
 
 from SIM.EVAL.evaluator import Evaluator
+from SIM.EVAL.visualizer import VizCollector
 
 import logging
 logger = logging.getLogger('main')
@@ -83,6 +84,8 @@ class main(SPWCS.GantryWCS):
         self.product_I_dict = {}
         self._registered_count = {}
         self._lots_by_product = {}
+        self._outbound_count = {}
+        self._total_outbound = 0
     
     def get_info(self, args):#->dict|list:
         '''
@@ -241,13 +244,14 @@ if __name__ == "__main__":
         manual = True
     
     file_name = None
+    algo_mode = 'FF'
     try:
         if op_mode[0].lower() in ['s', 'n']:
             if op_mode == 's':
                 logger.info("알고리즘 평가 기준 생성 모드로 WCS를 실행합니다!")
             elif op_mode[0].lower() == 'n':
                 logger.info("알고리즘 테스트 모드(모드버스 무효화)로 WCS를 실행합니다!")
-                
+
             # manual = False
             seed = None
             while not seed:
@@ -257,7 +261,19 @@ if __name__ == "__main__":
                     )[-6:]
                 if input_seed.isdigit():
                     seed = int(input_seed)
-            
+
+            algo_input = input(
+                "배치 알고리즘을 선택하세요:\n"+
+                "  FF  - First-Fit (기본)\n"+
+                "  RL  - 실시간 학습 (출고 빈도 기반 배치)\n"+
+                "  LA  - 미리보기 (미션 리스트 사전 분석)\n"+
+                " >> "
+                )
+            algo_mode = algo_input.strip().upper()
+            if algo_mode not in ('FF', 'RL', 'LA'):
+                algo_mode = 'FF'
+            logger.info(f"배치 알고리즘: {algo_mode}")
+
             file_name = f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list/mission_list_SEED-{seed:06d}.csv"
 
             if not os.path.isfile(file_name):
@@ -364,8 +380,9 @@ if __name__ == "__main__":
         else:
             # SPDTw.__init__()
             print("창고 초기화 중 ...")
+            SPDTw.mode = algo_mode
             SPDTw.default_setting(container_name='default')
-            print("창고 초기화 완료!")
+            print(f"창고 초기화 완료! (알고리즘: {algo_mode})")
 
             unit_time_past = 0
             sum_distance = [0,0]
@@ -389,9 +406,30 @@ if __name__ == "__main__":
                 all_missions = list(csv.reader(csv_editor))
             print(f"미션 리스트 로딩 완료! ({len(all_missions)}건)")
 
+            # LA 모드: 미션 리스트 사전 분석
+            if algo_mode == 'LA':
+                print("LA 모드: 미션 리스트 분석 중...")
+                _out_count = {}
+                for i in range(min(LEAST_MISSION_LENGTH, len(all_missions))):
+                    line = all_missions[i]
+                    if line[1] == 'OUT':
+                        pname = f"{int(line[2]):02d}"
+                        _out_count[pname] = _out_count.get(pname, 0) + 1
+                _max_freq = max(_out_count.values()) if _out_count else 1
+                SPDTw._freq_table = {k: v / _max_freq for k, v in _out_count.items()}
+                print(f"  빈도 테이블: {SPDTw._freq_table}")
+
             _inventory_limit = (
                 SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name]
                 .Area_dict['Area_01'].INVENTORY_CRITICAL_LIMIT
+            )
+
+            # 시각화 데이터 수집기 초기화
+            _area_01 = SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01']
+            viz = VizCollector(
+                seed=seed, algo=algo_mode,
+                col=_area_01.COL, row=_area_01.ROW, height=_area_01.HEIGHT,
+                total_missions=LEAST_MISSION_LENGTH
             )
 
             # S 모드: 미션별 상세 로그 유지 / N 모드: 진행률 바만 표시
@@ -481,6 +519,16 @@ if __name__ == "__main__":
                     if _sim_mode:
                         print(f"  -> 대기: {wait_time}")
 
+                # 시각화 스냅샷 수집
+                viz.collect(
+                    mission_num=_,
+                    grid=_area_01.grid,
+                    product_I_dict=SPDTw.product_I_dict,
+                    cum_distance=sum_distance,
+                    inv_count=len(_area_01.inventory),
+                    counts=_cnt
+                )
+
                 if action == 'WAIT':
                     logger.info(
                         f"mission_{_+1-mission_offset} fin (mission list # {_})\n"+
@@ -542,6 +590,17 @@ if __name__ == "__main__":
                 f"total_score    : {final_score*100:.2f}%\n"
                 "___________________________________________________________"+"\n"
                   )
+
+            # 시각화 HTML 생성
+            viz_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "docs", "viz")
+            viz_path = viz.generate_html(
+                output_dir=viz_dir,
+                final_score=final_score,
+                time_score=time_score,
+                pos_score=position_score
+            )
+            print(f"\n  시각화 파일 생성: {viz_path}")
+            print(f"  브라우저에서 열기: file:///{viz_path}")
             
             # time.sleep(5)
 

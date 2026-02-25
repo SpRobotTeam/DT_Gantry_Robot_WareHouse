@@ -70,6 +70,15 @@ class area_manager():
         self._positions_by_height = [set() for _ in range(self.HEIGHT)]
         self._min_height = 0
 
+        # 출고구(In/Out)까지의 XY 평면 거리 사전 계산
+        ox, oy = self.ORIGIN_POINT[0], self.ORIGIN_POINT[1]
+        self._xy_dist = []
+        for x in range(self.COL):
+            row_dist = []
+            for y in range(self.ROW):
+                row_dist.append(((x + ox) ** 2 + (y + oy) ** 2) ** 0.5)
+            self._xy_dist.append(row_dist)
+
         self.grid = []
         for x in range(self.COL):
             self.grid.append([])

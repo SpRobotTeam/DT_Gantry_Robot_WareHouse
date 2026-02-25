@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DT Gantry Robot - 알고리즘 시각화</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #1a1a2e;
+  color: #eee;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+}
+h1 {
+  font-size: 1.8em;
+  color: #00d2ff;
+  margin-bottom: 8px;
+}
+.subtitle {
+  color: #888;
+  font-size: 0.95em;
+  margin-bottom: 40px;
+}
+.card-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 700px;
+}
+.card-group h2 {
+  font-size: 1.1em;
+  color: #fcc419;
+  border-bottom: 1px solid #333;
+  padding-bottom: 6px;
+  margin-bottom: 4px;
+}
+a.card {
+  display: block;
+  background: #16213e;
+  border: 1px solid #00d2ff33;
+  border-radius: 8px;
+  padding: 16px 20px;
+  text-decoration: none;
+  color: #eee;
+  transition: background 0.15s, border-color 0.15s;
+}
+a.card:hover {
+  background: #0f3460;
+  border-color: #00d2ff;
+}
+a.card .card-title {
+  font-size: 1.05em;
+  font-weight: bold;
+  color: #00d2ff;
+  margin-bottom: 4px;
+}
+a.card .card-desc {
+  font-size: 0.85em;
+  color: #999;
+}
+.badge {
+  display: inline-block;
+  font-size: 0.7em;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.badge.compare { background: #cc5de8; color: #fff; }
+.badge.ff { background: #868e96; color: #fff; }
+.badge.rl { background: #51cf66; color: #1a1a2e; }
+.badge.la { background: #fcc419; color: #1a1a2e; }
+footer {
+  margin-top: 50px;
+  font-size: 0.75em;
+  color: #555;
+}
+footer a { color: #00d2ff88; text-decoration: none; }
+footer a:hover { color: #00d2ff; }
+</style>
+</head>
+<body>
+
+<h1>DT Gantry Robot WareHouse</h1>
+<p class="subtitle">N 모드 알고리즘 시각화 &amp; 비교</p>
+
+<div class="card-group">
+  <h2>SEED-123456</h2>
+
+  <a class="card" href="compare_SEED-123456.html">
+    <div class="card-title">알고리즘 비교 <span class="badge compare">Compare</span></div>
+    <div class="card-desc">FF · RL · LA 세 알고리즘을 나란히 비교합니다. 스텝별 애니메이션, 점수 차트 포함.</div>
+  </a>
+
+  <a class="card" href="viz_FF_SEED-123456_20260225_142048.html">
+    <div class="card-title">First-Fit (FF) <span class="badge ff">FF</span></div>
+    <div class="card-desc">기본 First-Fit 알고리즘 단독 시각화</div>
+  </a>
+
+  <a class="card" href="viz_RL_SEED-123456_20260225_142110.html">
+    <div class="card-title">Reverse L-shape (RL) <span class="badge rl">RL</span></div>
+    <div class="card-desc">Reverse L-shape 알고리즘 단독 시각화</div>
+  </a>
+
+  <a class="card" href="viz_LA_SEED-123456_20260225_142113.html">
+    <div class="card-title">Layer Alternating (LA) <span class="badge la">LA</span></div>
+    <div class="card-desc">Layer Alternating 알고리즘 단독 시각화</div>
+  </a>
+</div>
+
+<footer>
+  <a href="https://github.com/SpRobotTeam/DT_Gantry_Robot_WareHouse">SpRobotTeam/DT_Gantry_Robot_WareHouse</a> — basic_only branch
+</footer>
+
+</body>
+</html>

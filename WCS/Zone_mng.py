@@ -155,6 +155,55 @@ class zone_manager():
         return False
 
 
+    def scored_pos_find(self, Area_name, freq_score, origin=None):
+        '''
+        빈도 기반 위치 선택 (RL/LA 모드용)
+
+        freq_score: 0.0(출고 빈도 낮음=COLD) ~ 1.0(출고 빈도 높음=HOT)
+        - HOT → 위쪽(z↑) + 출고구 가까이 (접근 비용 최소화)
+        - COLD → 아래쪽(z↓) + 출고구 멀리 (장기 보관)
+
+        비용함수: cost(x,y,z) = xy_dist[x][y] + (HEIGHT - 1 - z)
+        '''
+        area = self.Area_dict[Area_name]
+        if area._min_height >= area.HEIGHT:
+            return False
+
+        origin_tuple = (origin[0], origin[1]) if origin else None
+        hot = freq_score >= 0.5
+
+        best_pos = None
+        best_cost = float('inf') if hot else float('-inf')
+
+        # HOT: 높은 z부터 (빠른 접근), COLD: 낮은 z부터 (장기 보관)
+        z_range = range(area.HEIGHT - 1, -1, -1) if hot else range(area.HEIGHT)
+
+        for z in z_range:
+            positions = area._positions_by_height[z]
+            if not positions:
+                continue
+
+            z_cost = area.HEIGHT - 1 - z
+
+            # HOT 조기 종료: 이 z의 최소 비용(z_cost만)이 이미 best보다 크면 하위 z 불필요
+            if hot and best_pos is not None and z_cost >= best_cost:
+                break
+
+            for pos in positions:
+                if origin_tuple and pos == origin_tuple:
+                    continue
+                cost = area._xy_dist[pos[0]][pos[1]] + z_cost
+                if hot:
+                    if cost < best_cost:
+                        best_cost = cost
+                        best_pos = [pos[0], pos[1], z]
+                else:
+                    if cost > best_cost:
+                        best_cost = cost
+                        best_pos = [pos[0], pos[1], z]
+
+        return best_pos if best_pos else False
+
 
     def waiting_Gantry_get_ready(self):
         while (not self.Modbus_inst.mission_enabled) or (self.Modbus_inst.mission_running):
