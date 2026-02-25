@@ -27,6 +27,10 @@
   --la-bg: #fefce8;
   --compare-color: #9333ea;
   --compare-bg: #faf5ff;
+  --ra-color: #9333ea;
+  --ra-bg: #faf5ff;
+  --bench-color: #0e7490;
+  --bench-bg: #ecfeff;
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
   --shadow-lg: 0 8px 30px rgba(0,0,0,0.08);
@@ -305,11 +309,35 @@ a.card.la .card-icon {
   font-family: 'IBM Plex Mono', monospace;
 }
 
+/* RA card */
+a.card.ra::before { background: var(--ra-color); }
+a.card.ra .card-icon {
+  background: var(--ra-bg);
+  color: var(--ra-color);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* Benchmark card */
+a.card.bench {
+  border: 1px solid rgba(14,116,144,0.15);
+  background: linear-gradient(135deg, var(--bg-card) 60%, var(--bench-bg));
+}
+a.card.bench::before { background: var(--bench-color); }
+a.card.bench:hover { border-color: rgba(14,116,144,0.3); }
+a.card.bench .card-icon {
+  background: var(--bench-bg);
+  color: var(--bench-color);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72em;
+}
+
 /* Stagger entrance animations */
 .card:nth-child(1) { animation: card-in 0.4s ease both 0.1s; }
-.card:nth-child(2) { animation: card-in 0.4s ease both 0.2s; }
-.card:nth-child(3) { animation: card-in 0.4s ease both 0.28s; }
-.card:nth-child(4) { animation: card-in 0.4s ease both 0.36s; }
+.card:nth-child(2) { animation: card-in 0.4s ease both 0.18s; }
+.card:nth-child(3) { animation: card-in 0.4s ease both 0.26s; }
+.card:nth-child(4) { animation: card-in 0.4s ease both 0.34s; }
+.card:nth-child(5) { animation: card-in 0.4s ease both 0.40s; }
+.card:nth-child(6) { animation: card-in 0.4s ease both 0.46s; }
 
 @keyframes card-in {
   from {
@@ -378,14 +406,23 @@ footer a:hover {
   <div class="section-header">
     <span class="seed-tag">SEED-123456</span>
     <span class="line"></span>
-    <span class="count">4개 시각화</span>
+    <span class="count">6개 시각화</span>
   </div>
 
   <div class="cards">
+    <a class="card bench" href="benchmark_patterns.html">
+      <div class="card-icon">벤치</div>
+      <div class="card-body">
+        <div class="card-title">패턴별 알고리즘 벤치마크</div>
+        <div class="card-desc">Uniform · Shift · Cyclic · Burst 4가지 패턴에서 FF · RL · LA · RA 비교. RA 적응 효과 분석 포함.</div>
+      </div>
+      <span class="card-arrow">&rarr;</span>
+    </a>
+
     <a class="card compare" href="compare_SEED-123456.html">
       <div class="card-icon">VS</div>
       <div class="card-body">
-        <div class="card-title">알고리즘 비교</div>
+        <div class="card-title">알고리즘 비교 (애니메이션)</div>
         <div class="card-desc">FF · RL · LA 세 알고리즘을 나란히 비교합니다. 스텝별 애니메이션, 점수 차트 포함.</div>
       </div>
       <span class="card-arrow">&rarr;</span>
@@ -414,6 +451,15 @@ footer a:hover {
       <div class="card-body">
         <div class="card-title">Layer Alternating</div>
         <div class="card-desc">Layer Alternating 알고리즘 단독 시각화</div>
+      </div>
+      <span class="card-arrow">&rarr;</span>
+    </a>
+
+    <a class="card ra" href="benchmark_patterns.html#ra-detail">
+      <div class="card-icon">RA</div>
+      <div class="card-body">
+        <div class="card-title">Recency-Aware (RA)</div>
+        <div class="card-desc">최근 출고 빈도 기반 적응형 배치. 듀얼 윈도우(500+2000) + conservative 재배치 스코어링.</div>
       </div>
       <span class="card-arrow">&rarr;</span>
     </a>
