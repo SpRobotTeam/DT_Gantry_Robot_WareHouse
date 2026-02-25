@@ -69,27 +69,32 @@ class Base_info (product_manager, container_manager, wh_manager):
         
 
 
-    def _get_freq_score(self, product_name):
-        """품목의 출고 빈도 점수 반환 (0.0=COLD ~ 1.0=HOT)"""
+    def _get_freq_score(self, product_name, conservative=False):
+        """품목의 출고 빈도 점수 반환 (0.0=COLD ~ 1.0=HOT)
+
+        conservative=False (입고 배치용): 단기 60% + 장기 40%  — 패턴 변화에 빠르게 적응
+        conservative=True  (재배치용)  : 단기 20% + 장기 80%  — 기존 재고 위치를 존중해 과잉 보정 방지
+        """
         if self.mode == "LA":
             return self._freq_table.get(product_name, 0.5)
         elif self.mode == "RA":
-            # 단기 점수 (500건): 최근 패턴 변화에 민감하게 반응
+            # 단기 점수 (500건)
             if self._recent_outbound_short_count:
                 max_s = max(self._recent_outbound_short_count.values())
                 short_score = (self._recent_outbound_short_count.get(product_name, 0) / max_s
                                if max_s else 0.5)
             else:
                 short_score = 0.5
-            # 장기 점수 (2000건): 전체 추세 안정화
+            # 장기 점수 (2000건)
             if self._recent_outbound_count:
                 max_l = max(self._recent_outbound_count.values())
                 long_score = (self._recent_outbound_count.get(product_name, 0) / max_l
                               if max_l else 0.5)
             else:
                 long_score = 0.5
-            # 혼합: 단기 60% + 장기 40%
-            return 0.6 * short_score + 0.4 * long_score
+            # 혼합 비율: 재배치는 보수적(장기 위주), 입고는 적응형(단기 위주)
+            w_short = 0.2 if conservative else 0.6
+            return w_short * short_score + (1.0 - w_short) * long_score
         elif self.mode == "RL":
             if not self._outbound_count:
                 return 0.5  # 데이터 없음 → 중립
@@ -395,7 +400,7 @@ class Base_info (product_manager, container_manager, wh_manager):
                 product_name = self.product_I_dict[top_lot]['product_name']
 
                 if self.mode == "RA":
-                    freq_score = self._get_freq_score(product_name)
+                    freq_score = self._get_freq_score(product_name, conservative=True)
                     deposition_loc = zone_manager.target_scored_pos_find(
                                         self=deposition_zone,
                                         Area_name=Area_name,
