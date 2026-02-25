@@ -35,8 +35,10 @@ class Base_info (product_manager, container_manager, wh_manager):
         self._outbound_count = {}     # product_name -> 출고 횟수
         self._total_outbound = 0
         self._freq_table = {}         # LA 모드: 사전 분석된 빈도 테이블
-        self._recent_outbound = deque(maxlen=2000)  # RA 모드: 최근 출고 이력
-        self._recent_outbound_count = {}             # RA 모드: 최근 윈도우 내 품목별 횟수
+        self._recent_outbound       = deque(maxlen=2000)  # RA 모드: 장기 윈도우 (2000건)
+        self._recent_outbound_count = {}                   # RA 모드: 장기 윈도우 품목별 횟수
+        self._recent_outbound_short       = deque(maxlen=500)  # RA 모드: 단기 윈도우 (500건)
+        self._recent_outbound_short_count = {}                  # RA 모드: 단기 윈도우 품목별 횟수
 
       
     # def __init__(self, saved_file):
@@ -72,12 +74,22 @@ class Base_info (product_manager, container_manager, wh_manager):
         if self.mode == "LA":
             return self._freq_table.get(product_name, 0.5)
         elif self.mode == "RA":
-            if not self._recent_outbound_count:
-                return 0.5
-            max_count = max(self._recent_outbound_count.values())
-            if max_count == 0:
-                return 0.5
-            return self._recent_outbound_count.get(product_name, 0) / max_count
+            # 단기 점수 (500건): 최근 패턴 변화에 민감하게 반응
+            if self._recent_outbound_short_count:
+                max_s = max(self._recent_outbound_short_count.values())
+                short_score = (self._recent_outbound_short_count.get(product_name, 0) / max_s
+                               if max_s else 0.5)
+            else:
+                short_score = 0.5
+            # 장기 점수 (2000건): 전체 추세 안정화
+            if self._recent_outbound_count:
+                max_l = max(self._recent_outbound_count.values())
+                long_score = (self._recent_outbound_count.get(product_name, 0) / max_l
+                              if max_l else 0.5)
+            else:
+                long_score = 0.5
+            # 혼합: 단기 60% + 장기 40%
+            return 0.6 * short_score + 0.4 * long_score
         elif self.mode == "RL":
             if not self._outbound_count:
                 return 0.5  # 데이터 없음 → 중립
@@ -88,17 +100,28 @@ class Base_info (product_manager, container_manager, wh_manager):
         return 0.5
 
     def _update_recent_outbound(self, product_name):
-        """RA 모드: 최근 출고 윈도우 카운트 갱신"""
+        """RA 모드: 단기(500) + 장기(2000) 윈도우 카운트 동시 갱신"""
+        # 장기 윈도우
         if len(self._recent_outbound) == self._recent_outbound.maxlen:
-            old_name = self._recent_outbound[0]
-            old_count = self._recent_outbound_count.get(old_name, 0)
-            if old_count <= 1:
-                self._recent_outbound_count.pop(old_name, None)
+            old = self._recent_outbound[0]
+            old_c = self._recent_outbound_count.get(old, 0)
+            if old_c <= 1:
+                self._recent_outbound_count.pop(old, None)
             else:
-                self._recent_outbound_count[old_name] = old_count - 1
-
+                self._recent_outbound_count[old] = old_c - 1
         self._recent_outbound.append(product_name)
         self._recent_outbound_count[product_name] = self._recent_outbound_count.get(product_name, 0) + 1
+
+        # 단기 윈도우
+        if len(self._recent_outbound_short) == self._recent_outbound_short.maxlen:
+            old = self._recent_outbound_short[0]
+            old_c = self._recent_outbound_short_count.get(old, 0)
+            if old_c <= 1:
+                self._recent_outbound_short_count.pop(old, None)
+            else:
+                self._recent_outbound_short_count[old] = old_c - 1
+        self._recent_outbound_short.append(product_name)
+        self._recent_outbound_short_count[product_name] = self._recent_outbound_short_count.get(product_name, 0) + 1
 
     def _find_best_outbound_lot(self, product_name):
         """RL/LA/RA 모드: 출고 비용 최소 lot 선택 (블로킹 최소 + 출고구 근접)"""

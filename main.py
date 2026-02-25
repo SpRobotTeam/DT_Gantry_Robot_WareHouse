@@ -88,6 +88,8 @@ class main(SPWCS.GantryWCS):
         self._total_outbound = 0
         self._recent_outbound.clear()
         self._recent_outbound_count = {}
+        self._recent_outbound_short.clear()
+        self._recent_outbound_short_count = {}
     
     def get_info(self, args):#->dict|list:
         '''
