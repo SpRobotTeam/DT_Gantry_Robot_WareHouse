@@ -78,6 +78,10 @@ class area_manager():
             for y in range(self.ROW):
                 row_dist.append(((x + ox) ** 2 + (y + oy) ** 2) ** 0.5)
             self._xy_dist.append(row_dist)
+        self._max_xy_dist = 1.0
+        for row_dist in self._xy_dist:
+            if row_dist:
+                self._max_xy_dist = max(self._max_xy_dist, max(row_dist))
 
         self.grid = []
         for x in range(self.COL):

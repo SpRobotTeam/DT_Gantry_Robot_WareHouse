@@ -4,6 +4,7 @@ from WCS.Area_mng import area_manager
 from MW.Product_mng import container_manager, product_manager
 import datetime as dt
 import math
+from collections import deque
 
 from ERROR.error import NotEnoughSpaceError, ProductNotExistError
 
@@ -21,17 +22,21 @@ class Base_info (product_manager, container_manager, wh_manager):
 
         product_manager.__init__(self, container_manager)
 
-        # 배치 알고리즘 모드: "FF"(First-Fit), "AO"(Adaptive), "RL"(실시간학습), "LA"(미리보기)
+        # 배치 알고리즘 모드:
+        # "FF"(First-Fit), "AO"(Adaptive), "RL"(실시간학습),
+        # "LA"(미리보기), "RA"(최근 출고 기반 적응형)
         self.mode = "FF"
 
         # 성능 최적화: 카운터 및 인덱스
         self._registered_count = {}   # lot_head -> 등록된 총 수
         self._lots_by_product = {}    # product_name -> [lot, lot, ...] (재고에 있는 것만)
 
-        # RL/LA 모드 빈도 추적
+        # RL/LA/RA 모드 빈도 추적
         self._outbound_count = {}     # product_name -> 출고 횟수
         self._total_outbound = 0
         self._freq_table = {}         # LA 모드: 사전 분석된 빈도 테이블
+        self._recent_outbound = deque(maxlen=2000)  # RA 모드: 최근 출고 이력
+        self._recent_outbound_count = {}             # RA 모드: 최근 윈도우 내 품목별 횟수
 
       
     # def __init__(self, saved_file):
@@ -66,6 +71,13 @@ class Base_info (product_manager, container_manager, wh_manager):
         """품목의 출고 빈도 점수 반환 (0.0=COLD ~ 1.0=HOT)"""
         if self.mode == "LA":
             return self._freq_table.get(product_name, 0.5)
+        elif self.mode == "RA":
+            if not self._recent_outbound_count:
+                return 0.5
+            max_count = max(self._recent_outbound_count.values())
+            if max_count == 0:
+                return 0.5
+            return self._recent_outbound_count.get(product_name, 0) / max_count
         elif self.mode == "RL":
             if not self._outbound_count:
                 return 0.5  # 데이터 없음 → 중립
@@ -75,8 +87,21 @@ class Base_info (product_manager, container_manager, wh_manager):
             return self._outbound_count.get(product_name, 0) / max_count
         return 0.5
 
+    def _update_recent_outbound(self, product_name):
+        """RA 모드: 최근 출고 윈도우 카운트 갱신"""
+        if len(self._recent_outbound) == self._recent_outbound.maxlen:
+            old_name = self._recent_outbound[0]
+            old_count = self._recent_outbound_count.get(old_name, 0)
+            if old_count <= 1:
+                self._recent_outbound_count.pop(old_name, None)
+            else:
+                self._recent_outbound_count[old_name] = old_count - 1
+
+        self._recent_outbound.append(product_name)
+        self._recent_outbound_count[product_name] = self._recent_outbound_count.get(product_name, 0) + 1
+
     def _find_best_outbound_lot(self, product_name):
-        """RL/LA 모드: 출고 비용 최소 lot 선택 (블로킹 최소 + 출고구 근접)"""
+        """RL/LA/RA 모드: 출고 비용 최소 lot 선택 (블로킹 최소 + 출고구 근접)"""
         lots = self._lots_by_product.get(product_name, [])
         if not lots:
             return None
@@ -190,7 +215,14 @@ class Base_info (product_manager, container_manager, wh_manager):
             loc = manual_loc
 
         else:
-            if self.mode in ("RL", "LA"):
+            if self.mode == "RA":
+                freq_score = self._get_freq_score(product_name)
+                loc = zone_manager.target_scored_pos_find(
+                                    self=destination_zone,
+                                    Area_name=Area_name,
+                                    freq_score=freq_score
+                                    )
+            elif self.mode in ("RL", "LA"):
                 freq_score = self._get_freq_score(product_name)
                 loc = zone_manager.scored_pos_find(
                                     self=destination_zone,
@@ -300,7 +332,7 @@ class Base_info (product_manager, container_manager, wh_manager):
         '''
         if not lot:
             if product_name:
-                if self.mode in ("RL", "LA"):
+                if self.mode in ("RL", "LA", "RA"):
                     # 블로킹 최소 + 출고구 근접 lot 선택
                     lot = self._find_best_outbound_lot(product_name)
                 else:
@@ -339,7 +371,15 @@ class Base_info (product_manager, container_manager, wh_manager):
                 top_lot = (deposition_area.grid[loc[0]][loc[1]][-1])
                 product_name = self.product_I_dict[top_lot]['product_name']
 
-                if self.mode in ("RL", "LA"):
+                if self.mode == "RA":
+                    freq_score = self._get_freq_score(product_name)
+                    deposition_loc = zone_manager.target_scored_pos_find(
+                                        self=deposition_zone,
+                                        Area_name=Area_name,
+                                        freq_score=freq_score,
+                                        origin=loc[:-1]
+                                        )
+                elif self.mode in ("RL", "LA"):
                     freq_score = self._get_freq_score(product_name)
                     deposition_loc = zone_manager.scored_pos_find(
                                         self=deposition_zone,
@@ -403,10 +443,12 @@ class Base_info (product_manager, container_manager, wh_manager):
                 except ValueError:
                     pass
 
-            # RL 모드: 출고 빈도 추적
+            # RL/RA 모드: 출고 빈도 추적
             if self.mode == "RL":
                 self._outbound_count[out_product_name] = self._outbound_count.get(out_product_name, 0) + 1
                 self._total_outbound += 1
+            elif self.mode == "RA":
+                self._update_recent_outbound(out_product_name)
 
             # 자동 최적화
             if self.mode == "AO":

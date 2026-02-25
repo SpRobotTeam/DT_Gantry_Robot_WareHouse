@@ -1,13 +1,16 @@
 from WCS.Area_mng import area_manager
 import math
-import MW.PLC_com as PLC_com
 import time
 import os
+try:
+    import MW.PLC_com as PLC_com
+except ModuleNotFoundError:
+    PLC_com = None
 
 import logging
 logger = logging.getLogger('main')
 
-PORT = PLC_com.DEFAULT_PORT
+PORT = PLC_com.DEFAULT_PORT if PLC_com else 2502
 
 class zone_manager():
     def __init__(self,
@@ -26,6 +29,8 @@ class zone_manager():
 
         self.sim_skip = zone_properties_dict.get('sim_skip', False)
         if not self.sim_skip:
+            if PLC_com is None:
+                raise ImportError("MW.PLC_com import failed. Install dependencies or use sim_skip mode.")
             self.Modbus_inst = PLC_com.plc_com(port = PORT)
         else:
             self.Modbus_inst = None
@@ -201,6 +206,65 @@ class zone_manager():
                     if cost > best_cost:
                         best_cost = cost
                         best_pos = [pos[0], pos[1], z]
+
+        return best_pos if best_pos else False
+
+    def target_scored_pos_find(self, Area_name, freq_score, origin=None):
+        '''
+        연속형 빈도 기반 위치 선택 (RA 모드용)
+
+        freq_score: 0.0(COLD) ~ 1.0(HOT)
+        - HOT: 출고구 근접 + 높은 층
+        - COLD: 출고구 원거리 + 낮은 층
+
+        기존 RL/LA처럼 HOT/COLD를 이진 분기하지 않고,
+        목표 XY/높이를 연속적으로 맞추는 방식.
+        '''
+        area = self.Area_dict[Area_name]
+        if area._min_height >= area.HEIGHT:
+            return False
+
+        origin_tuple = (origin[0], origin[1]) if origin else None
+        f = min(max(float(freq_score), 0.0), 1.0)
+
+        # HOT(f=1) -> target_xy=0(가까움), target_h=1(높음)
+        # COLD(f=0) -> target_xy=1(멀음), target_h=0(낮음)
+        target_xy = 1.0 - f
+        target_h = f
+
+        max_xy = getattr(area, '_max_xy_dist', None)
+        if not max_xy:
+            max_xy = 1.0
+            for row in area._xy_dist:
+                if row:
+                    max_xy = max(max_xy, max(row))
+
+        # HOT일수록 XY(접근성) 가중치 증가
+        w_xy = 0.30 + 0.40 * f
+        w_h = 1.0 - w_xy
+
+        best_pos = None
+        best_cost = float('inf')
+
+        for z in range(area.HEIGHT):
+            positions = area._positions_by_height[z]
+            if not positions:
+                continue
+
+            h_norm = 0.0 if area.HEIGHT <= 1 else z / (area.HEIGHT - 1)
+            h_dev = abs(h_norm - target_h)
+
+            for x, y in positions:
+                if origin_tuple and (x, y) == origin_tuple:
+                    continue
+
+                xy_norm = area._xy_dist[x][y] / max_xy
+                xy_dev = abs(xy_norm - target_xy)
+                cost = (w_xy * xy_dev) + (w_h * h_dev)
+
+                if cost < best_cost:
+                    best_cost = cost
+                    best_pos = [x, y, z]
 
         return best_pos if best_pos else False
 

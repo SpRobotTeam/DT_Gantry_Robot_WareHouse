@@ -86,6 +86,8 @@ class main(SPWCS.GantryWCS):
         self._lots_by_product = {}
         self._outbound_count = {}
         self._total_outbound = 0
+        self._recent_outbound.clear()
+        self._recent_outbound_count = {}
     
     def get_info(self, args):#->dict|list:
         '''
@@ -267,10 +269,11 @@ if __name__ == "__main__":
                 "  FF  - First-Fit (기본)\n"+
                 "  RL  - 실시간 학습 (출고 빈도 기반 배치)\n"+
                 "  LA  - 미리보기 (미션 리스트 사전 분석)\n"+
+                "  RA  - 최근 출고 기반 적응형 (연속 스코어링)\n"+
                 " >> "
                 )
             algo_mode = algo_input.strip().upper()
-            if algo_mode not in ('FF', 'RL', 'LA'):
+            if algo_mode not in ('FF', 'RL', 'LA', 'RA'):
                 algo_mode = 'FF'
             logger.info(f"배치 알고리즘: {algo_mode}")
 
