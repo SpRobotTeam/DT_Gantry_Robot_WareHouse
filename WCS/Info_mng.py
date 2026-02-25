@@ -617,7 +617,7 @@ class Base_info (product_manager, container_manager, wh_manager):
             lot     = list(destination_area.inventory.keys())[offset+i]
             loc_from= destination_area.inventory[lot]['loc']
             
-            loc_to  = [optimal_pos[0], optimal_pos[1], optimal_pos[0]+i]
+            loc_to  = [optimal_pos[0], optimal_pos[1], optimal_pos[2]+i]
 
             moved_distance = zone_manager.move_item(
                 self        = destination_zone,
