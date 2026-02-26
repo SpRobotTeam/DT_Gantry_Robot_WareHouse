@@ -31,6 +31,8 @@
   --ra-bg: #faf5ff;
   --bench-color: #0e7490;
   --bench-bg: #ecfeff;
+  --ov-color: #1b2a3d;
+  --ov-bg: #f1f5f9;
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
   --shadow-lg: 0 8px 30px rgba(0,0,0,0.08);
@@ -317,6 +319,16 @@ a.card.ra .card-icon {
   font-family: 'IBM Plex Mono', monospace;
 }
 
+/* Overview card */
+a.card.overview::before { background: var(--ov-color); }
+a.card.overview:hover { border-color: #94a3b8; }
+a.card.overview .card-icon {
+  background: var(--ov-bg);
+  color: var(--ov-color);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72em;
+}
+
 /* Benchmark card */
 a.card.bench {
   border: 1px solid rgba(14,116,144,0.15);
@@ -332,12 +344,13 @@ a.card.bench .card-icon {
 }
 
 /* Stagger entrance animations */
-.card:nth-child(1) { animation: card-in 0.4s ease both 0.1s; }
-.card:nth-child(2) { animation: card-in 0.4s ease both 0.18s; }
-.card:nth-child(3) { animation: card-in 0.4s ease both 0.26s; }
-.card:nth-child(4) { animation: card-in 0.4s ease both 0.34s; }
-.card:nth-child(5) { animation: card-in 0.4s ease both 0.40s; }
-.card:nth-child(6) { animation: card-in 0.4s ease both 0.46s; }
+.card:nth-child(1) { animation: card-in 0.4s ease both 0.08s; }
+.card:nth-child(2) { animation: card-in 0.4s ease both 0.15s; }
+.card:nth-child(3) { animation: card-in 0.4s ease both 0.22s; }
+.card:nth-child(4) { animation: card-in 0.4s ease both 0.29s; }
+.card:nth-child(5) { animation: card-in 0.4s ease both 0.35s; }
+.card:nth-child(6) { animation: card-in 0.4s ease both 0.41s; }
+.card:nth-child(7) { animation: card-in 0.4s ease both 0.47s; }
 
 @keyframes card-in {
   from {
@@ -406,10 +419,19 @@ footer a:hover {
   <div class="section-header">
     <span class="seed-tag">SEED-123456</span>
     <span class="line"></span>
-    <span class="count">6개 시각화</span>
+    <span class="count">7개 시각화</span>
   </div>
 
   <div class="cards">
+    <a class="card overview" href="overview.html">
+      <div class="card-icon">개요</div>
+      <div class="card-body">
+        <div class="card-title">프로젝트 개요 및 설명</div>
+        <div class="card-desc">왜 이 프로젝트를 하는가 · 알고리즘과 패턴 쉬운 설명 · 맹점과 다음 단계. 팀원 온보딩용 전체 가이드.</div>
+      </div>
+      <span class="card-arrow">&rarr;</span>
+    </a>
+
     <a class="card bench" href="benchmark_patterns.html">
       <div class="card-icon">벤치</div>
       <div class="card-body">
