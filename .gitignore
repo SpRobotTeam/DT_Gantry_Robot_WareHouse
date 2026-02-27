@@ -1,5 +1,6 @@
 # ignore
 .DS_Store
+.claude/settings.local.json
 *.pyc
 logs/*
 *.csv
