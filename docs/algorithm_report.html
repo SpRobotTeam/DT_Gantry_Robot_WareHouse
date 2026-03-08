@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>워크 핸들링 최적화 알고리즘 리포트</title>
+    <style>
+        :root {
+            --primary: #1a56db;
+            --primary-light: #e8eefb;
+            --success: #059669;
+            --success-light: #ecfdf5;
+            --danger: #dc2626;
+            --danger-light: #fef2f2;
+            --warn: #d97706;
+            --warn-light: #fffbeb;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-500: #6b7280;
+            --gray-700: #374151;
+            --gray-900: #111827;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            line-height: 1.7;
+            color: var(--gray-900);
+            background: var(--gray-50);
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+
+        /* Header */
+        .report-header {
+            background: linear-gradient(135deg, #1e3a5f 0%, #1a56db 100%);
+            color: white;
+            padding: 48px 40px;
+            border-radius: 16px;
+            margin-bottom: 32px;
+        }
+        .report-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .report-header .subtitle {
+            font-size: 16px;
+            opacity: 0.85;
+        }
+        .report-header .meta {
+            margin-top: 20px;
+            font-size: 13px;
+            opacity: 0.7;
+        }
+
+        /* Summary cards */
+        .summary-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        .summary-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        .summary-card .label {
+            font-size: 13px;
+            color: var(--gray-500);
+            margin-bottom: 4px;
+        }
+        .summary-card .value {
+            font-size: 32px;
+            font-weight: 700;
+        }
+        .summary-card .unit {
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+        .summary-card.highlight { border-left: 4px solid var(--success); }
+        .summary-card.highlight .value { color: var(--success); }
+        .summary-card.warn { border-left: 4px solid var(--warn); }
+        .summary-card.warn .value { color: var(--warn); }
+
+        /* Sections */
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .section h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--gray-200);
+        }
+        .section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin: 24px 0 12px;
+        }
+        .section h3:first-of-type { margin-top: 0; }
+        .section p {
+            color: var(--gray-700);
+            margin-bottom: 12px;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+        thead th {
+            background: var(--gray-100);
+            padding: 10px 14px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--gray-700);
+            border-bottom: 2px solid var(--gray-300);
+        }
+        tbody td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        tbody tr:hover { background: var(--gray-50); }
+        .num { text-align: right; font-variant-numeric: tabular-nums; }
+        .bold { font-weight: 700; }
+        .best { color: var(--success); font-weight: 700; }
+        .worst { color: var(--gray-500); }
+
+        /* Comparison layout */
+        .compare-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 16px 0;
+        }
+        .compare-box {
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .compare-box.as-is {
+            background: var(--danger-light);
+            border: 1px solid #fecaca;
+        }
+        .compare-box.to-be {
+            background: var(--success-light);
+            border: 1px solid #a7f3d0;
+        }
+        .compare-box .tag {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .compare-box.as-is .tag { background: #fecaca; color: var(--danger); }
+        .compare-box.to-be .tag { background: #a7f3d0; color: var(--success); }
+        .compare-box h4 {
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+        .compare-box p, .compare-box ul {
+            font-size: 14px;
+            color: var(--gray-700);
+        }
+        .compare-box ul {
+            padding-left: 18px;
+            margin-top: 8px;
+        }
+        .compare-box li { margin-bottom: 4px; }
+
+        /* Code */
+        .formula {
+            background: var(--gray-100);
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 16px 20px;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 14px;
+            color: var(--gray-700);
+            margin: 12px 0;
+            overflow-x: auto;
+        }
+
+        /* Warehouse diagram */
+        .warehouse-diagram {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 16px 0;
+        }
+        .diagram-box {
+            background: var(--gray-100);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+        .diagram-box .title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+        .grid-visual {
+            display: inline-grid;
+            gap: 2px;
+            margin: 0 auto;
+        }
+        .grid-cell {
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 600;
+            color: white;
+        }
+
+        /* Chart bars */
+        .bar-chart {
+            margin: 16px 0;
+        }
+        .bar-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .bar-label {
+            width: 120px;
+            font-size: 13px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .bar-track {
+            flex: 1;
+            height: 32px;
+            background: var(--gray-100);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+        .bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            padding-left: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            transition: width 1s ease;
+        }
+        .bar-fill.ff { background: var(--gray-500); }
+        .bar-fill.rl { background: var(--primary); }
+        .bar-fill.la { background: var(--success); }
+        .bar-value {
+            margin-left: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            width: 100px;
+            flex-shrink: 0;
+            text-align: right;
+        }
+
+        /* Info boxes */
+        .info-box {
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 12px 0;
+            font-size: 14px;
+        }
+        .info-box.blue { background: var(--primary-light); border-left: 4px solid var(--primary); }
+        .info-box.green { background: var(--success-light); border-left: 4px solid var(--success); }
+        .info-box.amber { background: var(--warn-light); border-left: 4px solid var(--warn); }
+
+        /* Flow diagram */
+        .flow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .flow-step {
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        .flow-arrow { color: var(--gray-300); font-size: 18px; }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge.hot { background: #fee2e2; color: #dc2626; }
+        .badge.cold { background: #dbeafe; color: #1d4ed8; }
+        .badge.neutral { background: var(--gray-200); color: var(--gray-700); }
+        .badge.recommended { background: #d1fae5; color: #059669; }
+
+        /* TOC */
+        .toc {
+            background: white;
+            border-radius: 12px;
+            padding: 24px 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .toc h3 { font-size: 15px; margin-bottom: 12px; color: var(--gray-700); }
+        .toc ol {
+            padding-left: 20px;
+            font-size: 14px;
+        }
+        .toc li {
+            margin-bottom: 4px;
+        }
+        .toc a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        .toc a:hover { text-decoration: underline; }
+
+        @media (max-width: 768px) {
+            .summary-row { grid-template-columns: repeat(2, 1fr); }
+            .compare-grid { grid-template-columns: 1fr; }
+            .warehouse-diagram { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- Header -->
+    <div class="report-header">
+        <h1>워크 핸들링 최적화 알고리즘 리포트</h1>
+        <div class="subtitle">스마트 WMS 갠트리 로봇 창고 - 빈도 기반 배치 알고리즘 설계 및 평가</div>
+        <div class="meta">작성일: 2026-02-25 &nbsp;|&nbsp; 시스템: DT_Gantry_Robot_WareHouse &nbsp;|&nbsp; 미션: 100,000건 x 2 SEED</div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-row">
+        <div class="summary-card highlight">
+            <div class="label">총 이동거리 감소</div>
+            <div class="value">73.6%</div>
+            <div class="unit">평균 (RL vs FF)</div>
+        </div>
+        <div class="summary-card highlight">
+            <div class="label">XY 이동거리 감소</div>
+            <div class="value">84.9%</div>
+            <div class="unit">평균 (RL vs FF)</div>
+        </div>
+        <div class="summary-card warn">
+            <div class="label">높이 균일성 개선</div>
+            <div class="value">15.7%</div>
+            <div class="unit">표준편차 감소</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">권장 알고리즘</div>
+            <div class="value" style="font-size:24px; color:var(--primary);">RL</div>
+            <div class="unit">실시간 학습</div>
+        </div>
+    </div>
+
+    <!-- TOC -->
+    <div class="toc">
+        <h3>목차</h3>
+        <ol>
+            <li><a href="#sec1">개요</a></li>
+            <li><a href="#sec2">As-Is 분석: FF (First-Fit) 알고리즘</a></li>
+            <li><a href="#sec3">To-Be 설계: 빈도 기반 배치 알고리즘</a></li>
+            <li><a href="#sec4">빈도 파악 방식: RL vs LA</a></li>
+            <li><a href="#sec5">벤치마크 결과</a></li>
+            <li><a href="#sec6">분석</a></li>
+            <li><a href="#sec7">결론 및 권장사항</a></li>
+        </ol>
+    </div>
+
+    <!-- 1. 개요 -->
+    <div class="section" id="sec1">
+        <h2>1. 개요</h2>
+
+        <h3>1.1 목적</h3>
+        <p>스마트 WMS 갠트리 로봇 창고 시스템의 워크 핸들링 알고리즘을 최적화하여,
+        <strong>동일한 조건(미션 리스트)에서 갠트리 로봇의 총 이동거리를 최소화</strong>한다.</p>
+
+        <h3>1.2 대상 시스템</h3>
+        <table>
+            <thead><tr><th>항목</th><th>사양</th></tr></thead>
+            <tbody>
+                <tr><td>창고 규격</td><td>20 x 20 x 5 (열 x 행 x 높이)</td></tr>
+                <tr><td>최대 적재량</td><td>1,996개</td></tr>
+                <tr><td>입출고구 위치</td><td>원점 (0, 0, 0)</td></tr>
+                <tr><td>적재 영역</td><td>(1,1,1) ~ (20,20,5)</td></tr>
+                <tr><td>품목 종류</td><td>4종 (01, 02, 03, 04)</td></tr>
+                <tr><td>적재 방식</td><td>LIFO 스택 (같은 열에 수직 적재)</td></tr>
+            </tbody>
+        </table>
+
+        <h3>1.3 평가 기준</h3>
+        <table>
+            <thead><tr><th>지표</th><th>가중치</th><th>설명</th></tr></thead>
+            <tbody>
+                <tr><td>시간 점수</td><td class="num">70%</td><td>총 이동거리 기반 (낮을수록 우수)</td></tr>
+                <tr><td>위치 점수</td><td class="num">30%</td><td>적재 높이 균일성 (표준편차 낮을수록 우수)</td></tr>
+                <tr><td><strong>종합 점수</strong></td><td class="num">100%</td><td>시간점수 x 0.7 + 위치점수 x 0.3</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 2. As-Is -->
+    <div class="section" id="sec2">
+        <h2>2. As-Is 분석: FF (First-Fit) 알고리즘</h2>
+
+        <h3>2.1 입고 위치 결정</h3>
+        <div class="flow">
+            <span class="flow-step">입고 요청</span>
+            <span class="flow-arrow">&rarr;</span>
+            <span class="flow-step">가장 낮은 높이 탐색</span>
+            <span class="flow-arrow">&rarr;</span>
+            <span class="flow-step">좌표 순서대로 첫 번째 빈자리 선택</span>
+        </div>
+        <ul style="margin: 12px 0 0 18px; font-size: 14px; color: var(--gray-700);">
+            <li>모든 품목이 <strong>동일한 기준</strong>으로 배치</li>
+            <li>출고 빈도, 출고구와의 거리 <strong>고려 없음</strong></li>
+            <li>좌표 (0,0) &rarr; (1,0) &rarr; ... &rarr; (19,19) 순서로 채움</li>
+        </ul>
+
+        <h3>2.2 출고 대상 선택</h3>
+        <div class="flow">
+            <span class="flow-step">출고 요청</span>
+            <span class="flow-arrow">&rarr;</span>
+            <span class="flow-step">해당 품목의 등록순 첫 번째 lot 선택</span>
+        </div>
+        <ul style="margin: 12px 0 0 18px; font-size: 14px; color: var(--gray-700);">
+            <li>스택 내 위치(깊이), 출고구와의 거리 <strong>고려 없음</strong></li>
+            <li>위에 다른 아이템이 쌓여 있어도 그대로 선택 &rarr; 블로킹 재배치 발생</li>
+        </ul>
+
+        <h3>2.3 블로킹 아이템 재배치</h3>
+        <div class="flow">
+            <span class="flow-step">블로킹 아이템</span>
+            <span class="flow-arrow">&rarr;</span>
+            <span class="flow-step">가장 낮은 높이의 첫 번째 빈자리로 이동</span>
+        </div>
+        <p style="margin-top:8px;">재배치 시에도 빈도 고려 없음</p>
+
+        <h3>2.4 문제점</h3>
+        <div class="info-box" style="background: #fef2f2; border-left: 4px solid #dc2626;">
+            <ol style="padding-left: 18px; font-size: 14px;">
+                <li>출고 빈도가 높은 품목이 창고 안쪽 깊숙이 배치될 수 있음</li>
+                <li>출고 시 블로킹 아이템이 많아 불필요한 이동 발생</li>
+                <li>모든 품목이 고르게 퍼져 평균 이동거리가 큼</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- 3. To-Be -->
+    <div class="section" id="sec3">
+        <h2>3. To-Be 설계: 빈도 기반 배치 알고리즘</h2>
+
+        <h3>3.1 핵심 아이디어</h3>
+        <div class="info-box green">
+            <strong>출고 빈도가 높은 품목은 접근이 빠른 위치에, 낮은 품목은 깊숙한 위치에 배치한다.</strong>
+        </div>
+
+        <div class="warehouse-diagram">
+            <div class="diagram-box">
+                <div class="title">XY 평면 (출고구 기준 거리)</div>
+                <div style="font-size:13px; margin-bottom:8px;">출고구 (0,0) &larr; 가까움 &nbsp;&nbsp;&nbsp;&nbsp; 멀리 &rarr;</div>
+                <div class="grid-visual" style="grid-template-columns: repeat(5,1fr);">
+                    <div class="grid-cell" style="background:#059669;">HOT</div>
+                    <div class="grid-cell" style="background:#34d399;"></div>
+                    <div class="grid-cell" style="background:#6ee7b7;"></div>
+                    <div class="grid-cell" style="background:#a7f3d0;"></div>
+                    <div class="grid-cell" style="background:#d1fae5;"></div>
+                    <div class="grid-cell" style="background:#34d399;"></div>
+                    <div class="grid-cell" style="background:#6ee7b7;"></div>
+                    <div class="grid-cell" style="background:#a7f3d0;"></div>
+                    <div class="grid-cell" style="background:#d1fae5;"></div>
+                    <div class="grid-cell" style="background:#ecfdf5;"></div>
+                    <div class="grid-cell" style="background:#6ee7b7;"></div>
+                    <div class="grid-cell" style="background:#a7f3d0;"></div>
+                    <div class="grid-cell" style="background:#d1fae5;"></div>
+                    <div class="grid-cell" style="background:#ecfdf5;"></div>
+                    <div class="grid-cell" style="background:#f9fafb;color:#6b7280;">COLD</div>
+                </div>
+                <div style="font-size:11px; margin-top:6px; color:var(--gray-500);">색이 진할수록 접근 비용 낮음</div>
+            </div>
+            <div class="diagram-box">
+                <div class="title">Z축 (적재 높이)</div>
+                <div style="display:flex; justify-content:center; gap:4px; align-items:flex-end; height:120px;">
+                    <div style="display:flex; flex-direction:column; gap:2px; align-items:center;">
+                        <div style="font-size:10px; color:#059669;">z=5</div>
+                        <div style="width:50px; height:20px; background:#059669; border-radius:3px; display:flex; align-items:center; justify-content:center; color:white; font-size:10px;">HOT</div>
+                        <div style="width:50px; height:20px; background:#34d399; border-radius:3px;"></div>
+                        <div style="width:50px; height:20px; background:#6ee7b7; border-radius:3px;"></div>
+                        <div style="width:50px; height:20px; background:#a7f3d0; border-radius:3px;"></div>
+                        <div style="width:50px; height:20px; background:#d1fae5; border-radius:3px; display:flex; align-items:center; justify-content:center; color:#6b7280; font-size:10px;">COLD</div>
+                        <div style="font-size:10px; color:var(--gray-500);">z=1</div>
+                    </div>
+                </div>
+                <div style="font-size:11px; margin-top:6px; color:var(--gray-500);">위쪽 = 빠른 접근 (LIFO)</div>
+            </div>
+        </div>
+
+        <h3>3.2 비용 함수</h3>
+        <div class="formula">
+cost(x, y, z) = XY거리 + 높이패널티<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= sqrt((x + ox)&sup2; + (y + oy)&sup2;) + (HEIGHT - 1 - z)<br>
+<br>
+ox, oy = 적재 영역 원점 오프셋 (1, 1)<br>
+HEIGHT = 최대 적재 높이 (5)<br>
+<br>
+<span style="color:var(--success);">HOT  품목 (freq &ge; 0.5)</span> &rarr; cost <strong>최소</strong> 위치 선택<br>
+<span style="color:var(--primary);">COLD 품목 (freq &lt; 0.5)</span> &rarr; cost <strong>최대</strong> 위치 선택
+        </div>
+
+        <h3>3.3 입고 위치 결정 비교</h3>
+        <div class="compare-grid">
+            <div class="compare-box as-is">
+                <span class="tag">As-Is (FF)</span>
+                <h4>순서 기반 배치</h4>
+                <ul>
+                    <li>가장 낮은 높이 빈자리</li>
+                    <li>좌표 순서대로 선택</li>
+                    <li>품목 종류/빈도 무관</li>
+                </ul>
+            </div>
+            <div class="compare-box to-be">
+                <span class="tag">To-Be (RL/LA)</span>
+                <h4>빈도 기반 배치</h4>
+                <ul>
+                    <li>품목별 출고 빈도 점수 계산</li>
+                    <li>HOT &rarr; 위쪽 + 출고구 가까이</li>
+                    <li>COLD &rarr; 아래쪽 + 출고구 멀리</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>3.4 출고 대상 선택 비교</h3>
+        <div class="compare-grid">
+            <div class="compare-box as-is">
+                <span class="tag">As-Is (FF)</span>
+                <h4>등록순 선택</h4>
+                <ul>
+                    <li>해당 품목의 첫 번째 lot</li>
+                    <li>블로킹/거리 고려 없음</li>
+                    <li>평균 2~3개 블로킹 재배치</li>
+                </ul>
+            </div>
+            <div class="compare-box to-be">
+                <span class="tag">To-Be (RL/LA)</span>
+                <h4>최적 lot 선택</h4>
+                <ul>
+                    <li>1순위: 블로킹 수 최소 (0 우선)</li>
+                    <li>2순위: 출고구 XY 거리 최소</li>
+                    <li>불필요한 재배치 대폭 감소</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>3.5 블로킹 아이템 재배치 비교</h3>
+        <div class="compare-grid">
+            <div class="compare-box as-is">
+                <span class="tag">As-Is (FF)</span>
+                <h4>무작위 재배치</h4>
+                <p>가장 낮은 높이의 첫 번째 빈자리로 이동. 빈도 고려 없음.</p>
+            </div>
+            <div class="compare-box to-be">
+                <span class="tag">To-Be (RL/LA)</span>
+                <h4>빈도 기반 재배치</h4>
+                <p>해당 아이템의 출고 빈도에 맞는 최적 위치로 이동. 재배치 = 창고 정리.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. RL vs LA -->
+    <div class="section" id="sec4">
+        <h2>4. 빈도 파악 방식: RL vs LA</h2>
+
+        <div class="compare-grid">
+            <div class="compare-box" style="background:var(--primary-light); border:1px solid #bfdbfe;">
+                <span class="tag" style="background:#bfdbfe; color:var(--primary);">RL</span>
+                <h4>Real-time Learning (실시간 학습)</h4>
+                <div class="formula" style="font-size:13px; margin:10px 0;">
+                    freq_score = 해당 품목 출고횟수 / 최대 출고횟수
+                </div>
+                <table style="font-size:13px;">
+                    <tr><td><strong>데이터</strong></td><td>운영 중 누적 출고 이력</td></tr>
+                    <tr><td><strong>초기 상태</strong></td><td>0.5 (중립, FF와 유사)</td></tr>
+                    <tr><td><strong>학습</strong></td><td>출고 쌓일수록 정확</td></tr>
+                    <tr><td><strong>장점</strong></td><td>실제 환경 적용 가능, 패턴 변화 적응</td></tr>
+                    <tr><td><strong>단점</strong></td><td>초반 데이터 부족</td></tr>
+                </table>
+            </div>
+            <div class="compare-box" style="background:var(--success-light); border:1px solid #a7f3d0;">
+                <span class="tag" style="background:#a7f3d0; color:var(--success);">LA</span>
+                <h4>Lookahead (미리보기)</h4>
+                <div class="formula" style="font-size:13px; margin:10px 0;">
+                    freq_score = 사전분석 출고횟수 / 최대 출고횟수
+                </div>
+                <table style="font-size:13px;">
+                    <tr><td><strong>데이터</strong></td><td>미션 리스트 사전 분석</td></tr>
+                    <tr><td><strong>초기 상태</strong></td><td>처음부터 정확한 빈도</td></tr>
+                    <tr><td><strong>학습</strong></td><td>불필요 (사전 완성)</td></tr>
+                    <tr><td><strong>장점</strong></td><td>이론적 최적, 첫 미션부터 최적</td></tr>
+                    <tr><td><strong>단점</strong></td><td>미션 리스트 사전 필요 (테스트 전용)</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. 벤치마크 결과 -->
+    <div class="section" id="sec5">
+        <h2>5. 벤치마크 결과</h2>
+
+        <div class="info-box blue">
+            <strong>테스트 환경:</strong> 미션 100,000건 (입고+출고+대기) / N모드 (알고리즘 순수 성능) / SEED 2종
+        </div>
+
+        <h3>5.1 총 이동거리 비교</h3>
+        <p style="font-size:14px; color:var(--gray-500); margin-bottom:4px;">SEED = 123456</p>
+        <div class="bar-chart">
+            <div class="bar-row">
+                <div class="bar-label">FF (기본)</div>
+                <div class="bar-track"><div class="bar-fill ff" style="width:100%;">2,195,402</div></div>
+                <div class="bar-value worst">2,195,402</div>
+            </div>
+            <div class="bar-row">
+                <div class="bar-label">RL (실시간)</div>
+                <div class="bar-track"><div class="bar-fill rl" style="width:26.2%;">574,114</div></div>
+                <div class="bar-value best">574,114</div>
+            </div>
+            <div class="bar-row">
+                <div class="bar-label">LA (미리보기)</div>
+                <div class="bar-track"><div class="bar-fill la" style="width:26.2%;">574,157</div></div>
+                <div class="bar-value best">574,157</div>
+            </div>
+        </div>
+
+        <p style="font-size:14px; color:var(--gray-500); margin-bottom:4px; margin-top:20px;">SEED = 12345</p>
+        <div class="bar-chart">
+            <div class="bar-row">
+                <div class="bar-label">FF (기본)</div>
+                <div class="bar-track"><div class="bar-fill ff" style="width:100%;">2,213,996</div></div>
+                <div class="bar-value worst">2,213,996</div>
+            </div>
+            <div class="bar-row">
+                <div class="bar-label">RL (실시간)</div>
+                <div class="bar-track"><div class="bar-fill rl" style="width:26.7%;">591,515</div></div>
+                <div class="bar-value best">591,515</div>
+            </div>
+            <div class="bar-row">
+                <div class="bar-label">LA (미리보기)</div>
+                <div class="bar-track"><div class="bar-fill la" style="width:26.7%;">590,239</div></div>
+                <div class="bar-value best">590,239</div>
+            </div>
+        </div>
+
+        <h3>5.2 상세 결과 - SEED = 123456</h3>
+        <table>
+            <thead>
+                <tr><th>항목</th><th class="num">FF (기본)</th><th class="num">RL (실시간학습)</th><th class="num">LA (미리보기)</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>XY 이동거리</td><td class="num worst">1,611,137</td><td class="num best">236,980</td><td class="num best">237,005</td></tr>
+                <tr><td>Z 이동거리</td><td class="num worst">584,265</td><td class="num best">337,134</td><td class="num best">337,152</td></tr>
+                <tr class="bold"><td><strong>총 이동거리</strong></td><td class="num worst">2,195,402</td><td class="num best">574,114</td><td class="num best">574,157</td></tr>
+                <tr><td>높이 표준편차</td><td class="num">0.2683</td><td class="num best">0.2387</td><td class="num best">0.2387</td></tr>
+                <tr><td>시간 점수</td><td class="num">100.00%</td><td class="num">100.00%</td><td class="num">100.00%</td></tr>
+                <tr><td>위치 점수</td><td class="num">3.73</td><td class="num best">4.19</td><td class="num best">4.19</td></tr>
+                <tr class="bold"><td><strong>종합 점수</strong></td><td class="num">181.81%</td><td class="num best">195.66%</td><td class="num best">195.66%</td></tr>
+                <tr><td>처리 시간</td><td class="num">46.4s</td><td class="num">58.2s</td><td class="num">54.0s</td></tr>
+            </tbody>
+        </table>
+
+        <h3>5.3 상세 결과 - SEED = 12345</h3>
+        <table>
+            <thead>
+                <tr><th>항목</th><th class="num">FF (기본)</th><th class="num">RL (실시간학습)</th><th class="num">LA (미리보기)</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>XY 이동거리</td><td class="num worst">1,626,380</td><td class="num best">251,579</td><td class="num best">250,402</td></tr>
+                <tr><td>Z 이동거리</td><td class="num worst">587,616</td><td class="num best">339,936</td><td class="num best">339,837</td></tr>
+                <tr class="bold"><td><strong>총 이동거리</strong></td><td class="num worst">2,213,996</td><td class="num best">591,515</td><td class="num best">590,239</td></tr>
+                <tr><td>높이 표준편차</td><td class="num">0.1654</td><td class="num best">0.1317</td><td class="num">0.1495</td></tr>
+                <tr><td>시간 점수</td><td class="num">100.00%</td><td class="num">100.00%</td><td class="num">100.00%</td></tr>
+                <tr><td>위치 점수</td><td class="num">6.05</td><td class="num best">7.59</td><td class="num">6.69</td></tr>
+                <tr class="bold"><td><strong>종합 점수</strong></td><td class="num">251.42%</td><td class="num best">297.80%</td><td class="num">270.70%</td></tr>
+                <tr><td>처리 시간</td><td class="num">51.9s</td><td class="num">66.8s</td><td class="num">61.7s</td></tr>
+            </tbody>
+        </table>
+
+        <h3>5.4 개선율 요약</h3>
+        <table>
+            <thead>
+                <tr><th>지표</th><th class="num">SEED=123456</th><th class="num">SEED=12345</th><th class="num">평균</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>XY 이동거리 감소</td><td class="num best">85.3%</td><td class="num best">84.5%</td><td class="num bold best">84.9%</td></tr>
+                <tr><td>Z 이동거리 감소</td><td class="num best">42.3%</td><td class="num best">42.1%</td><td class="num bold best">42.2%</td></tr>
+                <tr><td>총 이동거리 감소</td><td class="num best">73.8%</td><td class="num best">73.3%</td><td class="num bold best">73.6%</td></tr>
+                <tr><td>높이 균일성 개선</td><td class="num best">11.0%</td><td class="num best">20.4%</td><td class="num bold best">15.7%</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 6. 분석 -->
+    <div class="section" id="sec6">
+        <h2>6. 분석</h2>
+
+        <h3>6.1 XY 이동거리 85% 감소의 원인</h3>
+        <p>FF에서는 모든 품목이 좌표 순서대로 배치되어 평균 XY 거리가 약 <strong>15 단위</strong>였다.
+        RL/LA에서는 출고 빈도가 높은 품목이 출고구 인근(0~3 범위)에 집중 배치되어
+        평균 XY 거리가 약 <strong>2~3 단위</strong>로 감소하였다.</p>
+
+        <h3>6.2 스마트 출고 선택의 효과</h3>
+        <p>FF에서는 등록순 첫 번째 lot을 선택하여 평균 2~3개의 블로킹 아이템 재배치가 발생했다.
+        RL/LA에서는 스택 최상단(블로킹 0) + 출고구 근접 lot을 우선 선택하여
+        블로킹 재배치가 크게 감소하였다.</p>
+
+        <h3>6.3 RL과 LA의 성능 비교</h3>
+        <div class="info-box blue">
+            <strong>SEED=123456:</strong> RL과 LA가 거의 동일 (이동거리 차이 0.01%)<br>
+            <strong>SEED=12345:</strong> RL이 종합 점수에서 우수 (297.80% vs 270.70%) - 높이 균일성에서 RL 우위
+        </div>
+        <p>RL은 운영 중 학습하며 배치를 점진적으로 최적화하기 때문에, 사전 분석보다
+        실제 패턴에 더 잘 적응하는 경향이 있다.</p>
+
+        <h3>6.4 처리 속도</h3>
+        <p>RL/LA는 FF 대비 약 20~30% 더 느리다 (위치 스코어링 연산 추가).
+        그러나 실제 RoboDK 시뮬레이션 모드(S)에서는 로봇 동작 시간이 지배적이므로
+        알고리즘 연산 시간 차이는 무시할 수 있다.</p>
+    </div>
+
+    <!-- 7. 결론 -->
+    <div class="section" id="sec7">
+        <h2>7. 결론 및 권장사항</h2>
+
+        <h3>7.1 결론</h3>
+        <table>
+            <thead>
+                <tr><th>알고리즘</th><th>적용 환경</th><th class="num">이동거리 감소</th><th>권장</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>RL</strong> (실시간 학습)</td>
+                    <td>실제 운영 환경</td>
+                    <td class="num best">73~74%</td>
+                    <td><span class="badge recommended">권장</span></td>
+                </tr>
+                <tr>
+                    <td><strong>LA</strong> (미리보기)</td>
+                    <td>테스트/벤치마크</td>
+                    <td class="num best">73~74%</td>
+                    <td><span class="badge neutral">테스트용</span></td>
+                </tr>
+                <tr>
+                    <td>FF (First-Fit)</td>
+                    <td>기본/비교 기준</td>
+                    <td class="num">-</td>
+                    <td><span class="badge neutral">기준값</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>7.2 권장사항</h3>
+        <div class="info-box green">
+            <strong>1. 실제 운영에는 RL 모드 권장</strong><br>
+            &nbsp;&nbsp;&nbsp;&bull; 미션 리스트 사전 정보 불필요<br>
+            &nbsp;&nbsp;&nbsp;&bull; 운영하면서 자동으로 최적화됨<br>
+            &nbsp;&nbsp;&nbsp;&bull; 출고 패턴 변화에 실시간 적응
+        </div>
+        <div class="info-box blue">
+            <strong>2. 벤치마크/평가에는 LA 모드 활용</strong><br>
+            &nbsp;&nbsp;&nbsp;&bull; 이론적 최적 배치로 알고리즘 상한선 확인 가능
+        </div>
+        <div class="info-box amber">
+            <strong>3. 향후 개선 방향</strong><br>
+            &nbsp;&nbsp;&nbsp;&bull; 시간 감쇠(time decay): 최근 출고 이력에 가중치 부여<br>
+            &nbsp;&nbsp;&nbsp;&bull; 품목별 구역 예약: 특정 품목 전용 구역 지정<br>
+            &nbsp;&nbsp;&nbsp;&bull; 배치 재정렬(defrag): 유휴 시간에 기존 배치 최적화
+        </div>
+
+        <h3>부록: 실행 방법</h3>
+        <div class="formula">
+# 알고리즘 테스트 (N 모드)<br>
+python main.py<br>
+# &rarr; n 선택 &rarr; SEED 입력 &rarr; FF / RL / LA 선택<br>
+<br>
+# 시뮬레이션 테스트 (S 모드, RoboDK 필요)<br>
+# Windows: python plc_motion006.py (먼저 실행)<br>
+# WSL: &nbsp;&nbsp;&nbsp; python main.py &rarr; s &rarr; SEED &rarr; FF / RL / LA
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

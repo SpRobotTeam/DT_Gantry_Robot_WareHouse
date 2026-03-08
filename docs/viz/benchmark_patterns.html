@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>패턴별 알고리즘 벤치마크</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #f4f3f0;
+  --bg-card: #ffffff;
+  --bg-hero: #1b2a3d;
+  --text: #2c2c2c;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --border: #e2e0db;
+  --accent: #0e7490;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+
+  --ff:  #94a3b8;
+  --rl:  #16a34a;
+  --la:  #ca8a04;
+  --ra:  #9333ea;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'IBM Plex Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(14,116,144,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(14,116,144,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none; z-index: 0;
+}
+
+/* ── Header ── */
+.page-header {
+  background: var(--bg-hero);
+  padding: 30px 20px 24px;
+  text-align: center;
+  position: relative; overflow: hidden;
+}
+.page-header::before {
+  content: ''; position: absolute; inset: 0;
+  background:
+    linear-gradient(135deg, rgba(14,116,144,0.15) 0%, transparent 50%),
+    linear-gradient(225deg, rgba(147,51,234,0.1) 0%, transparent 50%);
+}
+.page-header::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(14,116,144,0.4), transparent);
+}
+.page-header h1, .page-header .subtitle { position: relative; z-index: 1; }
+.back-link {
+  position: absolute; left: 20px; top: 50%; transform: translateY(-50%); z-index: 2;
+  color: rgba(255,255,255,0.45); text-decoration: none;
+  font-size: 0.82em; font-family: 'IBM Plex Sans', sans-serif; transition: color 0.15s;
+}
+.back-link:hover { color: #67e8f9; }
+h1 {
+  font-family: 'Outfit', sans-serif; font-size: 1.5em; font-weight: 700;
+  color: #fff; letter-spacing: -0.02em; margin-bottom: 4px;
+}
+.subtitle { color: rgba(255,255,255,0.4); font-size: 0.82em; }
+
+/* ── Content ── */
+.content-wrap {
+  position: relative; z-index: 1;
+  max-width: 1000px; margin: 0 auto;
+  padding: 28px 20px 60px;
+}
+
+/* ── Section label ── */
+.section-label {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 16px; margin-top: 32px;
+}
+.section-label:first-child { margin-top: 0; }
+.section-label span {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.72em;
+  font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--accent); background: #ecfeff;
+  border: 1px solid rgba(14,116,144,0.15);
+  padding: 3px 12px; border-radius: 20px;
+}
+.section-label .line { flex: 1; height: 1px; background: var(--border); }
+
+/* ── Card ── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 22px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 14px;
+}
+.card h3 {
+  font-family: 'Outfit', sans-serif; font-size: 0.88em;
+  color: var(--text-secondary); font-weight: 600; margin-bottom: 14px;
+}
+
+/* ── Summary badges ── */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+@media (max-width: 600px) { .summary-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.badge {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s;
+}
+.badge:hover { box-shadow: var(--shadow-md); }
+.badge .b-pattern {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78em; font-weight: 500;
+  color: var(--text-muted); margin-bottom: 6px;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.badge .b-ratio {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1.5em; font-weight: 600;
+}
+.badge .b-winner {
+  font-size: 0.72em; color: var(--text-muted); margin-top: 3px;
+}
+.badge.win  .b-ratio { color: #16a34a; }
+.badge.lose .b-ratio { color: #dc2626; }
+.badge .b-mark { font-size: 0.85em; margin-left: 2px; }
+
+/* ── Ratio table ── */
+.ratio-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82em;
+}
+.ratio-table th {
+  text-align: right; padding: 7px 12px;
+  font-family: 'IBM Plex Mono', monospace; font-weight: 500;
+  color: var(--text-secondary); font-size: 0.9em;
+  border-bottom: 1px solid var(--border);
+}
+.ratio-table th:first-child { text-align: left; }
+.ratio-table td {
+  text-align: right; padding: 8px 12px;
+  border-bottom: 1px solid #f0eeea;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.ratio-table td:first-child { text-align: left; font-family: 'IBM Plex Sans', sans-serif; font-weight: 500; }
+.ratio-table tr:last-child td { border-bottom: none; }
+.ratio-table .win  { color: #16a34a; font-weight: 600; }
+.ratio-table .lose { color: #dc2626; font-weight: 600; }
+.ratio-table .note { font-size: 0.78em; color: var(--text-muted); font-weight: 400; }
+
+/* algo legend */
+.algo-legend {
+  display: flex; gap: 16px; flex-wrap: wrap;
+  justify-content: flex-end; margin-bottom: 10px;
+}
+.algo-legend .item {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 0.75em; color: var(--text-secondary);
+  font-family: 'IBM Plex Mono', monospace;
+}
+.algo-legend .dot {
+  width: 12px; height: 12px; border-radius: 3px;
+}
+
+canvas.chart { width: 100% !important; max-height: 280px; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <a href="index.html" class="back-link">&larr; 목록</a>
+  <h1>패턴별 알고리즘 벤치마크</h1>
+  <div class="subtitle">SEED 123456 &nbsp;|&nbsp; 20,000 missions &nbsp;|&nbsp; FF · RL · LA · RA</div>
+</div>
+
+<div class="content-wrap">
+
+  <!-- RA vs RL 요약 배지 -->
+  <div class="section-label"><span>RA / RL 비율 요약</span><span class="line"></span></div>
+  <div class="summary-grid" id="summaryGrid"></div>
+
+  <!-- 총 이동거리 비교 -->
+  <div class="section-label"><span>총 이동거리 비교</span><span class="line"></span></div>
+  <div class="card">
+    <h3>패턴별 Total Distance (낮을수록 우수)</h3>
+    <div class="algo-legend" id="legend1"></div>
+    <canvas class="chart" id="chartTotal"></canvas>
+  </div>
+
+  <!-- FF 대비 개선율 -->
+  <div class="section-label"><span>FF 대비 개선율</span><span class="line"></span></div>
+  <div class="card">
+    <h3>FF 대비 거리 절감률 % (높을수록 우수)</h3>
+    <div class="algo-legend" id="legend2"></div>
+    <canvas class="chart" id="chartImprove"></canvas>
+  </div>
+
+  <!-- XY / Z 분해 -->
+  <div class="section-label"><span>XY vs Z 거리 분해</span><span class="line"></span></div>
+  <div class="card">
+    <h3>수평(XY) 및 수직(Z) 이동 분해 비교</h3>
+    <div class="algo-legend" id="legend3"></div>
+    <canvas class="chart" id="chartXYZ"></canvas>
+  </div>
+
+  <!-- 상세 수치 테이블 -->
+  <div class="section-label"><span>상세 수치</span><span class="line"></span></div>
+  <div class="card">
+    <h3>패턴 × 알고리즘 전체 결과</h3>
+    <table class="ratio-table" id="detailTable"></table>
+  </div>
+
+</div>
+
+<script>
+// ── 데이터 ────────────────────────────────────────────
+const DATA = [
+  // uniform
+  {pattern:'uniform', algo:'FF', xy:315358.62, z:133872.0, total:449230.62},
+  {pattern:'uniform', algo:'RL', xy:74459.173, z:78398.0,  total:152857.173},
+  {pattern:'uniform', algo:'LA', xy:74113.766, z:78405.0,  total:152518.766},
+  {pattern:'uniform', algo:'RA', xy:75570.259, z:78846.0,  total:154416.259},
+  // shift
+  {pattern:'shift',   algo:'FF', xy:272252.084,z:116899.0, total:389151.084},
+  {pattern:'shift',   algo:'RL', xy:117221.067,z:89767.0,  total:206988.067},
+  {pattern:'shift',   algo:'LA', xy:127041.417,z:89655.0,  total:216696.417},
+  {pattern:'shift',   algo:'RA', xy:136009.3,  z:82014.0,  total:218023.3},
+  // cyclic
+  {pattern:'cyclic',  algo:'FF', xy:319101.737,z:134007.0, total:453108.737},
+  {pattern:'cyclic',  algo:'RL', xy:158169.155,z:86137.0,  total:244306.155},
+  {pattern:'cyclic',  algo:'LA', xy:138371.579,z:82129.0,  total:220500.579},
+  {pattern:'cyclic',  algo:'RA', xy:161520.2,  z:87657.0,  total:249177.2},
+  // burst
+  {pattern:'burst',   algo:'FF', xy:312970.836,z:131891.0, total:444861.836},
+  {pattern:'burst',   algo:'RL', xy:92053.573, z:82965.0,  total:175018.573},
+  {pattern:'burst',   algo:'LA', xy:91808.482, z:82038.0,  total:173846.482},
+  {pattern:'burst',   algo:'RA', xy:87009.3,   z:84598.0,  total:171607.3},
+];
+
+const PATTERNS = ['uniform','shift','cyclic','burst'];
+const ALGOS    = ['FF','RL','LA','RA'];
+const COLORS   = { FF:'#94a3b8', RL:'#16a34a', LA:'#ca8a04', RA:'#9333ea' };
+const PATTERN_LABEL = { uniform:'Uniform', shift:'Shift', cyclic:'Cyclic', burst:'Burst' };
+
+function get(pattern, algo, field) {
+  const r = DATA.find(d => d.pattern===pattern && d.algo===algo);
+  return r ? r[field] : 0;
+}
+
+const fmt = v => v.toLocaleString('ko-KR', {maximumFractionDigits:0});
+
+// ── 공통 Chart.js 옵션 ────────────────────────────────
+const BASE_OPTS = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false }, tooltip: { callbacks: {
+    label: ctx => `  ${ctx.dataset.label}: ${fmt(ctx.raw)}`
+  }}},
+  scales: {
+    x: { grid: { color:'#e5e7eb' }, ticks: { color:'#9ca3af', font:{size:11} } },
+    y: { grid: { color:'#e5e7eb' }, ticks: { color:'#9ca3af', font:{size:11},
+          callback: v => (v/1000).toFixed(0)+'k' }}
+  }
+};
+
+// ── Legend ────────────────────────────────────────────
+function buildLegend(id) {
+  const el = document.getElementById(id);
+  ALGOS.forEach(a => {
+    const item = document.createElement('div');
+    item.className = 'item';
+    item.innerHTML = `<span class="dot" style="background:${COLORS[a]}"></span>${a}`;
+    el.appendChild(item);
+  });
+}
+['legend1','legend2','legend3'].forEach(buildLegend);
+
+// ── 1. Total Distance grouped bar ─────────────────────
+(function() {
+  const datasets = ALGOS.map(algo => ({
+    label: algo,
+    data: PATTERNS.map(p => get(p, algo, 'total')),
+    backgroundColor: COLORS[algo] + 'cc',
+    borderColor: COLORS[algo],
+    borderWidth: 1,
+    borderRadius: 4,
+  }));
+  new Chart(document.getElementById('chartTotal'), {
+    type: 'bar',
+    data: { labels: PATTERNS.map(p => PATTERN_LABEL[p]), datasets },
+    options: { ...BASE_OPTS, scales: { ...BASE_OPTS.scales, y: {
+      ...BASE_OPTS.scales.y,
+      title: { display:true, text:'이동거리', color:'#9ca3af', font:{size:11} }
+    }}}
+  });
+})();
+
+// ── 2. Improvement vs FF ──────────────────────────────
+(function() {
+  const impOpts = JSON.parse(JSON.stringify(BASE_OPTS));
+  impOpts.scales.y.ticks.callback = v => v.toFixed(1)+'%';
+  impOpts.plugins.tooltip.callbacks.label = ctx => `  ${ctx.dataset.label}: ${ctx.raw.toFixed(2)}%`;
+  const datasets = ['RL','LA','RA'].map(algo => ({
+    label: algo,
+    data: PATTERNS.map(p => {
+      const ff = get(p,'FF','total');
+      const v  = get(p, algo,'total');
+      return ff ? (1 - v/ff)*100 : 0;
+    }),
+    backgroundColor: COLORS[algo] + 'cc',
+    borderColor: COLORS[algo],
+    borderWidth: 1,
+    borderRadius: 4,
+  }));
+  new Chart(document.getElementById('chartImprove'), {
+    type: 'bar',
+    data: { labels: PATTERNS.map(p => PATTERN_LABEL[p]), datasets },
+    options: impOpts,
+  });
+})();
+
+// ── 3. XY / Z stacked per pattern (RA only for clean view) ─
+(function() {
+  // Show XY + Z stacked for RL and RA side by side
+  const stackDatasets = [];
+  ['RL','RA'].forEach(algo => {
+    stackDatasets.push({
+      label: `${algo} XY`,
+      data: PATTERNS.map(p => get(p, algo, 'xy')),
+      backgroundColor: COLORS[algo] + '99',
+      borderColor: COLORS[algo],
+      borderWidth: 1,
+      borderRadius: 4,
+      stack: algo,
+    });
+    stackDatasets.push({
+      label: `${algo} Z`,
+      data: PATTERNS.map(p => get(p, algo, 'z')),
+      backgroundColor: COLORS[algo] + '44',
+      borderColor: COLORS[algo],
+      borderWidth: 1,
+      borderSkipped: false,
+      stack: algo,
+    });
+  });
+  const opts3 = JSON.parse(JSON.stringify(BASE_OPTS));
+  opts3.plugins.tooltip.callbacks.label = ctx => `  ${ctx.dataset.label}: ${fmt(ctx.raw)}`;
+  new Chart(document.getElementById('chartXYZ'), {
+    type: 'bar',
+    data: { labels: PATTERNS.map(p => PATTERN_LABEL[p]), datasets: stackDatasets },
+    options: opts3,
+  });
+})();
+
+// ── 4. Summary badges ─────────────────────────────────
+(function() {
+  const grid = document.getElementById('summaryGrid');
+  const raWins = { uniform: false, shift: false, cyclic: true, burst: true };
+  PATTERNS.forEach(p => {
+    const rl = get(p,'RL','total');
+    const ra = get(p,'RA','total');
+    const ratio = ra / rl;
+    const win = ratio <= 1.02;
+    const badge = document.createElement('div');
+    badge.className = 'badge ' + (win ? 'win' : 'lose');
+    badge.innerHTML = `
+      <div class="b-pattern">${PATTERN_LABEL[p]}</div>
+      <div class="b-ratio">${ratio.toFixed(3)}<span class="b-mark">${win ? '✓' : ''}</span></div>
+      <div class="b-winner">RA / RL &nbsp;·&nbsp; ${win ? 'RA 우세' : 'RL 우세'}</div>
+    `;
+    grid.appendChild(badge);
+  });
+})();
+
+// ── 5. Detail table ───────────────────────────────────
+(function() {
+  const tbl = document.getElementById('detailTable');
+  let html = `<thead><tr>
+    <th>패턴</th>
+    <th>알고리즘</th>
+    <th>XY 거리</th>
+    <th>Z 거리</th>
+    <th>총 거리</th>
+    <th>vs FF</th>
+    <th>RA/RL</th>
+  </tr></thead><tbody>`;
+
+  PATTERNS.forEach(p => {
+    const ffT = get(p,'FF','total');
+    ALGOS.forEach((algo, ai) => {
+      const d = DATA.find(r => r.pattern===p && r.algo===algo);
+      const vsFF = algo==='FF' ? '—' : `${((1 - d.total/ffT)*100).toFixed(2)}%`;
+      const rlT  = get(p,'RL','total');
+      let rarl   = '—';
+      let rarlCls = '';
+      if (algo==='RA') {
+        const v = d.total/rlT;
+        rarl = v.toFixed(3);
+        rarlCls = v <= 1.02 ? ' class="win"' : ' class="lose"';
+      }
+      const border = ai===0 ? ' style="border-top:2px solid #e2e0db"' : '';
+      html += `<tr${border}>
+        <td>${ai===0 ? PATTERN_LABEL[p] : ''}</td>
+        <td style="font-family:'IBM Plex Mono',monospace;color:${COLORS[algo]};font-weight:600">${algo}</td>
+        <td>${fmt(d.xy)}</td>
+        <td>${fmt(d.z)}</td>
+        <td style="font-weight:600">${fmt(d.total)}</td>
+        <td class="${algo!=='FF'?(parseFloat(vsFF)>0?'win':''):'note'}">${vsFF}</td>
+        <td${rarlCls}>${rarl}</td>
+      </tr>`;
+    });
+  });
+
+  html += '</tbody>';
+  tbl.innerHTML = html;
+})();
+</script>
+</body>
+</html>

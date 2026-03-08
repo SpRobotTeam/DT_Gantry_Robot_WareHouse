@@ -1,30 +1,39 @@
 from WCS.Area_mng import area_manager
 import math
-import MW.PLC_com as PLC_com
 import time
 import os
+try:
+    import MW.PLC_com as PLC_com
+except ModuleNotFoundError:
+    PLC_com = None
 
 import logging
 logger = logging.getLogger('main')
 
-PORT = 502 if 'nt' in os.name else 2502
+PORT = PLC_com.DEFAULT_PORT if PLC_com else 2502
 
 class zone_manager():
-    def __init__(self, 
+    def __init__(self,
                  zone_properties_dict
                  ):
         if not len(zone_properties_dict['container'].keys()):
             self.CONTAINER = {
                                 'name'      : 'default',
-                                'length'    : 300, 
-                                'width'     : 200, 
+                                'length'    : 300,
+                                'width'     : 200,
                                 'height'    : 200,
                                 'gap'       : 200
                                 }
         else:
             self.CONTAINER = zone_properties_dict['container']
-        
-        self.Modbus_inst = PLC_com.plc_com(port = PORT)
+
+        self.sim_skip = zone_properties_dict.get('sim_skip', False)
+        if not self.sim_skip:
+            if PLC_com is None:
+                raise ImportError("MW.PLC_com import failed. Install dependencies or use sim_skip mode.")
+            self.Modbus_inst = PLC_com.plc_com(port = PORT)
+        else:
+            self.Modbus_inst = None
         self.Area_dict = {}
         self.ZONE_NAME = zone_properties_dict['Zone_name']
 
@@ -112,56 +121,152 @@ class zone_manager():
     
 
 
-    def optimal_pos_find(self, Area_name, outbound_freq, priority, origin = None, lot=None):  # origin=[0,0], #! mode('FF' or 'AO' ...) 관련 수정 필요
+    def optimal_pos_find(self, Area_name, outbound_freq, priority, origin = None, lot=None):
         '''
         구역 특성과 상품의 outbound_freq, priority에 따라 적절한 위치 탐색
 
-        현재 First-Fit 과 유사한 방식 사용
-        높이가 0인 곳 부터 찾다가 `AREA_DICT`에 설정된 높이 한계 까지 찾아감
+        높이 인덱스(_positions_by_height)를 활용한 O(1)~O(k) 탐색
         '''
-        iter = 0
-        if len(outbound_freq) == 0 or outbound_freq[0].lower() != 'l':
-        # global_loc = [0,0,0]
-            for z in range(0,self.Area_dict[Area_name].HEIGHT):
-                for x in range(self.Area_dict[Area_name].COL):
-                    for y in range(self.Area_dict[Area_name].ROW):
-                        if origin and [x,y] == origin: # 같은 X,Y 좌표 회피
-                            continue
-                        elif len(self.Area_dict[Area_name].grid[x][y]) == z:
-                            iter += 1
-                            if iter >= priority:
-                                # return[x,y]
-                                return [
-                                    x ,# + self.Area_dict[Area_name].ORIGIN_POINT[0],
-                                    y ,# + self.Area_dict[Area_name].ORIGIN_POINT[1],
-                                    len(self.Area_dict[Area_name].grid[x][y]) # + self.Area_dict[Area_name].ORIGIN_POINT[2]]
-                                ]
-                                # break
-                            else:
-                                continue
-        
-        else:
-            for z in range(0,self.Area_dict[Area_name].HEIGHT):
-                for x in range(self.Area_dict[Area_name].COL-1, -1, -1):
-                    for y in range(self.Area_dict[Area_name].ROW-1, -1, -1):
-                        if origin and [x,y] == origin: # 같은 X,Y 좌표 회피
-                            continue
-                        elif len(self.Area_dict[Area_name].grid[x][y]) == z:
-                            iter += 1
-                            if iter >= priority:
-                                # return[x,y]
-                                return [
-                                    x ,# + self.Area_dict[Area_name].ORIGIN_POINT[0],
-                                    y ,# + self.Area_dict[Area_name].ORIGIN_POINT[1],
-                                    len(self.Area_dict[Area_name].grid[x][y]) # + self.Area_dict[Area_name].ORIGIN_POINT[2]]
-                                ]
-                                # break
-                            else:
-                                continue
-        
-       
+        area = self.Area_dict[Area_name]
+        reverse = len(outbound_freq) > 0 and outbound_freq[0].lower() == 'l'
+
+        # 모든 위치가 가득 찬 경우
+        if area._min_height >= area.HEIGHT:
+            return False
+
+        # priority==1, origin 없음: 최소 높이에서 바로 선택 (O(1)~O(k))
+        if priority == 1 and not origin:
+            positions = area._positions_by_height[area._min_height]
+            if not positions:
+                return False
+            pos = max(positions) if reverse else min(positions)
+            return [pos[0], pos[1], area._min_height]
+
+        # 일반 경로: 높이 인덱스 순회
+        origin_tuple = (origin[0], origin[1]) if origin else None
+        iter_count = 0
+        for z in range(area.HEIGHT):
+            positions = area._positions_by_height[z]
+            if not positions:
+                continue
+            sorted_positions = sorted(positions, reverse=reverse)
+            for pos in sorted_positions:
+                if origin_tuple and pos == origin_tuple:
+                    continue
+                iter_count += 1
+                if iter_count >= priority:
+                    return [pos[0], pos[1], z]
+
         return False
 
+
+    def scored_pos_find(self, Area_name, freq_score, origin=None):
+        '''
+        빈도 기반 위치 선택 (RL/LA 모드용)
+
+        freq_score: 0.0(출고 빈도 낮음=COLD) ~ 1.0(출고 빈도 높음=HOT)
+        - HOT → 위쪽(z↑) + 출고구 가까이 (접근 비용 최소화)
+        - COLD → 아래쪽(z↓) + 출고구 멀리 (장기 보관)
+
+        비용함수: cost(x,y,z) = xy_dist[x][y] + (HEIGHT - 1 - z)
+        '''
+        area = self.Area_dict[Area_name]
+        if area._min_height >= area.HEIGHT:
+            return False
+
+        origin_tuple = (origin[0], origin[1]) if origin else None
+        hot = freq_score >= 0.5
+
+        best_pos = None
+        best_cost = float('inf') if hot else float('-inf')
+
+        # HOT: 높은 z부터 (빠른 접근), COLD: 낮은 z부터 (장기 보관)
+        z_range = range(area.HEIGHT - 1, -1, -1) if hot else range(area.HEIGHT)
+
+        for z in z_range:
+            positions = area._positions_by_height[z]
+            if not positions:
+                continue
+
+            z_cost = area.HEIGHT - 1 - z
+
+            # HOT 조기 종료: 이 z의 최소 비용(z_cost만)이 이미 best보다 크면 하위 z 불필요
+            if hot and best_pos is not None and z_cost >= best_cost:
+                break
+
+            for pos in positions:
+                if origin_tuple and pos == origin_tuple:
+                    continue
+                cost = area._xy_dist[pos[0]][pos[1]] + z_cost
+                if hot:
+                    if cost < best_cost:
+                        best_cost = cost
+                        best_pos = [pos[0], pos[1], z]
+                else:
+                    if cost > best_cost:
+                        best_cost = cost
+                        best_pos = [pos[0], pos[1], z]
+
+        return best_pos if best_pos else False
+
+    def target_scored_pos_find(self, Area_name, freq_score, origin=None):
+        '''
+        연속형 빈도 기반 위치 선택 (RA 모드용)
+
+        freq_score: 0.0(COLD) ~ 1.0(HOT)
+        - HOT: 출고구 근접 + 높은 층
+        - COLD: 출고구 원거리 + 낮은 층
+
+        기존 RL/LA처럼 HOT/COLD를 이진 분기하지 않고,
+        목표 XY/높이를 연속적으로 맞추는 방식.
+        '''
+        area = self.Area_dict[Area_name]
+        if area._min_height >= area.HEIGHT:
+            return False
+
+        origin_tuple = (origin[0], origin[1]) if origin else None
+        f = min(max(float(freq_score), 0.0), 1.0)
+
+        # HOT(f=1) -> target_xy=0(가까움), target_h=1(높음)
+        # COLD(f=0) -> target_xy=1(멀음), target_h=0(낮음)
+        target_xy = 1.0 - f
+        target_h = f
+
+        max_xy = getattr(area, '_max_xy_dist', None)
+        if not max_xy:
+            max_xy = 1.0
+            for row in area._xy_dist:
+                if row:
+                    max_xy = max(max_xy, max(row))
+
+        # HOT일수록 XY(접근성) 가중치 증가
+        w_xy = 0.30 + 0.40 * f
+        w_h = 1.0 - w_xy
+
+        best_pos = None
+        best_cost = float('inf')
+
+        for z in range(area.HEIGHT):
+            positions = area._positions_by_height[z]
+            if not positions:
+                continue
+
+            h_norm = 0.0 if area.HEIGHT <= 1 else z / (area.HEIGHT - 1)
+            h_dev = abs(h_norm - target_h)
+
+            for x, y in positions:
+                if origin_tuple and (x, y) == origin_tuple:
+                    continue
+
+                xy_norm = area._xy_dist[x][y] / max_xy
+                xy_dev = abs(xy_norm - target_xy)
+                cost = (w_xy * xy_dev) + (w_h * h_dev)
+
+                if cost < best_cost:
+                    best_cost = cost
+                    best_pos = [x, y, z]
+
+        return best_pos if best_pos else False
 
 
     def waiting_Gantry_get_ready(self):
@@ -251,17 +356,12 @@ class zone_manager():
 
             elif MODBUS_SIM_SKIP:
                 lot = area_from.grid[loc_from[0]][loc_from[1]].pop()
-                self.Area_dict['Gantry'].grid[0][0].append(lot) # 변경 여부 검토 필요
-
-                lot = self.Area_dict['Gantry'].grid[0][0].pop()
                 area_to.grid[loc_to[0]][loc_to[1]].append(lot)
                 logger.info(f"{lot} : {area_from.AREA_NAME}{loc_from} -> {area_to.AREA_NAME}{loc_to}")
                 self.new_mission_finished = True
-        
+
         # 리스트 [XY 평면 이동 거리, Z축 이동 거리] 반환
-        
-        dist = [loc_to-loc_from for loc_from,loc_to in zip(global_loc_from,global_loc_to)]
-        return_val =  [math.sqrt(pow(dist[0],2)+pow(dist[1],2)),
-                        abs(HEIGHT-global_loc_from[-1])+abs(HEIGHT-global_loc_to[-1])]
-        
-        return return_val
+        dx = global_loc_to[0] - global_loc_from[0]
+        dy = global_loc_to[1] - global_loc_from[1]
+        return [(dx*dx + dy*dy) ** 0.5,
+                abs(HEIGHT - global_loc_from[2]) + abs(HEIGHT - global_loc_to[2])]

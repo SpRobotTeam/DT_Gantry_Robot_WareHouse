@@ -9,6 +9,7 @@ import csv
 from ERROR.error import NotEnoughSpaceError, SimError, ProductNotExistError
 
 from SIM.EVAL.evaluator import Evaluator
+from SIM.EVAL.visualizer import VizCollector
 
 import logging
 logger = logging.getLogger('main')
@@ -81,6 +82,14 @@ class main(SPWCS.GantryWCS):
         self.WH_dict = {}
         self.default_setting(container_name=container_name)
         self.product_I_dict = {}
+        self._registered_count = {}
+        self._lots_by_product = {}
+        self._outbound_count = {}
+        self._total_outbound = 0
+        self._recent_outbound.clear()
+        self._recent_outbound_count = {}
+        self._recent_outbound_short.clear()
+        self._recent_outbound_short_count = {}
     
     def get_info(self, args):#->dict|list:
         '''
@@ -166,6 +175,7 @@ class main(SPWCS.GantryWCS):
         self.WareHouse.add_zone({
             'Zone_name'      : self.Zone_name,
             'container'      : self.container_dict[container_name],
+            'sim_skip'       : self.sim_skip,
         })
         
         self.Zone = self.WareHouse.Zone_dict[self.Zone_name]
@@ -238,13 +248,14 @@ if __name__ == "__main__":
         manual = True
     
     file_name = None
+    algo_mode = 'FF'
     try:
         if op_mode[0].lower() in ['s', 'n']:
             if op_mode == 's':
                 logger.info("알고리즘 평가 기준 생성 모드로 WCS를 실행합니다!")
             elif op_mode[0].lower() == 'n':
                 logger.info("알고리즘 테스트 모드(모드버스 무효화)로 WCS를 실행합니다!")
-                
+
             # manual = False
             seed = None
             while not seed:
@@ -254,15 +265,27 @@ if __name__ == "__main__":
                     )[-6:]
                 if input_seed.isdigit():
                     seed = int(input_seed)
-            
+
+            algo_input = input(
+                "배치 알고리즘을 선택하세요:\n"+
+                "  FF  - First-Fit (기본)\n"+
+                "  RL  - 실시간 학습 (출고 빈도 기반 배치)\n"+
+                "  LA  - 미리보기 (미션 리스트 사전 분석)\n"+
+                "  RA  - 최근 출고 기반 적응형 (연속 스코어링)\n"+
+                " >> "
+                )
+            algo_mode = algo_input.strip().upper()
+            if algo_mode not in ('FF', 'RL', 'LA', 'RA'):
+                algo_mode = 'FF'
+            logger.info(f"배치 알고리즘: {algo_mode}")
+
             file_name = f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list/mission_list_SEED-{seed:06d}.csv"
 
             if not os.path.isfile(file_name):
-                
-                # os.system(f"{PYTHON_NAME} {os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py {seed} {LEAST_MISSION_LENGTH*2}")
-                with open(os.devnull, 'wb') as devnull:
-                    subprocess.check_call([PYTHON_NAME, f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py", str(seed), str(LEAST_MISSION_LENGTH*2)],
-                                          stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+
+                print(f"미션 리스트 생성 중 (SEED={seed:06d}, {LEAST_MISSION_LENGTH*2}건) ...")
+                subprocess.check_call([PYTHON_NAME, f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py", str(seed), str(LEAST_MISSION_LENGTH*2)])
+                print("미션 리스트 생성 완료!")
                 time.sleep(5)
 
     except:
@@ -361,13 +384,16 @@ if __name__ == "__main__":
         
         else:
             # SPDTw.__init__()
+            print("창고 초기화 중 ...")
+            SPDTw.mode = algo_mode
             SPDTw.default_setting(container_name='default')
-            
+            print(f"창고 초기화 완료! (알고리즘: {algo_mode})")
 
             unit_time_past = 0
             sum_distance = [0,0]
             GANTRY_MOVING_SPEED = [1,1]
 
+            print("미션 리스트 로딩 중 ...")
             mission_length = 0
             with open(file_name,'r', newline='') as csv_editor:
                 reader = csv.reader(csv_editor)
@@ -375,17 +401,67 @@ if __name__ == "__main__":
                     mission_length += 1
 
             if mission_length < LEAST_MISSION_LENGTH*2:
-                # os.system(f"{PYTHON_NAME} {os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py {seed} {LEAST_MISSION_LENGTH*2}")
-                subprocess.check_call([PYTHON_NAME, f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py", str(seed), str(LEAST_MISSION_LENGTH*2)],
-                                          stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+                print(f"미션 리스트 재생성 중 ({LEAST_MISSION_LENGTH*2}건) ...")
+                subprocess.check_call([PYTHON_NAME, f"{os.path.dirname(os.path.realpath(__file__))}/SIM/EVAL/mission_list_generator.py", str(seed), str(LEAST_MISSION_LENGTH*2)])
                 mission_length = LEAST_MISSION_LENGTH
 
             mission_offset = 0
 
             with open(file_name,'r', newline='') as csv_editor:
                 all_missions = list(csv.reader(csv_editor))
+            print(f"미션 리스트 로딩 완료! ({len(all_missions)}건)")
+
+            # LA 모드: 미션 리스트 사전 분석
+            if algo_mode == 'LA':
+                print("LA 모드: 미션 리스트 분석 중...")
+                _out_count = {}
+                for i in range(min(LEAST_MISSION_LENGTH, len(all_missions))):
+                    line = all_missions[i]
+                    if line[1] == 'OUT':
+                        pname = f"{int(line[2]):02d}"
+                        _out_count[pname] = _out_count.get(pname, 0) + 1
+                _max_freq = max(_out_count.values()) if _out_count else 1
+                SPDTw._freq_table = {k: v / _max_freq for k, v in _out_count.items()}
+                print(f"  빈도 테이블: {SPDTw._freq_table}")
+
+            _inventory_limit = (
+                SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name]
+                .Area_dict['Area_01'].INVENTORY_CRITICAL_LIMIT
+            )
+
+            # 시각화 데이터 수집기 초기화
+            _area_01 = SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01']
+            viz = VizCollector(
+                seed=seed, algo=algo_mode,
+                col=_area_01.COL, row=_area_01.ROW, height=_area_01.HEIGHT,
+                total_missions=LEAST_MISSION_LENGTH
+            )
+
+            # S 모드: 미션별 상세 로그 유지 / N 모드: 진행률 바만 표시
+            _sim_mode = (op_mode == 's')
+            if not _sim_mode:
+                logger.removeHandler(log_streamer)
+
+            print(f"\n미션 처리 시작 (총 {LEAST_MISSION_LENGTH:,}건, 창고용량: {_inventory_limit})")
+            print("=" * 60)
+            _progress_step = max(1, LEAST_MISSION_LENGTH // 100)  # 1% 단위
+            _start_time = time.time()
+            _cnt = {'IN': 0, 'OUT': 0, 'WAIT': 0, 'skip_full': 0, 'skip_empty': 0}
 
             for _ in range(LEAST_MISSION_LENGTH):
+
+                if not _sim_mode and _ % _progress_step == 0 and _ > 0:
+                    _pct = _ * 100 // LEAST_MISSION_LENGTH
+                    _elapsed = time.time() - _start_time
+                    _eta = _elapsed / _ * (LEAST_MISSION_LENGTH - _)
+                    _inv_count = len(SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].inventory)
+                    print(
+                        f"\r  [{'#' * (_pct // 5):20s}] {_pct:3d}% ({_:,}/{LEAST_MISSION_LENGTH:,}) "
+                        f"경과:{_elapsed:.0f}s 남은:{_eta:.0f}s | "
+                        f"IN:{_cnt['IN']:,} OUT:{_cnt['OUT']:,} WAIT:{_cnt['WAIT']:,} "
+                        f"재고:{_inv_count}/{_inventory_limit} "
+                        f"스킵:{_cnt['skip_full']+_cnt['skip_empty']}",
+                        end="", flush=True)
 
                 action = product_name = dom = wait_time = None
 
@@ -400,34 +476,64 @@ if __name__ == "__main__":
                             dom = line[3]
                     elif action in ['WAIT']:
                         wait_time = line[2]
-                
+
+                # S 모드: 미션 시작 로그
+                if _sim_mode:
+                    _inv_count = len(SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].inventory)
+                    _elapsed = time.time() - _start_time
+                    _mission_num = _ + 1 - mission_offset
+                    print(f"\n[미션 {_mission_num:,} / {LEAST_MISSION_LENGTH:,}] "
+                          f"({action}) 상품:{product_name or '-'} | "
+                          f"재고:{_inv_count}/{_inventory_limit} | 경과:{_elapsed:.0f}s")
+
                 if action == 'IN':
                     try:
                         moved_distance, lot = SPDTw.Inbound(product_name=product_name, DOM=dom, testing_mode = True)
+                        _cnt['IN'] += 1
+                        if _sim_mode:
+                            print(f"  -> 입고 완료: {lot} | 이동거리: {moved_distance}")
                         logger.info(f"IN {lot}")
                         sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
                         unit_time_past += sum([d*s for d,s in zip(moved_distance, GANTRY_MOVING_SPEED)])
-                    except NotEnoughSpaceError: # 공간 부족 시
-                        mission_offset += 1 # 다음 미션으로 (현 미션 스킵)
+                    except NotEnoughSpaceError:
+                        mission_offset += 1
+                        _cnt['skip_full'] += 1
+                        if _sim_mode:
+                            print(f"  -> 스킵: 창고 공간 부족")
                         logger.info("입고 명령 무시 : 창고 공간 부족")
                         logger.warning(f"IN 실패 {product_name} NotEnoughSpaceError")
                         continue
                 elif action == 'OUT':
                     try:
                         moved_distance, lot = SPDTw.Outbound(product_name=product_name, testing_mode = 1)
+                        _cnt['OUT'] += 1
+                        if _sim_mode:
+                            print(f"  -> 출고 완료: {lot} | 이동거리: {moved_distance}")
                         logger.info(f"OUT {lot}")
-
                     except ProductNotExistError:
+                        _cnt['skip_empty'] += 1
+                        if _sim_mode:
+                            print(f"  -> 스킵: 해당 품목 없음")
                         logger.info("출고 명령 무시 : 해당 품목의 상품 없음")
                         logger.warning(f"OUT 실패 {product_name} ProductNotExistError")
-                        
                         continue
                     sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
                     unit_time_past += sum([d*s for d,s in zip(moved_distance, GANTRY_MOVING_SPEED)])
                 elif action == 'WAIT':
-                    # unit_time_past += wait_time
-                    pass
-                
+                    _cnt['WAIT'] += 1
+                    if _sim_mode:
+                        print(f"  -> 대기: {wait_time}")
+
+                # 시각화 스냅샷 수집
+                viz.collect(
+                    mission_num=_,
+                    grid=_area_01.grid,
+                    product_I_dict=SPDTw.product_I_dict,
+                    cum_distance=sum_distance,
+                    inv_count=len(_area_01.inventory),
+                    counts=_cnt
+                )
+
                 if action == 'WAIT':
                     logger.info(
                         f"mission_{_+1-mission_offset} fin (mission list # {_})\n"+
@@ -443,12 +549,40 @@ if __name__ == "__main__":
                         f"Total Unit time past : {unit_time_past}\n"+
                         "-----------------------------------------------------------"+"\n"
                         )
-                    
+
+            _elapsed = time.time() - _start_time
+            _inv_count = len(SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].inventory)
+            print(
+                f"\r  [{'#' * 20}] 100% ({LEAST_MISSION_LENGTH:,}/{LEAST_MISSION_LENGTH:,}) "
+                f"완료! ({_elapsed:.1f}s)"
+                f"                                                  ")
+            print(
+                f"  결과 - IN:{_cnt['IN']:,} | OUT:{_cnt['OUT']:,} | WAIT:{_cnt['WAIT']:,} | "
+                f"재고:{_inv_count}/{_inventory_limit} | "
+                f"스킵(공간부족):{_cnt['skip_full']} 스킵(상품없음):{_cnt['skip_empty']}")
+            print("=" * 60)
+
+            # 터미널 로그 출력 복원 (N 모드에서만 제거했으므로)
+            if not _sim_mode:
+                logger.addHandler(log_streamer)
+
             eval_score = Evaluator(mode=op_mode, SEED=seed, mission_length = LEAST_MISSION_LENGTH)
             final_score, time_score, position_score, average_height = eval_score.evaluate(
-                time_past=unit_time_past, 
+                time_past=unit_time_past,
                 grid_list=SPDTw.WH_dict[SPDTw.WH_name].Zone_dict[SPDTw.Zone_name].Area_dict['Area_01'].grid
                 )
+
+            print(f"\n{'=' * 60}")
+            print(f"  평가 결과 (SEED={seed:06d})")
+            print(f"  {'─' * 40}")
+            print(f"  총 이동거리   : [{sum_distance[0]:.1f}, {sum_distance[1]:.1f}]")
+            print(f"  총 소요시간   : {unit_time_past:,.1f}")
+            print(f"  높이 표준편차 : {average_height:.4f}")
+            print(f"  {'─' * 40}")
+            print(f"  시간 점수     : {time_score*100:.2f}%")
+            print(f"  위치 점수     : {position_score:.2f}")
+            print(f"  종합 점수     : {final_score*100:.2f}%")
+            print(f"{'=' * 60}")
 
             logger.info(
                 f"test_fin \n"+
@@ -461,6 +595,17 @@ if __name__ == "__main__":
                 f"total_score    : {final_score*100:.2f}%\n"
                 "___________________________________________________________"+"\n"
                   )
+
+            # 시각화 HTML 생성
+            viz_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "docs", "viz")
+            viz_path = viz.generate_html(
+                output_dir=viz_dir,
+                final_score=final_score,
+                time_score=time_score,
+                pos_score=position_score
+            )
+            print(f"\n  시각화 파일 생성: {viz_path}")
+            print(f"  브라우저에서 열기: file:///{viz_path}")
             
             # time.sleep(5)
 

@@ -4,11 +4,10 @@ from WCS.Area_mng import area_manager
 from MW.Product_mng import container_manager, product_manager
 import datetime as dt
 import math
+from collections import deque
 
 from ERROR.error import NotEnoughSpaceError, ProductNotExistError
 
-
-MODE = "FF"
 
 class Base_info (product_manager, container_manager, wh_manager):
     def __init__(self, op_mode = None):
@@ -17,13 +16,29 @@ class Base_info (product_manager, container_manager, wh_manager):
             self.sim_skip = True
         else:
             self.sim_skip = False
-        # if op_mode != None and op_mode[0] in ['s', ]:
-        #     self.sim_skip = True
-            
+
         self.WH_dict = {}
         container_manager.__init__(self)
-        
-        product_manager.__init__(self, container_manager)        
+
+        product_manager.__init__(self, container_manager)
+
+        # 배치 알고리즘 모드:
+        # "FF"(First-Fit), "AO"(Adaptive), "RL"(실시간학습),
+        # "LA"(미리보기), "RA"(최근 출고 기반 적응형)
+        self.mode = "FF"
+
+        # 성능 최적화: 카운터 및 인덱스
+        self._registered_count = {}   # lot_head -> 등록된 총 수
+        self._lots_by_product = {}    # product_name -> [lot, lot, ...] (재고에 있는 것만)
+
+        # RL/LA/RA 모드 빈도 추적
+        self._outbound_count = {}     # product_name -> 출고 횟수
+        self._total_outbound = 0
+        self._freq_table = {}         # LA 모드: 사전 분석된 빈도 테이블
+        self._recent_outbound       = deque(maxlen=2000)  # RA 모드: 장기 윈도우 (2000건)
+        self._recent_outbound_count = {}                   # RA 모드: 장기 윈도우 품목별 횟수
+        self._recent_outbound_short       = deque(maxlen=500)  # RA 모드: 단기 윈도우 (500건)
+        self._recent_outbound_short_count = {}                  # RA 모드: 단기 윈도우 품목별 횟수
 
       
     # def __init__(self, saved_file):
@@ -47,11 +62,92 @@ class Base_info (product_manager, container_manager, wh_manager):
         # self.WH_01.Zone_dict = 
         wh_manager.add_default_zone(self.WH_01, {
                 'Zone_name' : 'Zone_01',
-                'container' : self.container_dict['default']
+                'container' : self.container_dict['default'],
+                'sim_skip'  : self.sim_skip
                 }
             )
         
 
+
+    def _get_freq_score(self, product_name, conservative=False):
+        """품목의 출고 빈도 점수 반환 (0.0=COLD ~ 1.0=HOT)
+
+        conservative=False (입고 배치용): 단기 60% + 장기 40%  — 패턴 변화에 빠르게 적응
+        conservative=True  (재배치용)  : 단기 20% + 장기 80%  — 기존 재고 위치를 존중해 과잉 보정 방지
+        """
+        if self.mode == "LA":
+            return self._freq_table.get(product_name, 0.5)
+        elif self.mode == "RA":
+            # 단기 점수 (500건)
+            if self._recent_outbound_short_count:
+                max_s = max(self._recent_outbound_short_count.values())
+                short_score = (self._recent_outbound_short_count.get(product_name, 0) / max_s
+                               if max_s else 0.5)
+            else:
+                short_score = 0.5
+            # 장기 점수 (2000건)
+            if self._recent_outbound_count:
+                max_l = max(self._recent_outbound_count.values())
+                long_score = (self._recent_outbound_count.get(product_name, 0) / max_l
+                              if max_l else 0.5)
+            else:
+                long_score = 0.5
+            # 혼합 비율: 재배치는 보수적(장기 위주), 입고는 적응형(단기 위주)
+            w_short = 0.2 if conservative else 0.6
+            return w_short * short_score + (1.0 - w_short) * long_score
+        elif self.mode == "RL":
+            if not self._outbound_count:
+                return 0.5  # 데이터 없음 → 중립
+            max_count = max(self._outbound_count.values())
+            if max_count == 0:
+                return 0.5
+            return self._outbound_count.get(product_name, 0) / max_count
+        return 0.5
+
+    def _update_recent_outbound(self, product_name):
+        """RA 모드: 단기(500) + 장기(2000) 윈도우 카운트 동시 갱신"""
+        # 장기 윈도우
+        if len(self._recent_outbound) == self._recent_outbound.maxlen:
+            old = self._recent_outbound[0]
+            old_c = self._recent_outbound_count.get(old, 0)
+            if old_c <= 1:
+                self._recent_outbound_count.pop(old, None)
+            else:
+                self._recent_outbound_count[old] = old_c - 1
+        self._recent_outbound.append(product_name)
+        self._recent_outbound_count[product_name] = self._recent_outbound_count.get(product_name, 0) + 1
+
+        # 단기 윈도우
+        if len(self._recent_outbound_short) == self._recent_outbound_short.maxlen:
+            old = self._recent_outbound_short[0]
+            old_c = self._recent_outbound_short_count.get(old, 0)
+            if old_c <= 1:
+                self._recent_outbound_short_count.pop(old, None)
+            else:
+                self._recent_outbound_short_count[old] = old_c - 1
+        self._recent_outbound_short.append(product_name)
+        self._recent_outbound_short_count[product_name] = self._recent_outbound_short_count.get(product_name, 0) + 1
+
+    def _find_best_outbound_lot(self, product_name):
+        """RL/LA/RA 모드: 출고 비용 최소 lot 선택 (블로킹 최소 + 출고구 근접)"""
+        lots = self._lots_by_product.get(product_name, [])
+        if not lots:
+            return None
+        best_lot = None
+        best_key = (float('inf'), float('inf'))
+        for lot in lots:
+            info = self.product_I_dict.get(lot, {})
+            if 'bin_location' not in info:
+                continue
+            loc = info['bin_location']
+            area = self.WH_dict[info['WH_name']].Zone_dict[info['Zone_name']].Area_dict[info['Area_name']]
+            blocking = area._heights[loc[0]][loc[1]] - (loc[2] + 1)
+            access = area._xy_dist[loc[0]][loc[1]]
+            key = (blocking, access)
+            if key < best_key:
+                best_key = key
+                best_lot = lot
+        return best_lot
 
     def add_WH(self,WH_properties):
         self.WH_dict[WH_properties['WH_name']] = wh_manager(WH_properties)
@@ -123,17 +219,14 @@ class Base_info (product_manager, container_manager, wh_manager):
         destination_area = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name]
         In_area          = self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict['In']
 
-        area_total_product_amount = len([i for i in destination_area.inventory.keys() 
-                                      if 'loc' in destination_area.inventory[i].keys()])
+        area_total_product_amount = len(destination_area.inventory)
 
-        present_product_amount = len([i for i in destination_area.inventory.keys() 
-                                      if self.product_templet_dict[product_name]['lot_head'] in i])
-        
-        registered_product_amount = len([i for i in self.product_I_dict.keys() 
-                                      if self.product_templet_dict[product_name]['lot_head'] in i])
+        lot_head = self.product_templet_dict[product_name]['lot_head']
+        registered_product_amount = self._registered_count.get(lot_head, 0)
         
         if area_total_product_amount >= destination_area.INVENTORY_CRITICAL_LIMIT: # 물건을 하나씩 집는 동안은 해결 불능
-            print("최종 적재 한계에 도달 하였습니다. \n입고 작업 및 정렬 작업을 진행할 수 없습니다.")
+            if not testing_mode:
+                print("최종 적재 한계에 도달 하였습니다. \n입고 작업 및 정렬 작업을 진행할 수 없습니다.")
             raise NotEnoughSpaceError
         
         # elif area_total_product_amount >= destination_area.INVENTORY_LIMIT: # 다른 전략 필요
@@ -150,26 +243,38 @@ class Base_info (product_manager, container_manager, wh_manager):
             loc = manual_loc
 
         else:
-            # 자동 최적화
-            if MODE == "AO":
+            if self.mode == "RA":
+                freq_score = self._get_freq_score(product_name)
+                loc = zone_manager.target_scored_pos_find(
+                                    self=destination_zone,
+                                    Area_name=Area_name,
+                                    freq_score=freq_score
+                                    )
+            elif self.mode in ("RL", "LA"):
+                freq_score = self._get_freq_score(product_name)
+                loc = zone_manager.scored_pos_find(
+                                    self=destination_zone,
+                                    Area_name=Area_name,
+                                    freq_score=freq_score
+                                    )
+            elif self.mode == "AO":
+                present_product_amount = len([i for i in destination_area.inventory.keys()     #AO
+                                              if lot_head in i])                               #AO
                 if (present_product_amount == 0                                               #AO
                     or (present_product_amount+1)%destination_area.HEIGHT):                   #AO
                     priority = 2                                                              #AO
                 else:                                                                         #AO
                     priority = 1                                                              #AO
-            
-            # first_fit
-            if MODE == "FF":                                                                  #FF
+                loc = zone_manager.optimal_pos_find(
+                                    self=destination_zone, lot=lot, Area_name=Area_name,
+                                    outbound_freq=self.product_templet_dict[product_name]['outbound_frequency'],
+                                    priority=priority)
+            else:  # FF
                 priority = 1                                                                  #FF
-            
-            loc = zone_manager.optimal_pos_find(
-                                self=destination_zone,
-                                lot=lot,
-                                Area_name=Area_name, 
-                                outbound_freq = self.product_templet_dict[product_name]
-                                                ['outbound_frequency'], 
-                                priority=priority
-                                )
+                loc = zone_manager.optimal_pos_find(
+                                    self=destination_zone, lot=lot, Area_name=Area_name,
+                                    outbound_freq=self.product_templet_dict[product_name]['outbound_frequency'],
+                                    priority=priority)
 
         # self.Zone_01.inbound(loc=loc)
         
@@ -210,8 +315,13 @@ class Base_info (product_manager, container_manager, wh_manager):
         self.WH_dict[WH_name].Zone_dict[Zone_name].Area_dict[Area_name].inventory[lot] = {
                         'loc' : loc
                     }
+        # 카운터/인덱스 업데이트
+        self._registered_count[lot_head] = self._registered_count.get(lot_head, 0) + 1
+        if product_name not in self._lots_by_product:
+            self._lots_by_product[product_name] = []
+        self._lots_by_product[product_name].append(lot)
         # 자동 최적화
-        if MODE == "AO":
+        if self.mode == "AO":
             if priority == 1:                                     #AO
                 moved_distance = self.sort_item( # 정렬           #AO
                                 WH_name=WH_name,                  #AO
@@ -224,10 +334,11 @@ class Base_info (product_manager, container_manager, wh_manager):
 
                 sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
 
-        print(f"{lot} : {Area_name}{loc}에 입고 완료",
-              f"{'- '+destination_area.grid[loc[0]][loc[1]][-1]+'~'+lot}"
-              + f"{' 정렬 완료됨'if priority == 1 else ''}" if MODE == "AO" else ''  #AO
-              )
+        if not testing_mode:
+            print(f"{lot} : {Area_name}{loc}에 입고 완료",
+                  f"{'- '+destination_area.grid[loc[0]][loc[1]][-1]+'~'+lot}"
+                  + f"{' 정렬 완료됨'if priority == 1 else ''}" if self.mode == "AO" else ''  #AO
+                  )
         
         # if testing_mode:
         #     return sum_distance
@@ -247,29 +358,26 @@ class Base_info (product_manager, container_manager, wh_manager):
 
         출력 : [`moved_distance`,`lot`]
         '''
-        # loc = self.find_loc(name)
         if not lot:
             if product_name:
-                product_I_dict_sorted = dict(sorted(self.product_I_dict.items()))
-
-
-                for i in product_I_dict_sorted.keys():
-                    if (
-                        product_I_dict_sorted[i]['product_name'] == product_name and
-                        'bin_location' in list(product_I_dict_sorted[i].keys())
-                        ):
-                        lot = i
-                        break
-
-            # elif loc:
+                if self.mode in ("RL", "LA", "RA"):
+                    # 블로킹 최소 + 출고구 근접 lot 선택
+                    lot = self._find_best_outbound_lot(product_name)
+                else:
+                    # 인덱스에서 재고에 있는 첫 번째 lot 검색
+                    product_lots = self._lots_by_product.get(product_name, [])
+                    for candidate in product_lots:
+                        if 'bin_location' in self.product_I_dict.get(candidate, {}):
+                            lot = candidate
+                            break
 
         if not lot:
             raise ProductNotExistError
-            # return None
 
         sum_distance = [0,0]
 
-        print(f"출고 대상 : {lot}")
+        if not testing_mode:
+            print(f"출고 대상 : {lot}")
         I_dict      = self.product_I_dict[lot]
         WH_name     = I_dict['WH_name']
         Zone_name   = I_dict['Zone_name']
@@ -290,22 +398,35 @@ class Base_info (product_manager, container_manager, wh_manager):
 
                 top_lot = (deposition_area.grid[loc[0]][loc[1]][-1])
                 product_name = self.product_I_dict[top_lot]['product_name']
-                
-                # 자동 최적화
-                if MODE == "AO":
-                    priority = 2                    #AO
-                # first_fit
-                elif MODE == "FF":
-                    priority = 1                    #FF
 
-                deposition_loc = zone_manager.optimal_pos_find(
-                                    self = deposition_zone,
-                                    Area_name = Area_name,
-                                    lot = top_lot,
-                                    outbound_freq = self.product_templet_dict[product_name]['outbound_frequency'],
-                                    priority = priority,
-                                    origin=loc[:-1]    
-                                    )
+                if self.mode == "RA":
+                    freq_score = self._get_freq_score(product_name, conservative=True)
+                    deposition_loc = zone_manager.target_scored_pos_find(
+                                        self=deposition_zone,
+                                        Area_name=Area_name,
+                                        freq_score=freq_score,
+                                        origin=loc[:-1]
+                                        )
+                elif self.mode in ("RL", "LA"):
+                    freq_score = self._get_freq_score(product_name)
+                    deposition_loc = zone_manager.scored_pos_find(
+                                        self=deposition_zone,
+                                        Area_name=Area_name,
+                                        freq_score=freq_score,
+                                        origin=loc[:-1]
+                                        )
+                elif self.mode == "AO":
+                    priority = 2                    #AO
+                    deposition_loc = zone_manager.optimal_pos_find(
+                                        self=deposition_zone, Area_name=Area_name, lot=top_lot,
+                                        outbound_freq=self.product_templet_dict[product_name]['outbound_frequency'],
+                                        priority=priority, origin=loc[:-1])
+                else:  # FF
+                    priority = 1                    #FF
+                    deposition_loc = zone_manager.optimal_pos_find(
+                                        self=deposition_zone, Area_name=Area_name, lot=top_lot,
+                                        outbound_freq=self.product_templet_dict[product_name]['outbound_frequency'],
+                                        priority=priority, origin=loc[:-1])
                 
                 moved_distance = zone_manager.move_item( # 상단 상품 이동
                     self = deposition_zone,
@@ -336,15 +457,29 @@ class Base_info (product_manager, container_manager, wh_manager):
 
             sum_distance = [m+s for m,s in zip(moved_distance,sum_distance)]
 
-            rearrange_offset = len(list(deposition_area.inventory.keys()))\
-                                -list(deposition_area.inventory.keys()).index(lot) 
+            inv_keys = list(deposition_area.inventory.keys())
+            rearrange_offset = len(inv_keys) - inv_keys.index(lot)
             
             deposition_area.inventory.pop(lot)
+            out_product_name = self.product_I_dict[lot]['product_name']
             for k in ['WH_name','Zone_name','Area_name','bin_location']:
                 self.product_I_dict[lot].pop(k)
-            
+            # _lots_by_product 인덱스에서 제거
+            if out_product_name in self._lots_by_product:
+                try:
+                    self._lots_by_product[out_product_name].remove(lot)
+                except ValueError:
+                    pass
+
+            # RL/RA 모드: 출고 빈도 추적
+            if self.mode == "RL":
+                self._outbound_count[out_product_name] = self._outbound_count.get(out_product_name, 0) + 1
+                self._total_outbound += 1
+            elif self.mode == "RA":
+                self._update_recent_outbound(out_product_name)
+
             # 자동 최적화
-            if MODE == "AO":
+            if self.mode == "AO":
                 if previous_height > 1:                   #AO
                     moved_distance = self.sort_item(      #AO  # 재 정렬 
                         WH_name = WH_name,                #AO
@@ -360,8 +495,8 @@ class Base_info (product_manager, container_manager, wh_manager):
         if Out_area.grid[0][0]:
             Out_area.grid[0][0].pop()
 
-        print(f"{lot} 출고 완료",
-              f"")
+        if not testing_mode:
+            print(f"{lot} 출고 완료")
         # if testing_mode == 1:
         #     return sum_distance 
         # else:
@@ -510,7 +645,7 @@ class Base_info (product_manager, container_manager, wh_manager):
             lot     = list(destination_area.inventory.keys())[offset+i]
             loc_from= destination_area.inventory[lot]['loc']
             
-            loc_to  = [optimal_pos[0], optimal_pos[1], optimal_pos[0]+i]
+            loc_to  = [optimal_pos[0], optimal_pos[1], optimal_pos[2]+i]
 
             moved_distance = zone_manager.move_item(
                 self        = destination_zone,

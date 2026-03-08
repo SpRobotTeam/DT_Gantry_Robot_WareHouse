@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>프로젝트 개요 — DT 갠트리 로봇 창고</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:        #f4f3f0;
+  --bg-card:   #ffffff;
+  --bg-hero:   #1b2a3d;
+  --text:      #2c2c2c;
+  --text-2:    #6b7280;
+  --text-3:    #9ca3af;
+  --border:    #e2e0db;
+  --accent:    #0e7490;
+  --accent-lt: #ecfeff;
+  --ff:  #94a3b8; --rl: #16a34a; --la: #ca8a04; --ra: #9333ea;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.07);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(14,116,144,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(14,116,144,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+
+/* ── Hero ── */
+.hero{background:var(--bg-hero);padding:52px 24px 44px;text-align:center;position:relative;overflow:hidden;}
+.hero::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(14,116,144,0.18) 0%,transparent 55%),linear-gradient(225deg,rgba(147,51,234,0.12) 0%,transparent 55%);}
+.hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(14,116,144,0.5),transparent);}
+.hero-inner{position:relative;z-index:1;max-width:760px;margin:0 auto;}
+.hero-tag{display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:0.7em;letter-spacing:0.09em;text-transform:uppercase;color:rgba(14,116,144,0.9);background:rgba(14,116,144,0.1);border:1px solid rgba(14,116,144,0.22);padding:4px 14px;border-radius:20px;margin-bottom:18px;}
+.hero-tag .dot{width:6px;height:6px;border-radius:50%;background:#0e7490;animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:.4;}50%{opacity:1;}}
+.hero h1{font-family:'Outfit',sans-serif;font-size:clamp(1.8em,4.5vw,2.6em);font-weight:800;color:#fff;letter-spacing:-0.03em;line-height:1.2;margin-bottom:12px;}
+.hero h1 span{color:#67e8f9;}
+.hero-sub{font-size:1em;color:rgba(255,255,255,0.45);line-height:1.7;max-width:580px;margin:0 auto;}
+.back-link{position:absolute;left:20px;top:28px;z-index:2;color:rgba(255,255,255,0.4);text-decoration:none;font-size:0.82em;transition:color .15s;}
+.back-link:hover{color:#67e8f9;}
+
+/* ── Layout ── */
+.wrap{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:48px 24px 80px;}
+
+/* ── Section ── */
+.section{margin-bottom:56px;}
+.section-head{display:flex;align-items:center;gap:14px;margin-bottom:24px;}
+.section-num{font-family:'Outfit',sans-serif;font-size:0.72em;font-weight:700;color:var(--accent);background:var(--accent-lt);border:1px solid rgba(14,116,144,0.18);padding:4px 12px;border-radius:20px;letter-spacing:0.04em;white-space:nowrap;}
+.section-head h2{font-family:'Outfit',sans-serif;font-size:1.35em;font-weight:700;letter-spacing:-0.02em;color:var(--text);}
+.section-head .line{flex:1;height:1px;background:var(--border);}
+
+/* ── Card ── */
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:24px 26px;box-shadow:var(--shadow-sm);margin-bottom:14px;}
+.card p{font-size:0.95em;line-height:1.8;color:var(--text-2);}
+.card p+p{margin-top:10px;}
+.card strong{color:var(--text);font-weight:600;}
+
+/* ── Callout ── */
+.callout{background:linear-gradient(135deg,#f0fdfa,#ecfeff);border:1px solid rgba(14,116,144,0.2);border-left:4px solid var(--accent);border-radius:10px;padding:18px 22px;margin-bottom:14px;}
+.callout p{font-size:0.95em;line-height:1.75;color:#164e63;}
+.callout strong{color:#0e7490;}
+
+/* ── Why grid ── */
+.why-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+@media(max-width:600px){.why-grid{grid-template-columns:1fr;}}
+.why-item{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;box-shadow:var(--shadow-sm);}
+.why-item .wi-icon{font-size:1.6em;margin-bottom:8px;}
+.why-item h4{font-family:'Outfit',sans-serif;font-size:0.95em;font-weight:600;margin-bottom:5px;}
+.why-item p{font-size:0.83em;line-height:1.65;color:var(--text-2);}
+
+/* ── Warehouse diagram ── */
+.wh-diagram{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:24px;box-shadow:var(--shadow-sm);margin-bottom:14px;display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap;}
+.wh-grid-wrap{flex:0 0 auto;}
+.wh-grid{display:grid;grid-template-columns:repeat(8,28px);grid-template-rows:repeat(8,28px);gap:3px;}
+.wh-cell{border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:0.6em;font-weight:600;}
+.wh-cell.empty{background:#f0eeea;color:#c9c6bf;}
+.wh-cell.h1{background:#ddd6fe;color:#7c3aed;}
+.wh-cell.h2{background:#c4b5fd;color:#5b21b6;}
+.wh-cell.h3{background:#a78bfa;color:#3b0764;}
+.wh-cell.h4{background:#7c3aed;color:#fff;}
+.wh-cell.h5{background:#5b21b6;color:#fff;}
+.wh-cell.out{background:#fef3c7;border:2px solid #f59e0b;color:#92400e;font-size:0.55em;}
+.wh-desc{flex:1;min-width:200px;}
+.wh-desc h4{font-family:'Outfit',sans-serif;font-weight:600;margin-bottom:10px;font-size:1em;}
+.wh-legend{display:flex;flex-direction:column;gap:6px;font-size:0.8em;color:var(--text-2);}
+.wh-legend .li{display:flex;align-items:center;gap:8px;}
+.wh-legend .sw{width:18px;height:18px;border-radius:4px;flex-shrink:0;}
+
+/* ── Algo cards ── */
+.algo-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+@media(max-width:600px){.algo-grid{grid-template-columns:1fr;}}
+.algo-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:20px 22px;box-shadow:var(--shadow-sm);border-top:3px solid;}
+.algo-card.ff{border-top-color:var(--ff);}
+.algo-card.rl{border-top-color:var(--rl);}
+.algo-card.la{border-top-color:var(--la);}
+.algo-card.ra{border-top-color:var(--ra);}
+.algo-badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:0.72em;font-weight:600;padding:3px 10px;border-radius:6px;margin-bottom:10px;}
+.algo-card.ff .algo-badge{background:#f1f5f9;color:var(--ff);}
+.algo-card.rl .algo-badge{background:#f0fdf4;color:var(--rl);}
+.algo-card.la .algo-badge{background:#fefce8;color:var(--la);}
+.algo-card.ra .algo-badge{background:#faf5ff;color:var(--ra);}
+.algo-card h4{font-family:'Outfit',sans-serif;font-weight:700;font-size:1em;margin-bottom:6px;}
+.algo-card .simple{font-size:0.82em;color:var(--text-2);line-height:1.6;margin-bottom:8px;}
+.algo-card .analogy{font-size:0.78em;background:#f8f7f5;border-radius:8px;padding:8px 12px;color:var(--text-2);border-left:3px solid #e2e0db;font-style:italic;}
+.algo-card .perf{margin-top:10px;font-size:0.75em;display:flex;gap:6px;flex-wrap:wrap;}
+.algo-card .perf span{padding:2px 8px;border-radius:12px;font-family:'IBM Plex Mono',monospace;}
+.perf-good{background:#f0fdf4;color:#16a34a;}
+.perf-mid{background:#fefce8;color:#ca8a04;}
+.perf-bad{background:#fef2f2;color:#dc2626;}
+
+/* ── Pattern cards ── */
+.pattern-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+@media(max-width:600px){.pattern-grid{grid-template-columns:1fr;}}
+.pat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:20px 22px;box-shadow:var(--shadow-sm);}
+.pat-name{font-family:'IBM Plex Mono',monospace;font-size:0.75em;font-weight:600;color:var(--accent);background:var(--accent-lt);padding:3px 10px;border-radius:6px;display:inline-block;margin-bottom:10px;}
+.pat-card h4{font-family:'Outfit',sans-serif;font-weight:700;font-size:0.98em;margin-bottom:6px;}
+.pat-card .pat-desc{font-size:0.82em;color:var(--text-2);line-height:1.65;margin-bottom:12px;}
+.pat-card .real{font-size:0.78em;background:#f8f7f5;border-radius:8px;padding:8px 12px;color:var(--text-2);border-left:3px solid #e2e0db;}
+/* Mini bar chart */
+.mini-bars{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;}
+.mini-bar-row{display:flex;align-items:center;gap:6px;font-size:0.7em;font-family:'IBM Plex Mono',monospace;}
+.mini-bar-row .lbl{width:14px;color:var(--text-3);text-align:right;}
+.mini-bar-row .track{flex:1;height:8px;background:#f0eeea;border-radius:4px;overflow:hidden;display:flex;}
+.mini-bar-row .seg{height:100%;border-radius:4px;}
+.seg-hot{background:#9333ea;}
+.seg-warm{background:#c4b5fd;}
+.seg-cold{background:#e9d5ff;}
+.seg-base{background:#e2e0db;}
+
+/* ── Benchmark chart ── */
+.chart-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:22px 24px;box-shadow:var(--shadow-sm);margin-bottom:14px;}
+.chart-wrap h4{font-family:'Outfit',sans-serif;font-size:0.9em;font-weight:600;color:var(--text-2);margin-bottom:14px;}
+canvas.bchart{width:100%!important;height:240px!important;}
+.algo-legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;}
+.algo-legend .item{display:flex;align-items:center;gap:5px;font-size:0.75em;font-family:'IBM Plex Mono',monospace;color:var(--text-2);}
+.algo-legend .dot{width:12px;height:12px;border-radius:3px;}
+
+/* ── Ratio badges ── */
+.ratio-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+@media(max-width:600px){.ratio-row{grid-template-columns:repeat(2,1fr);}}
+.ratio-badge{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;text-align:center;box-shadow:var(--shadow-sm);}
+.ratio-badge .rb-pat{font-family:'IBM Plex Mono',monospace;font-size:0.72em;color:var(--text-3);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:5px;}
+.ratio-badge .rb-val{font-family:'IBM Plex Mono',monospace;font-size:1.45em;font-weight:700;}
+.ratio-badge .rb-note{font-size:0.7em;color:var(--text-3);margin-top:3px;}
+.ratio-badge.win .rb-val{color:#16a34a;}
+.ratio-badge.lose .rb-val{color:#dc2626;}
+
+/* ── Blindspot ── */
+.blindspot-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:14px;}
+.bs-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:20px 24px;box-shadow:var(--shadow-sm);display:flex;gap:18px;align-items:flex-start;}
+.bs-icon{font-size:2em;flex-shrink:0;margin-top:2px;}
+.bs-body h4{font-family:'Outfit',sans-serif;font-weight:700;font-size:1em;margin-bottom:6px;}
+.bs-body p{font-size:0.85em;line-height:1.7;color:var(--text-2);}
+.bs-body .bs-tag{display:inline-block;font-size:0.72em;font-family:'IBM Plex Mono',monospace;padding:2px 8px;border-radius:6px;margin-top:6px;}
+.bs-tag.critical{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;}
+.bs-tag.moderate{background:#fefce8;color:#ca8a04;border:1px solid #fde68a;}
+
+/* ── Next steps ── */
+.steps{display:flex;flex-direction:column;gap:10px;}
+.step{display:flex;gap:16px;align-items:flex-start;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;box-shadow:var(--shadow-sm);}
+.step-num{width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;font-family:'Outfit',sans-serif;font-weight:700;font-size:0.9em;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.step-body h4{font-family:'Outfit',sans-serif;font-weight:600;font-size:0.95em;margin-bottom:3px;}
+.step-body p{font-size:0.82em;color:var(--text-2);line-height:1.6;}
+
+/* ── Footer ── */
+footer{text-align:center;padding:32px 24px;font-size:0.78em;color:var(--text-3);position:relative;z-index:1;}
+footer::before{content:'';display:block;width:40px;height:1px;background:var(--border);margin:0 auto 16px;}
+footer a{color:var(--accent);text-decoration:none;font-weight:500;}
+</style>
+</head>
+<body>
+
+<!-- ── Hero ── -->
+<header class="hero">
+  <a href="index.html" class="back-link">&larr; 시각화 목록</a>
+  <div class="hero-inner">
+    <div class="hero-tag"><span class="dot"></span>Project Overview</div>
+    <h1>DT 갠트리 로봇 <span>창고 시스템</span></h1>
+    <p class="hero-sub">왜 이 프로젝트를 하는가 · 알고리즘이 무엇인가 · 어떻게 검증하는가<br>누구나 이해할 수 있는 프로젝트 전체 설명</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ── 1. 배경 ── -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num">BACKGROUND</span>
+      <h2>왜 이 프로젝트를 하는가</h2>
+      <span class="line"></span>
+    </div>
+
+    <div class="callout">
+      <p><strong>핵심 한 문장:</strong> 같은 로봇·같은 창고에서, 소프트웨어만 바꿔 처리 속도를 높일 수 있는가?</p>
+    </div>
+
+    <div class="card">
+      <p>갠트리 로봇은 레일 위를 이동하며 물건을 집어 지정된 위치에 놓는 기계입니다. 이동 속도는 하드웨어가 정해주기 때문에 바꿀 수 없습니다. 그렇다면 처리 속도를 높이는 방법은 단 하나, <strong>로봇이 이동하는 거리를 줄이는 것</strong>입니다.</p>
+      <p>그런데 기존 팀의 접근 방식은 <strong>"빈 공간이 생기면 가장 가까운 빈 칸에 넣는다"</strong>(First-Fit)는 고전적 방법이었습니다. 이 방법은 구현이 단순하지만, 자주 출고되는 물건이 창고 깊숙이 쌓여 매번 먼 거리를 이동하는 비효율이 발생합니다.</p>
+      <p>이 프로젝트는 <strong>더 스마트한 배치 전략(알고리즘)</strong>을 도출하고, 시뮬레이션으로 그 효과를 정량적으로 검증하는 것이 목표입니다.</p>
+    </div>
+
+    <div class="why-grid">
+      <div class="why-item">
+        <div class="wi-icon">🏭</div>
+        <h4>창고 구조</h4>
+        <p>20×20×5 격자 (최대 396칸). 갠트리 로봇이 XY 평면 이동 + Z 높이 적재. 입출고 포지션(0,0)이 기준점.</p>
+      </div>
+      <div class="why-item">
+        <div class="wi-icon">⏱️</div>
+        <h4>핵심 지표</h4>
+        <p>총 이동거리(XY + Z). 같은 미션 조건에서 이동거리가 짧을수록 처리가 빠르다. FF 대비 최대 66% 절감 확인.</p>
+      </div>
+      <div class="why-item">
+        <div class="wi-icon">📦</div>
+        <h4>운영 조건</h4>
+        <p>상품 4종(01~04), 랜덤 입출고 미션. 창고가 가득 차면 입고 대기, 재고가 없으면 출고 스킵.</p>
+      </div>
+      <div class="why-item">
+        <div class="wi-icon">🧪</div>
+        <h4>검증 방법</h4>
+        <p>동일 미션 리스트를 알고리즘별로 돌려 이동거리 비교. SEED로 재현 가능한 난수 제어.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 2. 창고 구조 ── -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num">WAREHOUSE</span>
+      <h2>창고는 어떻게 생겼는가</h2>
+      <span class="line"></span>
+    </div>
+
+    <div class="wh-diagram">
+      <div class="wh-grid-wrap">
+        <div style="font-size:0.7em;color:#dc2626;margin-bottom:4px;font-weight:600;">◀ 출고구 (0,0)</div>
+        <div class="wh-grid" id="whGrid"></div>
+        <div style="font-size:0.68em;color:#9ca3af;margin-top:6px;">8×8 축소 예시 (실제: 20×20×5)</div>
+      </div>
+      <div class="wh-desc">
+        <h4>격자 구조 읽는 법</h4>
+        <div class="wh-legend">
+          <div class="li"><div class="sw" style="background:#f0eeea;border:1px solid #e2e0db;"></div> 빈 칸 (적재 없음)</div>
+          <div class="li"><div class="sw" style="background:#ddd6fe;"></div> 높이 1 (가장 얕음)</div>
+          <div class="li"><div class="sw" style="background:#a78bfa;"></div> 높이 3 (중간)</div>
+          <div class="li"><div class="sw" style="background:#5b21b6;"></div> 높이 5 (최대 적재)</div>
+          <div class="li"><div class="sw" style="background:#fef3c7;border:2px solid #f59e0b;"></div> 출고구 (0,0) — 로봇 기준점</div>
+        </div>
+        <div style="margin-top:14px;font-size:0.83em;color:var(--text-2);line-height:1.7;">
+          <strong>핵심 원리:</strong> 출고구(0,0)에 가까운 칸일수록 이동거리가 짧습니다. 자주 꺼내는 물건을 <strong>가까운 칸에 배치</strong>하는 것이 알고리즘의 목표입니다.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 3. 알고리즘 ── -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num">ALGORITHM</span>
+      <h2>알고리즘이란 무엇인가</h2>
+      <span class="line"></span>
+    </div>
+
+    <div class="callout">
+      <p><strong>한 줄 정의:</strong> 입고 요청이 들어왔을 때 <strong>"이 물건을 창고 어디에 놓을 것인가"</strong>를 결정하는 규칙입니다.</p>
+    </div>
+
+    <div class="algo-grid">
+      <div class="algo-card ff">
+        <div class="algo-badge">FF · First-Fit</div>
+        <h4>빈 칸에 그냥 넣기</h4>
+        <p class="simple">물건이 들어오면 비어 있는 첫 번째 칸에 넣습니다. 어디가 유리한지 전혀 고려하지 않습니다.</p>
+        <div class="analogy">방에 물건을 넣을 때 빈 공간에 아무 데나 두는 것</div>
+        <div class="perf">
+          <span class="perf-bad">이동거리 最多</span>
+          <span class="perf-good">속도 最快</span>
+        </div>
+      </div>
+
+      <div class="algo-card rl">
+        <div class="algo-badge">RL · Reverse L-shape</div>
+        <h4>자주 나가는 물건을 앞에</h4>
+        <p class="simple">전체 미션 통계를 보고 자주 출고되는 상품을 출고구 가까이 배치합니다. 빈도가 낮은 상품은 멀리 보냅니다.</p>
+        <div class="analogy">도서관에서 인기 책을 입구 가까운 서가에 꽂는 것</div>
+        <div class="perf">
+          <span class="perf-good">안정적 성능</span>
+          <span class="perf-mid">패턴 변화에 느림</span>
+        </div>
+      </div>
+
+      <div class="algo-card la">
+        <div class="algo-badge">LA · Look-Ahead</div>
+        <h4>미션 목록을 미리 보고 배치</h4>
+        <p class="simple">앞으로 들어올 미션 전체를 사전에 분석해서 최적 위치를 미리 계산합니다. 미래를 알아야 한다는 전제가 필요합니다.</p>
+        <div class="analogy">오늘 손님 예약 목록을 보고 자주 주문되는 요리 재료를 앞에 꺼내두는 요리사</div>
+        <div class="perf">
+          <span class="perf-good">정적 환경에서 강점</span>
+          <span class="perf-bad">실시간 적용 한계</span>
+        </div>
+      </div>
+
+      <div class="algo-card ra">
+        <div class="algo-badge">RA · Recency-Aware</div>
+        <h4>최근 출고 패턴을 추적해 적응</h4>
+        <p class="simple">최근 500건(단기)과 2,000건(장기) 출고 기록을 동시에 추적합니다. 최근에 자주 나간 상품을 앞으로 옮기고, 뜸해진 상품은 뒤로 보냅니다.</p>
+        <div class="analogy">편의점 점원이 최근 2주 판매 데이터를 보고 잘 팔리는 상품을 눈에 띄는 자리로 옮기는 것</div>
+        <div class="perf">
+          <span class="perf-good">수요 변화 적응</span>
+          <span class="perf-mid">완전 전환엔 느림</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <p><strong>왜 RA가 새로 제안됐나?</strong> RL과 LA는 수요 패턴이 고정돼 있다고 가정합니다. 하지만 실제 창고는 계절, 프로모션, 재고 상황에 따라 어떤 물건이 자주 나가는지가 계속 바뀝니다. RA는 이 변화를 <strong>실시간으로 감지하고 대응</strong>하는 것이 핵심입니다.</p>
+    </div>
+  </section>
+
+  <!-- ── 4. 패턴 ── -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num">PATTERNS</span>
+      <h2>수요 패턴이란 무엇인가</h2>
+      <span class="line"></span>
+    </div>
+
+    <div class="card">
+      <p>20,000건의 미션 동안 <strong>"어떤 상품이 얼마나 자주 출고 요청되는가"</strong>의 시간적 변화를 패턴이라고 합니다. 알고리즘이 어떤 환경에서도 잘 작동하는지 검증하기 위해 4가지 시나리오를 만들었습니다.</p>
+    </div>
+
+    <div class="pattern-grid">
+      <div class="pat-card">
+        <div class="pat-name">UNIFORM</div>
+        <h4>균등 분포 (기준선)</h4>
+        <div class="mini-bars">
+          <div class="mini-bar-row"><span class="lbl">01</span><div class="track"><div class="seg seg-warm" style="width:25%"></div></div></div>
+          <div class="mini-bar-row"><span class="lbl">02</span><div class="track"><div class="seg seg-warm" style="width:25%"></div></div></div>
+          <div class="mini-bar-row"><span class="lbl">03</span><div class="track"><div class="seg seg-warm" style="width:25%"></div></div></div>
+          <div class="mini-bar-row"><span class="lbl">04</span><div class="track"><div class="seg seg-warm" style="width:25%"></div></div></div>
+        </div>
+        <p class="pat-desc">전체 기간 내내 4가지 상품이 골고루 출고됩니다. 패턴 변화가 없는 이상적 상황입니다.</p>
+        <div class="real">현실 비유: 특별한 이벤트 없는 평범한 일상 운영</div>
+      </div>
+
+      <div class="pat-card">
+        <div class="pat-name">SHIFT</div>
+        <h4>수요 이전 (계절 교체)</h4>
+        <div class="mini-bars">
+          <div class="mini-bar-row"><span class="lbl">01</span><div class="track"><div class="seg seg-hot" style="width:55%"></div><div class="seg seg-cold" style="width:10%"></div></div></div>
+          <div class="mini-bar-row"><span class="lbl">02</span><div class="track"><div class="seg seg-base" style="width:15%"></div><div class="seg seg-base" style="width:15%"></div></div></div>
+          <div class="mini-bar-row"><span class="lbl">03</span><div class="track"><div class="seg seg-base" style="width:15%"></div><div class="seg seg-base" style="width:15%"></div></div></div>
+          <div class="mini-bar-row"><span class="lbl">04</span><div class="track"><div class="seg seg-cold" style="width:10%"></div><div class="seg seg-hot" style="width:55%"></div></div></div>
+        </div>
+        <p class="pat-desc">전반 10,000건은 01 집중, 후반 10,000건은 04 집중. 주력 상품이 완전히 바뀌는 상황입니다.</p>
+        <div class="real">현실 비유: 여름엔 선풍기, 겨울엔 히터처럼 계절 상품 교체</div>
+      </div>
+
+      <div class="pat-card">
+        <div class="pat-name">CYCLIC</div>
+        <h4>주기적 순환 (요일별 변화)</h4>
+        <div class="mini-bars">
+          <div class="mini-bar-row"><span class="lbl">01</span><div class="track"><div class="seg seg-hot" style="width:20%"></div><div class="seg" style="width:5%;background:#e9d5ff"></div><div class="seg seg-hot" style="width:20%"></div><div class="seg" style="width:5%;background:#e9d5ff"></div><div class="seg seg-hot" style="width:15%"></div></div></div>
+          <div class="mini-bar-row"><span class="lbl">02</span><div class="track"><div class="seg" style="width:5%;background:#e9d5ff"></div><div class="seg seg-hot" style="width:20%"></div><div class="seg" style="width:5%;background:#e9d5ff"></div><div class="seg seg-hot" style="width:20%"></div></div></div>
+          <div class="mini-bar-row"><span class="lbl">03</span><div class="track"><div class="seg" style="width:10%;background:#e9d5ff"></div><div class="seg" style="width:5%;background:#e9d5ff"></div><div class="seg" style="width:10%;background:#e9d5ff"></div><div class="seg seg-hot" style="width:20%"></div></div></div>
+          <div class="mini-bar-row"><span class="lbl">04</span><div class="track"><div class="seg" style="width:15%;background:#e9d5ff"></div><div class="seg" style="width:5%;background:#e9d5ff"></div><div class="seg" style="width:5%;background:#e9d5ff"></div><div class="seg seg-hot" style="width:15%"></div></div></div>
+        </div>
+        <p class="pat-desc">2,000건 주기로 01→02→03→04가 번갈아 주력 상품이 됩니다. 규칙적이지만 계속 바뀝니다.</p>
+        <div class="real">현실 비유: 요일별·시간대별 판매 상품이 다른 편의점</div>
+      </div>
+
+      <div class="pat-card">
+        <div class="pat-name">BURST</div>
+        <h4>폭발적 집중 수요 (이벤트)</h4>
+        <div class="mini-bars">
+          <div class="mini-bar-row"><span class="lbl">01</span><div class="track"><div class="seg seg-base" style="width:28%"></div><div class="seg seg-hot" style="width:22%"></div><div class="seg seg-base" style="width:18%"></div></div></div>
+          <div class="mini-bar-row"><span class="lbl">02</span><div class="track"><div class="seg seg-warm" style="width:22%"></div><div class="seg" style="width:5%;background:#f0eeea"></div><div class="seg seg-warm" style="width:22%"></div></div></div>
+          <div class="mini-bar-row"><span class="lbl">03</span><div class="track"><div class="seg seg-warm" style="width:22%"></div><div class="seg" style="width:5%;background:#f0eeea"></div><div class="seg seg-warm" style="width:20%"></div></div></div>
+          <div class="mini-bar-row"><span class="lbl">04</span><div class="track"><div class="seg seg-warm" style="width:22%"></div><div class="seg" style="width:5%;background:#f0eeea"></div><div class="seg seg-warm" style="width:20%"></div></div></div>
+        </div>
+        <p class="pat-desc">전체의 30~50% 구간에서 01이 폭발적으로 집중 요청된 후 다시 평상시로 돌아옵니다.</p>
+        <div class="real">현실 비유: 블랙프라이데이·명절 특수처럼 단기 폭발 수요</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 5. 벤치마크 결과 ── -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num">RESULTS</span>
+      <h2>검증 결과</h2>
+      <span class="line"></span>
+    </div>
+
+    <div class="callout">
+      <p><strong>조건:</strong> SEED 123456 · 20,000 미션 · 4가지 알고리즘 × 4가지 패턴. 숫자가 낮을수록 이동거리가 적고 효율적입니다.</p>
+    </div>
+
+    <div class="chart-wrap">
+      <h4>패턴별 총 이동거리 비교 (낮을수록 우수)</h4>
+      <div class="algo-legend" id="benchLegend"></div>
+      <canvas class="bchart" id="benchChart"></canvas>
+    </div>
+
+    <div class="ratio-row" id="ratioRow"></div>
+
+    <div class="card">
+      <p><strong>결과 해석:</strong> FF 대비 RL/LA/RA 모두 약 46~66% 이동거리를 절감합니다. RA는 burst(단기 폭발) 패턴에서 가장 우수하고, cyclic(주기 변화)에서도 유사한 성능을 보입니다. shift(완전 전환) 패턴에서는 RL이 더 안정적입니다. <strong>어떤 알고리즘도 모든 패턴에서 완벽하지 않습니다</strong> — 실제 창고의 수요 패턴 분석이 알고리즘 선택의 핵심입니다.</p>
+    </div>
+  </section>
+
+  <!-- ── 6. 맹점 ── -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num">BLIND SPOTS</span>
+      <h2>현재 검토의 한계와 맹점</h2>
+      <span class="line"></span>
+    </div>
+
+    <div class="blindspot-grid">
+      <div class="bs-card">
+        <div class="bs-icon">📍</div>
+        <div class="bs-body">
+          <h4>입고구와 출고구가 같다는 가정</h4>
+          <p>현재 시뮬레이션은 입고와 출고 모두 <code>(0,0)</code> 위치를 기준으로 합니다. 그러나 실제 갠트리 시스템은 입고 컨베이어와 출고 컨베이어가 분리된 경우가 많습니다. 예를 들어 입고가 <code>(0,0)</code>이고 출고가 <code>(19,0)</code>이라면, 최적 배치 위치 자체가 달라집니다. 한쪽 코너가 유리한 게 아니라 <strong>두 포지션의 중간 경로상 위치</strong>가 유리해집니다. 알고리즘 스코어링 함수 전체를 재설계해야 합니다.</p>
+          <span class="bs-tag critical">최고 우선 검토 필요</span>
+        </div>
+      </div>
+
+      <div class="bs-card">
+        <div class="bs-icon">🚪</div>
+        <div class="bs-body">
+          <h4>입출고 포지션이 동적으로 변할 경우</h4>
+          <p>다중 게이트(A/B 출고구)가 있거나, 운영 상황에 따라 입출고 위치가 바뀐다면 현재 알고리즘은 대응이 불가능합니다. 이 경우 <strong>창고를 구역으로 분할</strong>하거나, 게이트별로 배치 전략을 독립적으로 운영하는 Zone 기반 설계가 필요합니다.</p>
+          <span class="bs-tag moderate">중기 검토 필요</span>
+        </div>
+      </div>
+
+      <div class="bs-card">
+        <div class="bs-icon">📦</div>
+        <div class="bs-body">
+          <h4>제품 종류와 크기가 바뀌면</h4>
+          <p>현재는 4가지 상품이 모두 동일 크기라고 가정합니다. 실제로는 크기가 다른 제품이 섞이면 그리드 단위 적재가 불가능해집니다. 또한 무게 차이가 있다면 <strong>무거운 것을 아래에 쌓아야 하는 적재 순서 제약</strong>도 추가됩니다. 수요 예측이 어려운 신규 상품이 추가되면 RA의 슬라이딩 윈도우도 초기화 문제가 발생합니다.</p>
+          <span class="bs-tag moderate">상품 스펙 확정 후 검토</span>
+        </div>
+      </div>
+
+      <div class="bs-card">
+        <div class="bs-icon">🔄</div>
+        <div class="bs-body">
+          <h4>지금 벤치마크는 '랜덤' 수요 기반</h4>
+          <p>현재 미션 리스트는 설정된 확률로 난수 생성한 것입니다. 실제 창고 운영 데이터(과거 입출고 이력)를 기반으로 벤치마크해야 비로소 의미 있는 비교가 됩니다. <strong>실제 데이터 수집 → 패턴 분석 → 해당 패턴 시나리오 벤치마크</strong> 순서가 필요합니다.</p>
+          <span class="bs-tag moderate">실 데이터 수집 후 재검증</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 7. 다음 단계 ── -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num">NEXT STEPS</span>
+      <h2>권장 다음 단계</h2>
+      <span class="line"></span>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h4>실제 입출고 포지션 확정</h4>
+          <p>입고 컨베이어와 출고 컨베이어의 좌표를 확정합니다. 같으면 현재 알고리즘 유지, 다르면 스코어링 함수 재설계가 필요합니다. 이것이 모든 것의 전제 조건입니다.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h4>실제 운영 데이터 수집</h4>
+          <p>과거 입출고 이력에서 상품별 출고 빈도와 시간 패턴을 추출합니다. 4가지 패턴(shift/cyclic/burst/uniform) 중 어느 것과 가장 유사한지 파악합니다.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h4>실 데이터 기반 벤치마크 재실행</h4>
+          <p>랜덤 난수가 아닌 실제 수요 패턴으로 벤치마크를 재실행합니다. 이때의 결과가 알고리즘 선택의 실질적 근거가 됩니다.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h4>알고리즘 선택 및 실기 적용</h4>
+          <p>벤치마크 결과를 바탕으로 최적 알고리즘을 선택하고, 실제 PLC·Modbus 연동 환경에서 검증합니다. 이후 단계적으로 상용 환경에 적용합니다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /wrap -->
+
+<footer>
+  <a href="https://github.com/SpRobotTeam/DT_Gantry_Robot_WareHouse">SpRobotTeam/DT_Gantry_Robot_WareHouse</a>
+  &mdash; <a href="index.html">시각화 목록으로</a>
+</footer>
+
+<script>
+// ── 창고 격자 미니 다이어그램 ──
+(function(){
+  const grid = document.getElementById('whGrid');
+  const sample = [
+    [5,4,3,2,1,0,0,0],
+    [5,4,3,2,1,1,0,0],
+    [4,4,3,2,2,1,0,0],
+    [3,3,3,2,2,1,1,0],
+    [2,2,2,2,2,1,1,0],
+    [1,1,1,1,1,1,0,0],
+    [0,0,1,1,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+  ];
+  const cls = ['empty','h1','h2','h3','h4','h5'];
+  for(let y=0;y<8;y++) for(let x=0;x<8;x++){
+    const d=document.createElement('div');
+    const h=sample[y][x];
+    if(x===0&&y===0){ d.className='wh-cell out'; d.textContent='OUT'; }
+    else { d.className='wh-cell '+cls[h]; d.textContent=h||''; }
+    grid.appendChild(d);
+  }
+})();
+
+// ── 벤치마크 차트 ──
+const DATA = {
+  uniform: {FF:449230.62, RL:152857.17, LA:152518.77, RA:154416.26},
+  shift:   {FF:389151.08, RL:206988.07, LA:216696.42, RA:218023.30},
+  cyclic:  {FF:453108.74, RL:244306.15, LA:220500.58, RA:249177.17},
+  burst:   {FF:444861.84, RL:175018.57, LA:173846.48, RA:171607.31},
+};
+const ALGOS   = ['FF','RL','LA','RA'];
+const COLORS  = {FF:'#94a3b8',RL:'#16a34a',LA:'#ca8a04',RA:'#9333ea'};
+const PATTERNS = ['uniform','shift','cyclic','burst'];
+const PAT_LBL  = {uniform:'Uniform',shift:'Shift',cyclic:'Cyclic',burst:'Burst'};
+
+// legend
+const leg = document.getElementById('benchLegend');
+ALGOS.forEach(a=>{
+  const el=document.createElement('div'); el.className='item';
+  el.innerHTML=`<span class="dot" style="background:${COLORS[a]}"></span>${a}`;
+  leg.appendChild(el);
+});
+
+// chart
+new Chart(document.getElementById('benchChart'),{
+  type:'bar',
+  data:{
+    labels: PATTERNS.map(p=>PAT_LBL[p]),
+    datasets: ALGOS.map(a=>({
+      label:a,
+      data: PATTERNS.map(p=>DATA[p][a]),
+      backgroundColor: COLORS[a]+'cc',
+      borderColor: COLORS[a],
+      borderWidth:1, borderRadius:4,
+    }))
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>`  ${ctx.dataset.label}: ${Math.round(ctx.raw).toLocaleString()}`}}},
+    scales:{
+      x:{grid:{color:'#e5e7eb'}, ticks:{color:'#9ca3af'}},
+      y:{grid:{color:'#e5e7eb'}, ticks:{color:'#9ca3af', callback:v=>(v/1000).toFixed(0)+'k'}}
+    }
+  }
+});
+
+// RA/RL ratio badges
+const ratioRow = document.getElementById('ratioRow');
+const RATIOS = {uniform:{v:1.010,win:true}, shift:{v:1.053,win:false}, cyclic:{v:1.020,win:true}, burst:{v:0.981,win:true}};
+PATTERNS.forEach(p=>{
+  const r=RATIOS[p];
+  const el=document.createElement('div');
+  el.className='ratio-badge '+(r.win?'win':'lose');
+  el.innerHTML=`
+    <div class="rb-pat">${PAT_LBL[p]}</div>
+    <div class="rb-val">${r.v.toFixed(3)}${r.win?' ✓':''}</div>
+    <div class="rb-note">RA / RL · ${r.win?'RA 우세':'RL 우세'}</div>
+  `;
+  ratioRow.appendChild(el);
+});
+</script>
+</body>
+</html>
